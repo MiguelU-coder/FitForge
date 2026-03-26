@@ -90,6 +90,36 @@ services:
       timeout: 5s
       retries: 3
 
+  # ── AI Coach Microservice (LLM + ExerciseDB) ─────────────────────────────────
+  ia-coach:
+    build:
+      context: ./ia_coach
+      dockerfile: Dockerfile
+    container_name: ff-ia-coach
+    ports:
+      - "8001:8001"
+    environment:
+      APP_ENV: development
+      APP_PORT: 8001
+      REDIS_URL: redis://redis:6379
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-meta-llama/llama-3.3-70b-instruct:free}
+      EXERCISE_DB_API_KEY: ${EXERCISE_DB_API_KEY}
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./ia_coach:/app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8001/health" ]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+
+
+
   # ── n8n Workflow Automation ─────────────────────────────────────────────────
   n8n:
     image: n8nio/n8n:latest
