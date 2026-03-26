@@ -1,0 +1,125 @@
+# docker-compose.yml — FitForge Universal Local Stack
+# Levanta toda la infraestructura local corregida
+
+services:
+  # ── PostgreSQL 16 ───────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: ff-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: fitforge_dev
+      POSTGRES_USER: fitforge
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./backend/infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U fitforge -d fitforge_dev" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── Redis 7 ─────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7.2-alpine
+    container_name: ff-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ── Adminer (PostgreSQL UI) ── http://localhost:8080 ────────────────────────
+  adminer:
+    image: adminer:latest
+    container_name: ff-adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── Redis Commander (Redis UI) ── http://localhost:8081 ─────────────────────
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: ff-redis-ui
+    restart: unless-stopped
+    environment:
+      REDIS_HOSTS: "local:redis:6379"
+    ports:
+      - "8081:8081"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # ── Python AI Microservice ──────────────────────────────────────────────────
+  ai-service:
+    build:
+      context: ./ia_microservices
+      dockerfile: Dockerfile
+    container_name: ff-ai-service
+    ports:
+      - "8000:8000"
+    environment:
+      APP_ENV: development
+      APP_PORT: 8000
+      REDIS_URL: redis://redis:6379
+      BACKEND_URL: http://host.docker.internal:3000
+      CLERK_JWKS_URL: ${CLERK_JWKS_URL:-}
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./ia_microservices:/app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ── n8n Workflow Automation ─────────────────────────────────────────────────
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: ff-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: fitforge_dev
+      DB_POSTGRESDB_USER: fitforge
+      DB_POSTGRESDB_PASSWORD: ${DB_PASSWORD:-password}
+
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: admin
+      N8N_BASIC_AUTH_PASSWORD: admin
+
+      N8N_HOST: localhost
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pg_data:
+  redis_data:
+  n8n_data:

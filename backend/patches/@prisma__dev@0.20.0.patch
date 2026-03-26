@@ -1,0 +1,13 @@
+diff --git a/package.json b/package.json
+index e05acb5cdaf573a1234ad12480067e3f468b2a5e..5ac7ae324251f83349f4e1b939d1f1516cff63a9 100644
+--- a/package.json
++++ b/package.json
+@@ -91,7 +91,7 @@
+     "remeda": "2.33.4",
+     "std-env": "3.10.0",
+     "valibot": "1.2.0",
+-    "zeptomatch": "2.1.0"
++    "zeptomatch": "1.2.2"
+   },
+   "scripts": {
+     "build": "tsup",

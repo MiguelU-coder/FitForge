@@ -1,0 +1,631 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["relationJoins"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                String                  @unique @db.VarChar(255)
+  passwordHash         String?                 @map("password_hash") @db.VarChar(512)
+  displayName          String                  @map("display_name") @db.VarChar(100)
+  unitSystem           UnitSystem              @default(METRIC) @map("unit_system")
+  heightCm             Decimal?                @map("height_cm") @db.Decimal(5, 1)
+  dateOfBirth          DateTime?               @map("date_of_birth") @db.Date
+  avatarUrl            String?                 @map("avatar_url")
+  isActive             Boolean                 @default(false) @map("is_active")
+  createdAt            DateTime                @default(now()) @map("created_at")
+  updatedAt            DateTime                @updatedAt @map("updated_at")
+  activities           ActivityInterest[]
+  gender               Gender?
+  goalWeightKg         Decimal?                @map("goal_weight_kg") @db.Decimal(5, 2)
+  mainGoal             UserGoal?               @map("main_goal")
+  trainingLevel        TrainingLevel?          @map("training_level")
+  isGlobalAdmin        Boolean                 @default(false) @map("is_global_admin")
+  billingAddress       String?                 @map("billing_address")
+  billingState         String?                 @map("billing_state") @db.VarChar(100)
+  billingZipCode       String?                 @map("billing_zip_code") @db.VarChar(20)
+  businessEmail        String?                 @map("business_email") @db.VarChar(255)
+  location             String?                 @db.VarChar(200)
+  office               String?                 @db.VarChar(100)
+  phoneNumber          String?                 @map("phone_number") @db.VarChar(20)
+  position             String?                 @db.VarChar(100)
+  rank                 String?                 @db.VarChar(100)
+  shortBio             String?                 @map("short_bio")
+  teamName             String?                 @map("team_name") @db.VarChar(100)
+  website              String?                 @db.VarChar(255)
+  stripeCustomerId     String?                 @unique @map("stripe_customer_id") @db.VarChar(100)
+  stripePriceId        String?                 @map("stripe_price_id") @db.VarChar(100)
+  stripeSubscriptionId String?                 @map("stripe_subscription_id") @db.VarChar(100)
+  subscriptionStatus   String                  @default("inactive") @map("subscription_status") @db.VarChar(50)
+  bodyMetrics          BodyMetric[]
+  eventLogs            EventLog[]
+  exercises            Exercise[]              @relation("CustomExercises")
+  personalRecords      PersonalRecord[]
+  programs             Program[]
+  progressPhotos       ProgressPhoto[]
+  refreshTokens        RefreshToken[]
+  organizations        UserOrganization[]
+  userPlates           UserPlate[]
+  weeklySummaries      WeeklyVolumeSummary[]
+  workoutSessions      WorkoutSession[]
+  memberPayments        MemberPayment[]
+  routineAssignments   UserRoutineAssignment[] @relation("UserAssignments")
+  assignedByUser       UserRoutineAssignment[] @relation("AssignedRoutines")
+  taughtClasses        GymClass[]              @relation("TrainerClasses")
+
+  @@map("users")
+}
+
+model Organization {
+  id                  String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                String                  @db.VarChar(150)
+  slug                String                  @unique @db.VarChar(100)
+  logoUrl             String?                 @map("logo_url")
+  isActive            Boolean                 @default(true) @map("is_active")
+  createdAt           DateTime                @default(now()) @map("created_at")
+  updatedAt           DateTime                @updatedAt @map("updated_at")
+  planId              String?                 @map("plan_id") @db.Uuid
+  exercises           Exercise[]
+  plan                BillingPlan?            @relation(fields: [planId], references: [id])
+  programs            Program[]
+  routines            Routine[]
+  users               UserOrganization[]
+  memberPayments      MemberPayment[]
+  gymClasses          GymClass[]
+  routineAssignments  UserRoutineAssignment[]
+
+  @@map("organizations")
+}
+
+model BillingPlan {
+  id                   String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                 String                @db.VarChar(100)
+  price                Decimal               @db.Decimal(10, 2)
+  interval             String                @default("month")
+  features             Json?
+  isActive             Boolean               @default(true) @map("is_active")
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+  stripePriceId        String?               @map("stripe_price_id") @db.VarChar(100)
+  stripeProductId      String?               @map("stripe_product_id") @db.VarChar(100)
+  organizations        Organization[]
+  pendingOrganizations PendingOrganization[]
+
+  @@map("billing_plans")
+}
+
+model GlobalSettings {
+  id             String   @id @default("default")
+  platformFeePct Decimal  @default(5.0) @map("platform_fee_pct") @db.Decimal(5, 2)
+  taxRatePct     Decimal  @default(0.0) @map("tax_rate_pct") @db.Decimal(5, 2)
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("global_settings")
+}
+
+model UserOrganization {
+  userId         String       @map("user_id") @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  role           UserRole     @default(CLIENT)
+  joinedAt       DateTime     @default(now()) @map("joined_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, organizationId])
+  @@map("user_organizations")
+}
+
+model RefreshToken {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  token     String    @unique @db.VarChar(512)
+  userId    String    @map("user_id") @db.Uuid
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model UserPlate {
+  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String  @map("user_id") @db.Uuid
+  weightKg    Decimal @map("weight_kg") @db.Decimal(5, 2)
+  quantity    Int     @default(2)
+  barWeightKg Decimal @default(20) @map("bar_weight_kg") @db.Decimal(5, 2)
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_plates")
+}
+
+model Exercise {
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdBy        String?          @map("created_by") @db.Uuid
+  name             String           @db.VarChar(150)
+  slug             String?          @unique @db.VarChar(200)
+  primaryMuscles   MuscleGroup[]    @map("primary_muscles")
+  secondaryMuscles MuscleGroup[]    @map("secondary_muscles")
+  equipment        Equipment?
+  movementPattern  MovementPattern? @map("movement_pattern")
+  isUnilateral     Boolean          @default(false) @map("is_unilateral")
+  isCustom         Boolean          @default(false) @map("is_custom")
+  instructions     String?
+  videoUrl         String?          @map("video_url")
+  imageUrl         String?          @map("image_url")
+  isActive         Boolean          @default(true) @map("is_active")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  externalId       String?          @unique @map("external_id") @db.VarChar(50)
+  organizationId   String?          @map("organization_id") @db.Uuid
+  exerciseBlocks   ExerciseBlock[]
+  creator          User?            @relation("CustomExercises", fields: [createdBy], references: [id])
+  organization     Organization?    @relation(fields: [organizationId], references: [id])
+  personalRecords  PersonalRecord[]
+  routineItems     RoutineItem[]
+
+  @@index([createdBy])
+  @@index([organizationId])
+  @@index([name])
+  @@index([primaryMuscles])
+  @@index([equipment])
+  @@map("exercises")
+}
+
+model Program {
+  id                  String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId              String                  @map("user_id") @db.Uuid
+  name                String                  @db.VarChar(150)
+  goal                String?                 @db.VarChar(100)
+  weeks               Int?
+  daysPerWeek         Int?                    @map("days_per_week")
+  isActive            Boolean                 @default(false) @map("is_active")
+  startedAt           DateTime?               @map("started_at") @db.Date
+  createdAt           DateTime                @default(now()) @map("created_at")
+  updatedAt           DateTime                @updatedAt @map("updated_at")
+  organizationId      String?                 @map("organization_id") @db.Uuid
+  organization        Organization?           @relation(fields: [organizationId], references: [id])
+  user                User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  routines            Routine[]
+  routineAssignments  UserRoutineAssignment[]
+
+  @@index([userId, isActive])
+  @@index([organizationId])
+  @@map("programs")
+}
+
+model Routine {
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  programId       String?          @map("program_id") @db.Uuid
+  userId          String           @map("user_id") @db.Uuid
+  name            String           @db.VarChar(150)
+  dayOfWeek       Int?             @map("day_of_week")
+  sortOrder       Int              @default(0) @map("sort_order")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  organizationId  String?          @map("organization_id") @db.Uuid
+  routineItems    RoutineItem[]
+  organization    Organization?    @relation(fields: [organizationId], references: [id])
+  program         Program?         @relation(fields: [programId], references: [id])
+  workoutSessions WorkoutSession[]
+
+  @@index([userId])
+  @@index([programId])
+  @@index([organizationId])
+  @@map("routines")
+}
+
+model RoutineItem {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  routineId   String   @map("routine_id") @db.Uuid
+  exerciseId  String   @map("exercise_id") @db.Uuid
+  sortOrder   Int      @default(0) @map("sort_order")
+  targetSets  Int?     @map("target_sets")
+  targetReps  Int?     @map("target_reps")
+  targetRir   Int?     @map("target_rir")
+  restSeconds Int?     @map("rest_seconds")
+  notes       String?  @db.VarChar(500)
+  exercise    Exercise @relation(fields: [exerciseId], references: [id])
+  routine     Routine  @relation(fields: [routineId], references: [id], onDelete: Cascade)
+
+  @@index([routineId])
+  @@map("routine_items")
+}
+
+model WorkoutSession {
+  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String          @map("user_id") @db.Uuid
+  routineId         String?         @map("routine_id") @db.Uuid
+  name              String?         @db.VarChar(150)
+  startedAt         DateTime        @default(now()) @map("started_at")
+  finishedAt        DateTime?       @map("finished_at")
+  durationSeconds   Int?            @map("duration_seconds")
+  notes             String?
+  perceivedExertion Int?            @map("perceived_exertion")
+  bodyWeightKg      Decimal?        @map("body_weight_kg") @db.Decimal(5, 2)
+  exerciseBlocks    ExerciseBlock[]
+  routine           Routine?        @relation(fields: [routineId], references: [id])
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startedAt(sort: Desc)])
+  @@index([routineId])
+  @@map("workout_sessions")
+}
+
+model ExerciseBlock {
+  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId     String         @map("session_id") @db.Uuid
+  exerciseId    String         @map("exercise_id") @db.Uuid
+  sortOrder     Int            @map("sort_order")
+  supersetGroup Int?           @map("superset_group")
+  blockType     BlockType      @default(NORMAL) @map("block_type")
+  restSeconds   Int?           @map("rest_seconds")
+  notes         String?        @db.VarChar(500)
+  exercise      Exercise       @relation(fields: [exerciseId], references: [id])
+  session       WorkoutSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sets          Set[]
+
+  @@index([sessionId, sortOrder])
+  @@map("exercise_blocks")
+}
+
+model Set {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  blockId         String        @map("block_id") @db.Uuid
+  setNumber       Int           @map("set_number")
+  setType         SetType       @default(WORKING) @map("set_type")
+  weightKg        Decimal?      @map("weight_kg") @db.Decimal(6, 2)
+  weightKgLeft    Decimal?      @map("weight_kg_left") @db.Decimal(6, 2)
+  weightKgRight   Decimal?      @map("weight_kg_right") @db.Decimal(6, 2)
+  reps            Int?
+  repsLeft        Int?          @map("reps_left")
+  repsRight       Int?          @map("reps_right")
+  rir             Int?
+  rpe             Decimal?      @db.Decimal(3, 1)
+  durationSeconds Int?          @map("duration_seconds")
+  distanceM       Decimal?      @map("distance_m") @db.Decimal(8, 1)
+  isPr            Boolean       @default(false) @map("is_pr")
+  isFailed        Boolean       @default(false) @map("is_failed")
+  isSkipped       Boolean       @default(false) @map("is_skipped")
+  completedAt     DateTime?     @map("completed_at")
+  notes           String?       @db.VarChar(300)
+  block           ExerciseBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+
+  @@index([blockId, setNumber])
+  @@index([completedAt])
+  @@map("sets")
+}
+
+model PersonalRecord {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  exerciseId String   @map("exercise_id") @db.Uuid
+  prType     PrType   @map("pr_type")
+  value      Decimal  @db.Decimal(8, 2)
+  achievedAt DateTime @default(now()) @map("achieved_at")
+  notes      String?  @db.VarChar(300)
+  exercise   Exercise @relation(fields: [exerciseId], references: [id])
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, exerciseId, prType])
+  @@index([userId, exerciseId])
+  @@map("personal_records")
+}
+
+model WeeklyVolumeSummary {
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String      @map("user_id") @db.Uuid
+  weekStart     DateTime    @map("week_start") @db.Date
+  muscleGroup   MuscleGroup @map("muscle_group")
+  totalSets     Int         @default(0) @map("total_sets")
+  totalVolumeKg Decimal     @default(0) @map("total_volume_kg") @db.Decimal(10, 2)
+  avgRir        Decimal?    @map("avg_rir") @db.Decimal(3, 1)
+  sessionCount  Int         @default(0) @map("session_count")
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekStart, muscleGroup])
+  @@index([userId, weekStart(sort: Desc)])
+  @@map("weekly_volume_summary")
+}
+
+model BodyMetric {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String   @map("user_id") @db.Uuid
+  recordedAt        DateTime @map("recorded_at") @db.Date
+  weightKg          Decimal? @map("weight_kg") @db.Decimal(5, 2)
+  bodyFatPct        Decimal? @map("body_fat_pct") @db.Decimal(4, 1)
+  waistCm           Decimal? @map("waist_cm") @db.Decimal(5, 1)
+  chestCm           Decimal? @map("chest_cm") @db.Decimal(5, 1)
+  hipsCm            Decimal? @map("hips_cm") @db.Decimal(5, 1)
+  armsCm            Decimal? @map("arms_cm") @db.Decimal(5, 1)
+  thighsCm          Decimal? @map("thighs_cm") @db.Decimal(5, 1)
+  notes             String?  @db.VarChar(500)
+  bmi               Decimal? @db.Decimal(4, 1)
+  bodyWaterPct      Decimal? @map("body_water_pct") @db.Decimal(4, 1)
+  boneMassKg        Decimal? @map("bone_mass_kg") @db.Decimal(4, 2)
+  visceralFatRating Int?     @map("visceral_fat_rating")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, recordedAt])
+  @@index([userId, recordedAt(sort: Desc)])
+  @@map("body_metrics")
+}
+
+model ProgressPhoto {
+  id         String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String     @map("user_id") @db.Uuid
+  takenAt    DateTime   @map("taken_at") @db.Date
+  angle      PhotoAngle
+  storageKey String     @map("storage_key") @db.VarChar(500)
+  weightKg   Decimal?   @map("weight_kg") @db.Decimal(5, 2)
+  notes      String?    @db.VarChar(300)
+  createdAt  DateTime   @default(now()) @map("created_at")
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, takenAt(sort: Desc)])
+  @@map("progress_photos")
+}
+
+model EventLog {
+  id        String   @id @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  eventType String   @map("event_type") @db.VarChar(50)
+  payload   Json
+  source    String   @default("backend") @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([eventType, createdAt])
+  @@map("event_log")
+}
+
+model CheckoutLink {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shortId   String   @unique @map("short_id") @db.VarChar(50)
+  url       String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([shortId])
+  @@map("checkout_links")
+}
+
+model PendingOrganization {
+  id                      String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId          String?     @map("organization_id") @db.Uuid
+  name                    String      @db.VarChar(150)
+  slug                    String      @db.VarChar(100)
+  logoUrl                 String?     @map("logo_url")
+  planId                  String      @map("plan_id") @db.Uuid
+  adminEmail              String      @unique @map("admin_email") @db.VarChar(255)
+  adminFirstName          String?     @map("admin_first_name") @db.VarChar(100)
+  adminLastName           String?     @map("admin_last_name") @db.VarChar(100)
+  adminPassword           String?     @map("admin_password") @db.VarChar(100)
+  stripeCustomerId        String?     @map("stripe_customer_id") @db.VarChar(100)
+  stripeCheckoutSessionId String?     @map("stripe_checkout_session_id") @db.VarChar(100)
+  status                  String      @default("pending")
+  paidAt                  DateTime?   @map("paid_at")
+  completedAt             DateTime?   @map("completed_at")
+  expiresAt               DateTime?   @map("expires_at")
+  createdAt               DateTime    @default(now()) @map("created_at")
+  updatedAt               DateTime    @updatedAt @map("updated_at")
+  plan                    BillingPlan @relation(fields: [planId], references: [id])
+
+  @@index([slug])
+  @@index([status])
+  @@map("pending_organizations")
+}
+
+enum UnitSystem {
+  METRIC
+  IMPERIAL
+}
+
+enum SetType {
+  WARMUP
+  WORKING
+  DROP
+  MYOREP_ACTIVATE
+  MYOREP
+  PARTIAL
+  FAILURE
+}
+
+enum BlockType {
+  NORMAL
+  SUPERSET
+  DROP_SET
+  MYOREP
+}
+
+enum Equipment {
+  BARBELL
+  DUMBBELL
+  CABLE
+  MACHINE
+  BODYWEIGHT
+  KETTLEBELL
+  RESISTANCE_BAND
+  SMITH_MACHINE
+  OTHER
+}
+
+enum MovementPattern {
+  PUSH_HORIZONTAL
+  PUSH_VERTICAL
+  PULL_HORIZONTAL
+  PULL_VERTICAL
+  HINGE
+  SQUAT
+  LUNGE
+  CARRY
+  CORE
+  CARDIO
+}
+
+enum MuscleGroup {
+  CHEST
+  BACK
+  SHOULDERS
+  BICEPS
+  TRICEPS
+  FOREARMS
+  QUADS
+  HAMSTRINGS
+  GLUTES
+  CALVES
+  ABS
+  OBLIQUES
+  TRAPS
+  LATS
+  FULL_BODY
+}
+
+enum PrType {
+  ONE_RM_ESTIMATED
+  FIVE_RM
+  MAX_REPS_AT_WEIGHT
+  MAX_VOLUME_SESSION
+  MAX_WEIGHT
+}
+
+enum PhotoAngle {
+  FRONT
+  BACK
+  SIDE_LEFT
+  SIDE_RIGHT
+}
+
+enum Gender {
+  FEMALE
+  MALE
+  NON_BINARY
+  OTHER
+}
+
+enum UserGoal {
+  LOSE_WEIGHT
+  KEEP_FIT
+  GET_STRONGER
+  GAIN_MUSCLE_MASS
+}
+
+enum TrainingLevel {
+  BEGINNER
+  IRREGULAR
+  MEDIUM
+  ADVANCED
+}
+
+enum ActivityInterest {
+  STRETCH
+  CARDIO
+  YOGA
+  POWER_TRAINING
+  DANCING
+}
+
+enum UserRole {
+  GLOBAL_ADMIN
+  ORG_ADMIN
+  TRAINER
+  CLIENT
+}
+
+// Pagos de miembros al gimnasio
+model MemberPayment {
+  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String        @map("organization_id") @db.Uuid
+  userId         String        @map("user_id") @db.Uuid
+  amount         Decimal       @db.Decimal(10, 2)
+  currency       String        @default("USD") @db.VarChar(3)
+  status         PaymentStatus @default(PENDING)
+  paymentMethod  String?       @map("payment_method") @db.VarChar(50)
+  reference      String?       @db.VarChar(100)
+  notes          String?
+  dueDate        DateTime?     @map("due_date") @db.Date
+  paidAt         DateTime?    @map("paid_at")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("member_payments")
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+  REFUNDED
+}
+
+// Clases grupales del gimnasio
+model GymClass {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId  String          @map("organization_id") @db.Uuid
+  name            String          @db.VarChar(150)
+  description     String?
+  trainerId       String?         @map("trainer_id") @db.Uuid
+  capacity        Int             @default(20)
+  durationMinutes Int             @default(60) @map("duration_minutes")
+  isActive        Boolean         @default(true) @map("is_active")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+  organization    Organization    @relation(fields: [organizationId], references: [id])
+  schedules       ClassSchedule[]
+  trainer         User?           @relation("TrainerClasses", fields: [trainerId], references: [id])
+
+  @@index([organizationId])
+  @@index([trainerId])
+  @@map("gym_classes")
+}
+
+// Horarios de clases
+model ClassSchedule {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  classId   String    @map("class_id") @db.Uuid
+  dayOfWeek Int       @map("day_of_week") // 0-6 (domingo-sábado)
+  startTime String    @map("start_time") @db.VarChar(5) // HH:mm
+  endTime   String    @map("end_time") @db.VarChar(5) // HH:mm
+  room      String?   @db.VarChar(50)
+  isActive  Boolean   @default(true) @map("is_active")
+  gymClass  GymClass  @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@index([classId])
+  @@map("class_schedules")
+}
+
+// Asignación de rutinas a usuarios por el gimnasio
+model UserRoutineAssignment {
+  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String        @map("organization_id") @db.Uuid
+  userId         String        @map("user_id") @db.Uuid
+  programId      String        @map("program_id") @db.Uuid
+  assignedBy     String        @map("assigned_by") @db.Uuid
+  assignedAt     DateTime      @default(now()) @map("assigned_at")
+  startsAt       DateTime?     @map("starts_at") @db.Date
+  endsAt         DateTime?     @map("ends_at") @db.Date
+  isActive       Boolean       @default(true) @map("is_active")
+  notes          String?
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  user           User           @relation("UserAssignments", fields: [userId], references: [id], onDelete: Cascade)
+  program        Program        @relation(fields: [programId], references: [id], onDelete: Cascade)
+  assignedByUser User           @relation("AssignedRoutines", fields: [assignedBy], references: [id])
+
+  @@unique([userId, programId])
+  @@index([organizationId])
+  @@index([userId])
+  @@map("user_routine_assignments")
+}

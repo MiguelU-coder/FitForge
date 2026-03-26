@@ -1,0 +1,87 @@
+# ── IDEs & System ────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.claude/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+Thumbs.db
+desktop.ini
+
+# ── Environment & Secrets (CRÍTICO) ──────────────────────────────────────────
+.env
+.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+!.env.example
+*.pem
+*.key
+secrets.json
+
+# ── Dependencies & Build Outputs ──────────────────────────────────────────────
+node_modules/
+jspm_packages/
+dist/
+build/
+out/
+.next/
+.cache/
+.pnpm-debug.log*
+
+# ── Backend specific (NestJS / Prisma) ────────────────────────────────────────
+/backend/dist/
+/backend/node_modules/
+/backend/prisma/migrations/
+/backend/*.log
+/backend/backend_output.log
+
+# ── Frontend specific (Vite / React) ──────────────────────────────────────────
+/admin_web/dist/
+/admin_web/node_modules/
+/admin_web/.vite/
+
+# ── Python / IA specific ──────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.cache
+nosetests.xml
+coverage.xml
+*.db
+/ia_microservices/venv/
+/ai-services/venv/
+
+# ── Flutter / Mobile specific ──────────────────────────────────────────────────
+/fitforge_flutter/.dart_tool/
+/fitforge_flutter/.flutter-plugins
+/fitforge_flutter/.flutter-plugins-dependencies
+/fitforge_flutter/.packages
+/fitforge_flutter/build/
+/fitforge_flutter/ios/Flutter/Generated.xcconfig
+/fitforge_flutter/android/local.properties
+/fitforge_flutter/android/key.properties
+*.moved-aside
+*.lock
+
+# ── Logs & Temporary ─────────────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.turbo/

@@ -1,0 +1,261 @@
+    "exerciseId": "LEprlgG",
+    "name": "cable lat pulldown full range of motion",
+    "gifUrl": "https://static.exercisedb.dev/media/LEprlgG.gif",
+    "targetMuscles": [
+--
+    "instructions": [
+      "Step:1 Sit on the lat pulldown machine with your knees positioned under the pads.",
+      "Step:2 Grasp the cable bar with an overhand grip, slightly wider than shoulder-width apart.",
+      "Step:3 Lean back slightly and keep your chest up, maintaining a slight arch in your lower back.",
+--
+    "fitforgeMuscle": "BACK",
+    "fitforgeName": "Lat Pulldown"
+  },
+  {
+--
+    "exerciseId": "x69MAlq",
+    "name": "cable straight arm pulldown",
+    "gifUrl": "https://static.exercisedb.dev/media/x69MAlq.gif",
+    "targetMuscles": [
+--
+    "fitforgeMuscle": "BACK",
+    "fitforgeName": "Straight Arm Pulldown"
+  },
+  {
+--
+    "exerciseId": "CmEr4pM",
+    "name": "cable wide grip rear pulldown behind neck",
+    "gifUrl": "https://static.exercisedb.dev/media/CmEr4pM.gif",
+    "targetMuscles": [
+--
+    "instructions": [
+      "Step:1 Adjust the cable machine so that the pulldown bar is at a height above your head.",
+      "Step:2 Sit down on the seat and grab the pulldown bar with a wide overhand grip.",
+      "Step:3 Keep your back straight and your chest up as you lean back slightly.",
+      "Step:4 Pull the bar down towards your upper chest, squeezing your shoulder blades together.",
+--
+    "fitforgeMuscle": "BACK",
+    "fitforgeName": "Wide Grip Pulldown"
+  },
+  {
+--
+    "fitforgeMuscle": "BACK",
+    "fitforgeName": "Neutral Grip Pulldown"
+  },
+  {
+--
+    "exerciseId": "znQUdHY",
+    "name": "dumbbell seated shoulder press",
+    "gifUrl": "https://static.exercisedb.dev/media/znQUdHY.gif",
+    "targetMuscles": [
+--
+    "fitforgeMuscle": "SHOULDERS",
+    "fitforgeName": "Dumbbell Shoulder Press"
+  },
+  {
+    "exerciseId": "67n3r98",
+    "name": "lever shoulder press",
+    "gifUrl": "https://static.exercisedb.dev/media/67n3r98.gif",
+    "targetMuscles": [
+--
+    "fitforgeMuscle": "SHOULDERS",
+    "fitforgeName": "Machine Shoulder Press"
+  },
+  {
+--
+    "exerciseId": "25GPyDY",
+    "name": "barbell curl",
+    "gifUrl": "https://static.exercisedb.dev/media/25GPyDY.gif",
+    "targetMuscles": [
+--
+      "Step:1 Stand up straight with your feet shoulder-width apart and hold a barbell with an underhand grip, palms facing forward.",
+      "Step:2 Keep your elbows close to your torso and exhale as you curl the weights while contracting your biceps.",
+      "Step:3 Continue to raise the bar until your biceps are fully contracted and the bar is at shoulder level.",
+      "Step:4 Hold the contracted position for a brief pause as you squeeze your biceps.",
+--
+    "fitforgeMuscle": "BICEPS",
+    "fitforgeName": "Barbell Curl"
+  },
+  {
+    "exerciseId": "tJ5nYqo",
+    "name": "ez-bar biceps curl (with arm blaster)",
+    "gifUrl": "https://static.exercisedb.dev/media/tJ5nYqo.gif",
+    "targetMuscles": [
+--
+      "Step:2 Place your upper arms against the arm blaster, keeping them stationary throughout the exercise.",
+      "Step:3 Keeping your elbows close to your body, exhale and curl the barbell up towards your shoulders.",
+      "Step:4 Pause for a moment at the top, squeezing your biceps.",
+      "Step:5 Inhale and slowly lower the barbell back to the starting position, fully extending your arms.",
+--
+    "fitforgeMuscle": "BICEPS",
+    "fitforgeName": "EZ Bar Curl"
+  },
+  {
+    "exerciseId": "qAmNMJY",
+    "name": "dumbbell high curl",
+    "gifUrl": "https://static.exercisedb.dev/media/qAmNMJY.gif",
+    "targetMuscles": [
+--
+      "Step:1 Stand up straight with a dumbbell in each hand, palms facing forward.",
+      "Step:2 Keep your upper arms stationary and curl the dumbbells as high as possible while contracting your biceps.",
+      "Step:3 Pause for a moment at the top, then slowly lower the dumbbells back to the starting position.",
+      "Step:4 Repeat for the desired number of repetitions."
+--
+    "fitforgeMuscle": "BICEPS",
+    "fitforgeName": "Dumbbell Curl"
+  },
+  {
+    "exerciseId": "ae9UoXQ",
+    "name": "dumbbell incline curl",
+    "gifUrl": "https://static.exercisedb.dev/media/ae9UoXQ.gif",
+    "targetMuscles": [
+--
+      "Step:2 Rest your upper arms on the incline bench and let your elbows hang down, fully extending your arms.",
+      "Step:3 Keeping your upper arms stationary, exhale and curl the weights while contracting your biceps.",
+      "Step:4 Continue to raise the dumbbells until your biceps are fully contracted and the dumbbells are at shoulder level.",
+      "Step:5 Hold the contracted position for a brief pause as you squeeze your biceps.",
+--
+    "fitforgeMuscle": "BICEPS",
+    "fitforgeName": "Incline Dumbbell Curl"
+  },
+  {
+    "exerciseId": "jivWf8n",
+    "name": "dumbbell preacher curl",
+    "gifUrl": "https://static.exercisedb.dev/media/jivWf8n.gif",
+    "targetMuscles": [
+--
+    "instructions": [
+      "Step:1 Sit on a preacher curl bench with your upper arms resting on the pad and your chest against it.",
+      "Step:2 Hold a dumbbell in each hand with your palms facing up and your arms fully extended.",
+      "Step:3 Keeping your upper arms stationary, exhale and curl the weights while contracting your biceps.",
+      "Step:4 Continue to raise the dumbbells until your biceps are fully contracted and the dumbbells are at shoulder level.",
+      "Step:5 Hold the contracted position for a brief pause as you squeeze your biceps.",
+--
+    "fitforgeMuscle": "BICEPS",
+    "fitforgeName": "Preacher Curl"
+  },
+  {
+    "exerciseId": "G08RZcQ",
+    "name": "cable curl",
+    "gifUrl": "https://static.exercisedb.dev/media/G08RZcQ.gif",
+    "targetMuscles": [
+--
+      "Step:3 Keep your elbows close to your sides and your upper arms stationary.",
+      "Step:4 Exhale and curl the cable attachment towards your shoulders, contracting your biceps.",
+      "Step:5 Pause for a moment at the top of the movement, squeezing your biceps.",
+      "Step:6 Inhale and slowly lower the cable attachment back to the starting position.",
+--
+    "fitforgeMuscle": "BICEPS",
+    "fitforgeName": "Cable Curl"
+  },
+  {
+    "exerciseId": "dXz8zjF",
+    "name": "cable drag curl",
+    "gifUrl": "https://static.exercisedb.dev/media/dXz8zjF.gif",
+    "targetMuscles": [
+--
+      "Step:2 Grasp the cable attachment with an underhand grip, palms facing up, and arms fully extended.",
+      "Step:3 Keeping your upper arms stationary, exhale and curl the cable attachment towards your shoulders by contracting your biceps.",
+      "Step:4 Pause for a moment at the top of the movement, squeezing your biceps.",
+      "Step:5 Inhale and slowly lower the cable attachment back to the starting position, fully extending your arms.",
+--
+    "fitforgeMuscle": "BICEPS",
+    "fitforgeName": "Bayesian Curl"
+  },
+  {
+    "exerciseId": "slDvUAU",
+    "name": "dumbbell hammer curl",
+    "gifUrl": "https://static.exercisedb.dev/media/slDvUAU.gif",
+    "targetMuscles": [
+--
+      "Step:3 This will be your starting position.",
+      "Step:4 Now, keeping the upper arms stationary, exhale and curl the weights while contracting your biceps.",
+      "Step:5 Continue to raise the weights until your biceps are fully contracted and the dumbbells are at shoulder level.",
+      "Step:6 Hold the contracted position for a brief pause as you squeeze your biceps.",
+--
+    "fitforgeMuscle": "BICEPS",
+    "fitforgeName": "Hammer Curl"
+  },
+  {
+    "exerciseId": "6sMAmNv",
+    "name": "dumbbell reverse spider curl",
+    "gifUrl": "https://static.exercisedb.dev/media/6sMAmNv.gif",
+    "targetMuscles": [
+--
+      "Step:1 Stand up straight with a dumbbell in each hand, palms facing your body and arms fully extended.",
+      "Step:2 Keeping your upper arms stationary, exhale and curl the weights while contracting your biceps.",
+      "Step:3 Continue to raise the dumbbells until your biceps are fully contracted and the dumbbells are at shoulder level.",
+      "Step:4 Hold the contracted position for a brief pause as you squeeze your biceps.",
+--
+    "fitforgeMuscle": "BICEPS",
+    "fitforgeName": "Spider Curl"
+  },
+  {
+    "exerciseId": "gvsWLQw",
+    "name": "dumbbell concentration curl",
+    "gifUrl": "https://static.exercisedb.dev/media/gvsWLQw.gif",
+    "targetMuscles": [
+--
+      "Step:2 Fully extend your arm and hold the dumbbell with an underhand grip.",
+      "Step:3 Keeping your upper arm stationary, exhale and curl the weight up towards your shoulder while contracting your biceps.",
+      "Step:4 Continue to raise the dumbbell until your biceps are fully contracted and the dumbbell is at shoulder level.",
+      "Step:5 Hold the contracted position for a brief pause as you squeeze your biceps.",
+--
+    "fitforgeMuscle": "BICEPS",
+    "fitforgeName": "Concentration Curl"
+  },
+  {
+--
+    "exerciseId": "Zg3XY7P",
+    "name": "lever seated leg curl",
+    "gifUrl": "https://static.exercisedb.dev/media/Zg3XY7P.gif",
+    "targetMuscles": [
+--
+      "Step:3 Grasp the handles on the sides of the machine for support.",
+      "Step:4 Keeping your upper legs stationary, exhale and curl your legs up as far as possible.",
+      "Step:5 Hold the contracted position for a brief pause as you squeeze your hamstrings.",
+      "Step:6 Inhale and slowly lower the lever back to the starting position.",
+--
+    "fitforgeMuscle": "HAMSTRINGS",
+    "fitforgeName": "Seated Leg Curl"
+  },
+  {
+    "exerciseId": "17lJ1kr",
+    "name": "lever lying leg curl",
+    "gifUrl": "https://static.exercisedb.dev/media/17lJ1kr.gif",
+    "targetMuscles": [
+--
+      "Step:3 Grasp the handles or the sides of the machine for stability.",
+      "Step:4 Keeping your upper body stationary, exhale and curl your legs up as far as possible without lifting your hips off the pad.",
+      "Step:5 Hold the contracted position for a brief pause as you squeeze your hamstrings.",
+      "Step:6 Inhale and slowly lower the lever back to the starting position.",
+--
+    "fitforgeMuscle": "HAMSTRINGS",
+    "fitforgeName": "Lying Leg Curl"
+  },
+  {
+--
+    "exerciseId": "UXpKJoq",
+    "name": "lever lying two-one leg curl",
+    "gifUrl": "https://static.exercisedb.dev/media/UXpKJoq.gif",
+    "targetMuscles": [
+--
+      "Step:3 Grasp the handles on the sides of the machine for support.",
+      "Step:4 Keeping your upper body still, exhale and curl your legs up towards your glutes.",
+      "Step:5 Pause for a moment at the top, then inhale and slowly lower your legs back to the starting position.",
+      "Step:6 Repeat for the desired number of repetitions."
+--
+    "fitforgeMuscle": "HAMSTRINGS",
+    "fitforgeName": "Nordic Hamstring Curl"
+  },
+  {
+--
+      "Step:2 Place your hands behind your head with your elbows pointing outwards.",
+      "Step:3 Engaging your abs, lift your shoulder blades off the ground and bring your knees towards your chest, simultaneously curling your upper body towards your knees.",
+      "Step:4 Pause for a moment at the top, then slowly lower your shoulder blades and extend your legs back to the starting position.",
+      "Step:5 Repeat for the desired number of repetitions."
+--
+      "Step:2 Bend your knees and lift your feet off the ground, bringing your thighs perpendicular to the floor.",
+      "Step:3 Contract your abs and curl your hips off the floor, bringing your knees towards your chest.",
+      "Step:4 Pause for a moment at the top, then slowly lower your hips back down to the starting position.",
+      "Step:5 Repeat for the desired number of repetitions."
