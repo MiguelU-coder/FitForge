@@ -414,6 +414,12 @@ export class RecentSetInputDto {
   @Min(1)
   @Max(10)
   rpe!: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(10)
+  rir?: number;
 }
 
 export class CoachAnalyzeRequestDto {
@@ -478,4 +484,40 @@ export class SessionCoachAnalyzeRequestDto {
   @IsOptional()
   @IsNumber()
   totalVolume?: number;
+}
+
+// ── Coach Routine Generation DTO (onboarding flow) ────────────────────────────
+export class CoachRoutineRequestDto {
+  @IsOptional()
+  @IsString()
+  goal?: string;
+
+  @IsOptional()
+  @IsString()
+  level?: string;
+
+  @IsOptional()
+  @IsString()
+  gender?: string;
+
+  @IsOptional()
+  @IsNumber()
+  height?: number;
+
+  @IsOptional()
+  @IsNumber()
+  weight?: number;
+
+  @IsOptional()
+  @IsNumber()
+  goalWeight?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  activities?: string[];
+
+  @IsOptional()
+  @IsString()
+  dateOfBirth?: string;
 }

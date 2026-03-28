@@ -1,6 +1,8 @@
 import { Controller, Post, Body, Req, HttpCode, HttpStatus } from '@nestjs/common';
 import { Request } from 'express';
 import { AiBridgeService } from './ai-bridge.service';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import type { AuthUser } from '../auth/strategies/jwt.strategy';
 import {
   ProgressionRequestDto,
   WorkoutSuggestionRequestDto,
@@ -11,6 +13,7 @@ import {
   PRPredictionRequestDto,
   CoachAnalyzeRequestDto,
   SessionCoachAnalyzeRequestDto,
+  CoachRoutineRequestDto,
 } from './dto/ai-request.dto';
 
 @Controller('ai')
@@ -89,5 +92,27 @@ export class AiBridgeController {
   @HttpCode(HttpStatus.OK)
   async coachSession(@Body() dto: SessionCoachAnalyzeRequestDto, @Req() req: Request) {
     return this.aiBridgeService.getSessionSummary(dto, this.extractToken(req));
+  }
+
+  /**
+   * Generate and save a personalized workout routine based on user profile.
+   * Called from Flutter onboarding flow.
+   */
+  @Post('coach/routine')
+  @HttpCode(HttpStatus.OK)
+  async coachRoutine(
+    @Body() dto: CoachRoutineRequestDto,
+    @CurrentUser() user: AuthUser,
+    @Req() req: Request,
+  ) {
+    console.log('--- AI COACH ROUTINE REQUEST START ---');
+    console.log(`User: ${user?.id}, Goal: ${dto.goal}`);
+    
+    // Pass user token for AI service to identify the user
+    const userToken = this.extractToken(req);
+    const result = await this.aiBridgeService.generateAndSaveRoutine(user.id, dto, userToken);
+    
+    console.log('--- AI COACH ROUTINE REQUEST END ---');
+    return result;
   }
 }

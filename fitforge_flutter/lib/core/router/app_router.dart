@@ -108,7 +108,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.activeSession,
-        builder: (context, state) => const ActiveSessionScreen(),
+        builder: (context, state) {
+          final routineId = state.uri.queryParameters['routine'];
+          return ActiveSessionScreen(initialRoutineId: routineId);
+        },
       ),
       GoRoute(
         path: AppRoutes.onboarding,

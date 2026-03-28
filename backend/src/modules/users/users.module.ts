@@ -531,47 +531,6 @@ export class UsersService {
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  // ── Global Admin Endpoints ────────────────────────────────────────────────
-
-  @Get()
-  @Roles(UserRole.GLOBAL_ADMIN)
-  @UseGuards(RolesGuard)
-  findAll(@Query(new ZodValidationPipe(QueryUsersSchema)) query: QueryUsersDto) {
-    return this.usersService.findAllUsers(query);
-  }
-
-  @Get('stats')
-  @Roles(UserRole.GLOBAL_ADMIN)
-  @UseGuards(RolesGuard)
-  getGlobalStats() {
-    return this.usersService.getGlobalStats();
-  }
-
-  @Post()
-  @Roles(UserRole.GLOBAL_ADMIN)
-  @UseGuards(RolesGuard)
-  adminCreate(@Body(new ZodValidationPipe(AdminCreateUserSchema)) dto: AdminCreateUserDto) {
-    return this.usersService.adminCreateUser(dto);
-  }
-
-  @Patch(':id')
-  @Roles(UserRole.GLOBAL_ADMIN)
-  @UseGuards(RolesGuard)
-  adminUpdate(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body(new ZodValidationPipe(AdminUpdateUserSchema)) dto: AdminUpdateUserDto,
-  ) {
-    return this.usersService.adminUpdateUser(id, dto);
-  }
-
-  @Delete(':id')
-  @Roles(UserRole.GLOBAL_ADMIN)
-  @UseGuards(RolesGuard)
-  @HttpCode(HttpStatus.NO_CONTENT)
-  adminRemove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.usersService.adminRemoveUser(id);
-  }
-
   // ── User Specific Endpoints ───────────────────────────────────────────────
 
   @Get('me')
@@ -641,6 +600,47 @@ export class UsersController {
     @Body(new ZodValidationPipe(CreateBodyMetricSchema)) dto: CreateBodyMetricDto,
   ): Promise<BodyMetric> {
     return this.usersService.createBodyMetric(user.id, dto);
+  }
+
+  // ── Global Admin Endpoints ────────────────────────────────────────────────
+
+  @Get()
+  @Roles(UserRole.GLOBAL_ADMIN)
+  @UseGuards(RolesGuard)
+  findAll(@Query(new ZodValidationPipe(QueryUsersSchema)) query: QueryUsersDto) {
+    return this.usersService.findAllUsers(query);
+  }
+
+  @Get('stats')
+  @Roles(UserRole.GLOBAL_ADMIN)
+  @UseGuards(RolesGuard)
+  getGlobalStats() {
+    return this.usersService.getGlobalStats();
+  }
+
+  @Post()
+  @Roles(UserRole.GLOBAL_ADMIN)
+  @UseGuards(RolesGuard)
+  adminCreate(@Body(new ZodValidationPipe(AdminCreateUserSchema)) dto: AdminCreateUserDto) {
+    return this.usersService.adminCreateUser(dto);
+  }
+
+  @Patch(':id')
+  @Roles(UserRole.GLOBAL_ADMIN)
+  @UseGuards(RolesGuard)
+  adminUpdate(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ZodValidationPipe(AdminUpdateUserSchema)) dto: AdminUpdateUserDto,
+  ) {
+    return this.usersService.adminUpdateUser(id, dto);
+  }
+
+  @Delete(':id')
+  @Roles(UserRole.GLOBAL_ADMIN)
+  @UseGuards(RolesGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  adminRemove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.usersService.adminRemoveUser(id);
   }
 }
 

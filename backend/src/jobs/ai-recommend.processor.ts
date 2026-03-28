@@ -133,20 +133,28 @@ export class AiRecommendProcessor extends WorkerHost {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-      const response = await fetch(`${aiUrl}/api/v1/recommend`, {
+      const response = await fetch(`${aiUrl}/ai/suggestion`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Service-Key': aiSecret,
+          ...(aiSecret ? { Authorization: `Bearer ${aiSecret}` } : {}),
         },
         body: JSON.stringify({
-          user_id: userId,
-          exercise_id: exerciseId,
-          last_set: {
-            weight_kg: lastSet.weightKg,
-            reps: lastSet.reps,
-            rir: lastSet.rir,
-          },
+          userId,
+          exerciseId,
+          exerciseName: 'Unknown',
+          targetReps: lastSet.reps,
+          targetRir: 2,
+          setsDoneToday: [
+            {
+              setNumber: 1,
+              setType: 'WORKING',
+              weightKg: lastSet.weightKg,
+              reps: lastSet.reps,
+              rir: lastSet.rir,
+            },
+          ],
+          lastSessionSets: [],
         }),
         signal: controller.signal,
       });
@@ -157,15 +165,22 @@ export class AiRecommendProcessor extends WorkerHost {
         throw new Error(`AI service responded ${response.status}`);
       }
 
-      const data = (await response.json()) as AiServiceResponse;
+      const data = (await response.json()) as any;
+
+      const suggestedWeightKg: number =
+        typeof data?.suggested_weight === 'number'
+          ? data.suggested_weight
+          : typeof data?.suggested_weight_kg === 'number'
+            ? data.suggested_weight_kg
+            : lastSet.weightKg;
 
       recommendation = {
-        suggestedWeightKg: data.suggested_weight_kg,
-        suggestedReps: data.suggested_reps,
-        suggestedRir: data.suggested_rir,
-        rationale: data.rationale,
-        confidence: data.confidence,
-        strategy: data.strategy as AiRecommendation['strategy'],
+        suggestedWeightKg,
+        suggestedReps: typeof data?.suggested_reps === 'number' ? data.suggested_reps : lastSet.reps,
+        suggestedRir: typeof data?.suggested_rir === 'number' ? data.suggested_rir : 2,
+        rationale: typeof data?.reasoning === 'string' ? data.reasoning : 'AI suggestion generated.',
+        confidence: typeof data?.confidence === 'number' ? data.confidence : 0.7,
+        strategy: 'progressive_overload',
         generatedAt: new Date().toISOString(),
       };
 

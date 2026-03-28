@@ -102,8 +102,8 @@ services:
       APP_ENV: development
       APP_PORT: 8001
       REDIS_URL: redis://redis:6379
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
-      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-meta-llama/llama-3.3-70b-instruct:free}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      AI_SERVICE_SECRET: ${AI_SERVICE_SECRET}
       EXERCISE_DB_API_KEY: ${EXERCISE_DB_API_KEY}
     depends_on:
       redis:

@@ -24,6 +24,8 @@ async def get_redis() -> aioredis.Redis:
             settings.redis_url,
             encoding="utf-8",
             decode_responses=True,
+            socket_timeout=1.0,         # Fast fail if Redis is down
+            socket_connect_timeout=1.0, 
         )
     return _redis
 

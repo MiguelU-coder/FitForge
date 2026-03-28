@@ -36,6 +36,9 @@ router   = APIRouter(prefix="/coach", tags=["AI Coach"])
 settings = get_settings()
 logger   = structlog.get_logger()
 
+# LLM model info
+LLM_MODEL = "gemini-1.5-flash"
+
 # Mapa de equipos FitForge → ExerciseDB naming
 EQUIPMENT_MAP = {
     "BARBELL":   "barbell",
@@ -123,7 +126,7 @@ async def analyze_set(
             recommendations = data.get("recommendations", []),
             warnings        = data.get("warnings", []),
             motivation      = data.get("motivation", ""),
-            llm_provider    = settings.openrouter_model,
+            llm_provider    = LLM_MODEL,
         )
 
         await cache_set(cache_key, response_data.model_dump(), settings.cache_ttl_coach)
@@ -172,7 +175,7 @@ async def session_summary(
             recommendations = data.get("recommendations", []),
             warnings        = data.get("warnings", []),
             motivation      = data.get("motivation", ""),
-            llm_provider    = settings.openrouter_model,
+            llm_provider    = LLM_MODEL,
         )
 
         return CoachApiResponse(data=response_data)
@@ -256,7 +259,13 @@ async def generate_routine(
 
         # Construir el objeto Pydantic con validación
         sessions = []
-        for session_data in routine.get("sessions", []):
+        routine_sessions = routine.get("sessions", [])
+        
+        # If no sessions from AI, generate basic sessions
+        if not routine_sessions:
+            routine_sessions = _generate_basic_sessions(req.daysPerWeek, req.goal)
+        
+        for session_data in routine_sessions:
             exercises = [
                 RoutineExercise(
                     name         = ex.get("name", ""),
@@ -280,7 +289,7 @@ async def generate_routine(
             sessions          = sessions,
             progression_notes = routine.get("progression_notes", ""),
             general_notes     = routine.get("general_notes", ""),
-            llm_provider      = settings.openrouter_model,
+            llm_provider      = LLM_MODEL,
         )
 
         await cache_set(cache_key, result.model_dump(), settings.cache_ttl_routine)
@@ -289,3 +298,63 @@ async def generate_routine(
     except Exception as e:
         logger.error("coach.routine.error", error=str(e))
         raise HTTPException(status_code=503, detail=f"Routine generation unavailable: {e}")
+
+
+def _generate_basic_sessions(days_per_week: int, goal: str) -> list[dict]:
+    """Generate basic sessions when AI is unavailable."""
+    # Get sets/reps based on goal
+    if goal == "GET_STRONGER":
+        sets, reps, rir = 4, "5", 2
+    elif goal == "GAIN_MUSCLE_MASS":
+        sets, reps, rir = 3, "10", 2
+    else:
+        sets, reps, rir = 3, "12", 3
+    
+    # Default exercises for each day type
+    exercises_by_day = {
+        "Push Day": [
+            {"name": "Bench Press", "sets": sets, "reps": reps, "rir": rir},
+            {"name": "Overhead Press", "sets": sets, "reps": reps, "rir": rir},
+            {"name": "Incline Dumbbell Press", "sets": sets, "reps": reps, "rir": rir},
+        ],
+        "Pull Day": [
+            {"name": "Barbell Row", "sets": sets, "reps": reps, "rir": rir},
+            {"name": "Lat Pulldown", "sets": sets, "reps": reps, "rir": rir},
+            {"name": "Face Pulls", "sets": sets, "reps": reps, "rir": rir},
+        ],
+        "Legs Day": [
+            {"name": "Barbell Squat", "sets": sets, "reps": reps, "rir": rir},
+            {"name": "Romanian Deadlift", "sets": sets, "reps": reps, "rir": rir},
+            {"name": "Leg Curl", "sets": sets, "reps": reps, "rir": rir},
+        ],
+        "Upper Day": [
+            {"name": "Bench Press", "sets": sets, "reps": reps, "rir": rir},
+            {"name": "Barbell Row", "sets": sets, "reps": reps, "rir": rir},
+            {"name": "Dumbbell Shoulder Press", "sets": sets, "reps": reps, "rir": rir},
+        ],
+        "Full Body": [
+            {"name": "Barbell Squat", "sets": sets, "reps": reps, "rir": rir},
+            {"name": "Bench Press", "sets": sets, "reps": reps, "rir": rir},
+            {"name": "Barbell Row", "sets": sets, "reps": reps, "rir": rir},
+        ],
+    }
+    
+    # Generate sessions based on days per week
+    if days_per_week <= 2:
+        return [
+            {"day_label": "Full Body A", "exercises": exercises_by_day["Full Body"]},
+            {"day_label": "Full Body B", "exercises": exercises_by_day["Legs Day"]},
+        ]
+    elif days_per_week == 3:
+        return [
+            {"day_label": "Push Day", "exercises": exercises_by_day["Push Day"]},
+            {"day_label": "Pull Day", "exercises": exercises_by_day["Pull Day"]},
+            {"day_label": "Legs Day", "exercises": exercises_by_day["Legs Day"]},
+        ]
+    else:
+        return [
+            {"day_label": "Push Day", "exercises": exercises_by_day["Push Day"]},
+            {"day_label": "Pull Day", "exercises": exercises_by_day["Pull Day"]},
+            {"day_label": "Legs Day", "exercises": exercises_by_day["Legs Day"]},
+            {"day_label": "Upper Day", "exercises": exercises_by_day["Upper Day"]},
+        ]

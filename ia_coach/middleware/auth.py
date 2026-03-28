@@ -5,6 +5,7 @@ Reutilizado directamente — soporta ES256 (Supabase) y HS256 (NestJS).
 """
 from __future__ import annotations
 import time
+import structlog
 import httpx
 from typing import Optional
 from fastapi import HTTPException, Security, Depends
@@ -15,6 +16,7 @@ from config import get_settings
 
 settings  = get_settings()
 _security = HTTPBearer(auto_error=True)
+logger    = structlog.get_logger()
 
 _jwks_cache: Optional[dict] = None
 _jwks_fetched_at: float = 0
@@ -50,6 +52,11 @@ async def verify_jwt_token(
     credentials: HTTPAuthorizationCredentials = Security(_security),
 ) -> dict:
     token = credentials.credentials
+    
+    # Service-to-service authentication
+    if settings.ai_service_secret and token == settings.ai_service_secret:
+        logger.info("auth.service_token.verified", service="backend")
+        return {"sub": "backend_service", "is_service": True}
 
     # Dev mode
     if not settings.supabase_url and (
@@ -60,19 +67,20 @@ async def verify_jwt_token(
 
     last_error = "Authentication failed"
 
+    # ── Intento 1: HS256 con secret del backend NestJS ────────────────────────
+    # Los tokens del backend son locales y rápidos de verificar.
+    hs256_payload = _try_hs256(token)
+    if hs256_payload is not None:
+        return hs256_payload
+
+    # ── Intento 2: RS256/ES256 con JWKS de Supabase ───────────────────────────
     if settings.supabase_url:
         try:
             jwks    = await _get_jwks()
             payload = jwt.decode(token, jwks, algorithms=["ES256", "RS256"], options={"verify_aud": False})
             return payload
-        except ExpiredSignatureError:
-            raise HTTPException(status_code=401, detail="Token has expired")
         except Exception as e:
             last_error = str(e)
-
-    hs256_payload = _try_hs256(token)
-    if hs256_payload is not None:
-        return hs256_payload
 
     raise HTTPException(status_code=401, detail=f"Invalid token: {last_error}")
 

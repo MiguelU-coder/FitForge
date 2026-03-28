@@ -25,33 +25,38 @@ class _WeightStepState extends ConsumerState<WeightStep> {
           Row(
             children: [
               Container(
-                width: 40,
-                height: 40,
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppTheme.neon.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
+                  color: AppTheme.neon.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.monitor_weight_outlined, color: AppTheme.neon, size: 22),
+                child: const Icon(Icons.monitor_weight_rounded, color: AppTheme.neon, size: 24),
               ),
-              const SizedBox(width: 12),
-              const Text(
-                'What is your current weight?',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.textPri,
-                  letterSpacing: -0.5,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Current Weight',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.textPri,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    Text(
+                      'Used to calculate metabolic needs',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textSec.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 8),
-          const Padding(
-            padding: EdgeInsets.only(left: 52),
-            child: Text(
-              'Used to calculate BMI and daily calorie needs',
-              style: TextStyle(fontSize: 14, color: AppTheme.textSec),
-            ),
           ),
           const SizedBox(height: 48),
           Center(
@@ -59,32 +64,39 @@ class _WeightStepState extends ConsumerState<WeightStep> {
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
+                    horizontal: 20,
+                    vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: AppTheme.bgElevated.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.border),
+                    color: AppTheme.bgCard,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppTheme.border.withValues(alpha: 0.8)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Text(
-                        'Kilogram',
+                        'KILOGRAM',
                         style: TextStyle(
-                          color: AppTheme.textSec,
-                          fontWeight: FontWeight.w600,
+                          color: AppTheme.neon,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.0,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      // Dummy switcher for aesthetics
+                      const SizedBox(width: 12),
                       Container(
-                        width: 40,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          color: AppTheme.border,
-                          borderRadius: BorderRadius.circular(10),
+                        width: 1,
+                        height: 12,
+                        color: AppTheme.border,
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'KG',
+                        style: TextStyle(
+                          color: AppTheme.textSec,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],

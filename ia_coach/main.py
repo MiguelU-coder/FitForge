@@ -50,7 +50,7 @@ async def lifespan(app: FastAPI):
         "startup.complete",
         service="fitforge-ai-coach",
         port=settings.app_port,
-        model=settings.openrouter_model,
+        model="gemini-1.5-flash",
     )
     yield
     logger.info("shutdown.complete")
@@ -93,7 +93,7 @@ def create_app() -> FastAPI:
             "status": "ok",
             "service": "fitforge-ai-coach",
             "version": "2.0.0",
-            "model": settings.openrouter_model,
+            "model": "gemini-1.5-flash",
         }
 
     @app.exception_handler(Exception)

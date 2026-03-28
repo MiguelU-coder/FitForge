@@ -63,29 +63,35 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       secretOrKeyProvider: (req: Request, rawJwtToken: string, done: (err: any, secret: any) => void) => {
         try {
-          // Decode without verification to inspect issuer
-          const decoded = this.jwtService.decode(rawJwtToken) as any;
+          // Inspect the token header to determine the algorithm
+          const decoded = this.jwtService.decode(rawJwtToken, { complete: true }) as any;
+          const header = decoded?.header;
+          const payload = decoded?.payload;
           
           // 1. If it's a Supabase token (has Supabase issuer or aud)
-          if (decoded && (decoded.iss?.includes('supabase') || decoded.aud === 'authenticated')) {
-            console.log('Detected Supabase token for sub:', decoded.sub);
+          if (payload && (payload.iss?.includes('supabase') || payload.aud === 'authenticated')) {
+            // Use shared secret ONLY if it's HS256 and we have the secret
+            if (header?.alg === 'HS256' && supabaseSecret) {
+              return done(null, Buffer.from(supabaseSecret, 'base64'));
+            }
+            
+            // For asymmetric algorithms (ES256, RS256) or if HS256 secret is missing, use JWKS
             if (jwksUri) {
-              console.log('Using JWKS for verification');
               return passportJwtSecret({
                 cache: true,
                 rateLimit: true,
-                jwksRequestsPerMinute: 5,
+                jwksRequestsPerMinute: 10,
                 jwksUri: jwksUri,
               })(req, rawJwtToken, done);
             }
+
+            // Fallback for local dev if internet is down but shared secret is set
             if (supabaseSecret) {
-              console.log('Using Supabase HS256 secret');
-              return done(null, Buffer.from(supabaseSecret, 'base64'));
+               return done(null, Buffer.from(supabaseSecret, 'base64'));
             }
           }
 
-          // 2. Default to local secret
-          console.log('Using local JWT secret for sub:', decoded?.sub);
+          // 2. Default to local project secret (used for internal admin tokens)
           done(null, config.get('JWT_ACCESS_SECRET'));
         } catch (err) {
           done(err, null);
@@ -159,24 +165,64 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
             },
           });
         } catch (createError: any) {
+          // P2002 is Prisma's unique constraint violation code
           if (createError.code === 'P2002') {
-            user = await this.prisma.user.findUnique({
-              where: { id: payload.sub },
-              select: {
-                id: true,
-                email: true,
-                displayName: true,
-                isActive: true,
-                isGlobalAdmin: true,
-                gender: true,
-                organizations: {
-                  select: {
-                    organizationId: true,
-                    role: true,
+            const existingByEmail = await this.prisma.user.findUnique({
+              where: { email: email },
+              select: { id: true },
+            });
+
+            // If a user exists with the SAME email but DIFFERENT ID, we have a "recreated account" scenario
+            if (existingByEmail && existingByEmail.id !== payload.sub) {
+              console.warn(`JIT provisioning conflict: User recreated in Supabase with new sub ${payload.sub} for email ${email}. Deleting stale user ${existingByEmail.id}`);
+              
+              // Delete old user (Cascade should clean up linked data)
+              await this.prisma.user.delete({ where: { id: existingByEmail.id } });
+
+              // Retry creation with new ID
+              user = await this.prisma.user.create({
+                data: {
+                  id: payload.sub,
+                  email: email,
+                  displayName: payload.user_metadata?.display_name || this.extractDisplayNameFromEmail(email),
+                  isActive: true,
+                  unitSystem: 'METRIC',
+                },
+                select: {
+                  id: true,
+                  email: true,
+                  displayName: true,
+                  isActive: true,
+                  isGlobalAdmin: true,
+                  gender: true,
+                  organizations: {
+                    select: {
+                      organizationId: true,
+                      role: true,
+                    },
                   },
                 },
-              },
-            });
+              });
+            } else {
+              // Re-check for the new sub just in case of parallel race condition
+              user = await this.prisma.user.findUnique({
+                where: { id: payload.sub },
+                select: {
+                  id: true,
+                  email: true,
+                  displayName: true,
+                  isActive: true,
+                  isGlobalAdmin: true,
+                  gender: true,
+                  organizations: {
+                    select: {
+                      organizationId: true,
+                      role: true,
+                    },
+                  },
+                },
+              });
+            }
           } else {
             throw createError;
           }

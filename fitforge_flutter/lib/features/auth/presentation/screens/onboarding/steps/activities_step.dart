@@ -1,7 +1,7 @@
 // lib/features/auth/presentation/screens/onboarding/steps/activities_step.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../../../core/theme/app_colors.dart';
+import '../../../../../../core/theme/app_theme.dart';
 import '../../../providers/onboarding_provider.dart';
 import '../../../widgets/onboarding_selection_card.dart';
 
@@ -54,35 +54,38 @@ class ActivitiesStep extends ConsumerWidget {
           Row(
             children: [
               Container(
-                width: 40,
-                height: 40,
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
+                  color: AppTheme.neon.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.directions_run, color: AppColors.primary, size: 22),
+                child: const Icon(Icons.directions_run_rounded, color: AppTheme.neon, size: 24),
               ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text(
-                  'What activities do you enjoy?',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                    letterSpacing: -0.5,
-                  ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Favorite Activities',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.textPri,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    Text(
+                      'We use these to personalize your plan',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textSec.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 8),
-          const Padding(
-            padding: EdgeInsets.only(left: 52),
-            child: Text(
-              'Select activities you like to personalize your plan',
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
-            ),
           ),
           const SizedBox(height: 32),
           Expanded(
@@ -110,35 +113,37 @@ class ActivitiesStep extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                color: AppTheme.neon.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.neon.withValues(alpha: 0.3)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Row(
                     children: [
-                      Icon(Icons.auto_awesome, color: AppColors.primary, size: 20),
-                      SizedBox(width: 8),
+                      Icon(Icons.auto_awesome, color: AppTheme.neon, size: 18),
+                      SizedBox(width: 10),
                       Text(
-                        'AI Suggestion',
+                        'AI PREVIEW',
                         style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          color: AppTheme.neon,
+                          letterSpacing: 1.0,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   Text(
-                    state.workoutPlanSuggestion!.workoutPlan!.length > 200
-                        ? '${state.workoutPlanSuggestion!.workoutPlan!.substring(0, 200)}...'
+                    state.workoutPlanSuggestion!.workoutPlan!.length > 150
+                        ? '${state.workoutPlanSuggestion!.workoutPlan!.substring(0, 150)}...'
                         : state.workoutPlanSuggestion!.workoutPlan!,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textSecondary,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppTheme.textSec.withValues(alpha: 0.9),
+                      height: 1.5,
                     ),
                   ),
                 ],
@@ -146,16 +151,15 @@ class ActivitiesStep extends ConsumerWidget {
             ),
           ],
 
-          // Show nutrition advice if available
           if (state.workoutPlanSuggestion != null &&
               state.workoutPlanSuggestion!.nutritionAdvice != null) ...[
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                color: Colors.green.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.green.withValues(alpha: 0.2)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -163,29 +167,31 @@ class ActivitiesStep extends ConsumerWidget {
                   const Row(
                     children: [
                       Icon(
-                        Icons.restaurant_menu,
+                        Icons.restaurant_menu_rounded,
                         color: Colors.green,
-                        size: 20,
+                        size: 18,
                       ),
-                      SizedBox(width: 8),
+                      SizedBox(width: 10),
                       Text(
-                        'Nutrition Advice',
+                        'NUTRITION ADVICE',
                         style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
                           color: Colors.green,
+                          letterSpacing: 1.0,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   Text(
-                    state.workoutPlanSuggestion!.nutritionAdvice!.length > 200
-                        ? '${state.workoutPlanSuggestion!.nutritionAdvice!.substring(0, 200)}...'
+                    state.workoutPlanSuggestion!.nutritionAdvice!.length > 150
+                        ? '${state.workoutPlanSuggestion!.nutritionAdvice!.substring(0, 150)}...'
                         : state.workoutPlanSuggestion!.nutritionAdvice!,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textSecondary,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppTheme.textSec.withValues(alpha: 0.9),
+                      height: 1.5,
                     ),
                   ),
                 ],
@@ -196,14 +202,14 @@ class ActivitiesStep extends ConsumerWidget {
           // Show loading state
           if (state.isLoading) ...[
             const SizedBox(height: 16),
-            const Center(
+            Center(
               child: Column(
                 children: [
-                  CircularProgressIndicator(color: AppColors.primary),
-                  SizedBox(height: 8),
+                  const CircularProgressIndicator(color: AppTheme.neon),
+                  const SizedBox(height: 12),
                   Text(
                     'Generating your personalized plan...',
-                    style: TextStyle(color: AppColors.textSecondary),
+                    style: TextStyle(color: AppTheme.textSec.withValues(alpha: 0.7), fontSize: 13),
                   ),
                 ],
               ),

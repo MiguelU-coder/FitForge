@@ -42,6 +42,7 @@ const envSchema = z.object({
 
   // AI Service
   AI_SERVICE_URL: z.string().url(),
+  AI_COACH_URL: z.string().url().optional(),
   AI_SERVICE_SECRET: z.string().min(32),
   AI_SERVICE_TIMEOUT_MS: z.coerce.number().default(5000),
 

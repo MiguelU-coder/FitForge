@@ -217,61 +217,80 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen>
                               );
                           _showRestTimer();
 
-                            // ── Call AI Coach (Phase 3) ───────────────────
-                            final userId = ref.read(authStateProvider).user?.id;
-                            if (userId != null) {
-                              final updatedBlock = ref
-                                  .read(activeSessionProvider)
-                                  .session
-                                  ?.exerciseBlocks
-                                  .firstWhere(
-                                    (b) => b.id == block.id,
-                                    orElse: () => block,
-                                  );
+                          // ── Call AI Coach (Phase 3) ───────────────────
+                          final userId = ref.read(authStateProvider).user?.id;
+                          if (userId != null) {
+                            final updatedBlock = ref
+                                .read(activeSessionProvider)
+                                .session
+                                ?.exerciseBlocks
+                                .firstWhere(
+                                  (b) => b.id == block.id,
+                                  orElse: () => block,
+                                );
 
-                              final workingSets =
-                                  (updatedBlock?.sets ?? block.sets)
-                                      .where((s) => s.setType == 'WORKING')
-                                      .toList();
+                            final workingSets =
+                                (updatedBlock?.sets ?? block.sets)
+                                    .where((s) => s.setType == 'WORKING')
+                                    .toList();
 
-                              // Estimate RPE from RIR (if not provided)
-                              final estimatedRpe = (rir != null)
-                                  ? (10 - rir).clamp(1, 10).toDouble()
-                                  : 7.5;
+                            // Estimate RPE from RIR (if not provided)
+                            final estimatedRpe = (rir != null)
+                                ? (10 - rir).clamp(1, 10).toDouble()
+                                : 7.5;
 
-                              final recentSets = workingSets.map((s) => {
-                                'weight': s.weightKg ?? weight,
-                                'reps':   s.reps ?? reps,
-                                'rpe':    estimatedRpe,
-                              }).toList();
+                            // Calculate actual RIR being used
+                            final rirValue = rir ?? (10 - estimatedRpe).round();
 
-                              // Simple volume estimate
-                              final weeklyVol = recentSets.fold<double>(
-                                0.0,
-                                (acc, s) => acc +
-                                    (s['weight'] as double) *
-                                    (s['reps'] as int),
-                              ) * 3; // rough 3-session/week estimate
+                            final recentSets = workingSets
+                                .map(
+                                  (s) => {
+                                    'weight': s.weightKg ?? weight,
+                                    'reps': s.reps ?? reps,
+                                    'rpe': estimatedRpe,
+                                    'rir': rirValue,
+                                  },
+                                )
+                                .toList();
 
-                              // No-await: coach feedback is non-blocking
-                              ref
-                                  .read(coachProvider(block.id).notifier)
-                                  .fetchCoachFeedback(
-                                    userId:       userId,
-                                    exercise:     block.exerciseName,
-                                    sets:         recentSets.reversed.take(3).toList(),
-                                    fatigueScore: (estimatedRpe * 10).clamp(0, 100),
-                                    estimated1RM: weight * (1 + reps / 30),
-                                    isPR:         false,
-                                    injuryRisk:   estimatedRpe >= 9.5
-                                        ? 'HIGH'
-                                        : estimatedRpe >= 8.5
-                                            ? 'MODERATE'
-                                            : 'LOW',
-                                    weeklyVolume: weeklyVol,
-                                  );
-                            }
-                            // ─────────────────────────────────────────────
+                            // Simple volume estimate
+                            final weeklyVol =
+                                recentSets.fold<double>(
+                                  0.0,
+                                  (acc, s) =>
+                                      acc +
+                                      (s['weight'] as double) *
+                                          (s['reps'] as int),
+                                ) *
+                                3; // rough 3-session/week estimate
+
+                            // Calculate injury risk based on RIR/RPE
+                            // RIR 0-1 or RPE 9-10 = HIGH risk
+                            final injuryRiskValue =
+                                rirValue <= 1 || estimatedRpe >= 9.5
+                                ? 'HIGH'
+                                : rirValue <= 2 || estimatedRpe >= 8.5
+                                ? 'MODERATE'
+                                : 'LOW';
+
+                            // No-await: coach feedback is non-blocking
+                            ref
+                                .read(coachProvider(block.id).notifier)
+                                .fetchCoachFeedback(
+                                  userId: userId,
+                                  exercise: block.exerciseName,
+                                  sets: recentSets.reversed.take(3).toList(),
+                                  fatigueScore: (estimatedRpe * 10).clamp(
+                                    0,
+                                    100,
+                                  ),
+                                  estimated1RM: weight * (1 + reps / 30),
+                                  isPR: false,
+                                  injuryRisk: injuryRiskValue,
+                                  weeklyVolume: weeklyVol,
+                                );
+                          }
+                          // ─────────────────────────────────────────────
                         },
                         onDeleteSet: (setId) async {
                           await ref
@@ -520,7 +539,9 @@ class _ExerciseBlockState extends ConsumerState<_ExerciseBlock> {
           // ── AI Coach Banner (Phase 3) ────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-            child: CoachBanner(coachState: ref.watch(coachProvider(widget.block.id))),
+            child: CoachBanner(
+              coachState: ref.watch(coachProvider(widget.block.id)),
+            ),
           ),
 
           // ── Column headers ──────────────────────────────────────────
@@ -684,7 +705,6 @@ class _ExerciseTitleBar extends StatelessWidget {
     );
   }
 }
-
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Set table header

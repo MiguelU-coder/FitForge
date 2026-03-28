@@ -1,16 +1,28 @@
 // lib/core/api/rapidapi/rapid_api_client.dart
+//
+// RapidAPI client with Mock Mode:
+//   - In debug mode (kDebugMode == true), returns local mock data by default
+//   - Set RapidApiClient(useMock: false) to force real API calls
+//   - Prevents quota exhaustion during development
+
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fitforge/core/utils/app_constants.dart';
 
 final rapidApiClientProvider = Provider<RapidApiClient>((ref) {
-  return RapidApiClient();
+  // Always mock in debug mode to protect API quota
+  return RapidApiClient(useMock: kDebugMode);
 });
 
 class RapidApiClient {
   late final Dio _dio;
 
-  RapidApiClient() {
+  /// When [useMock] is true, all methods return hardcoded mock data
+  /// without making any network call. Defaults to `kDebugMode`.
+  final bool useMock;
+
+  RapidApiClient({this.useMock = false}) {
     _dio = Dio(
       BaseOptions(
         baseUrl: 'https://${AppConstants.rapidApiHost}',
@@ -36,6 +48,8 @@ class RapidApiClient {
     int planDurationWeeks = 4,
     String lang = 'en',
   }) async {
+    if (useMock) return _mockWorkoutPlan(goal, fitnessLevel, daysPerWeek);
+
     try {
       final response = await _dio.post<Map<String, dynamic>>(
         '/generateWorkoutPlan',
@@ -66,6 +80,8 @@ class RapidApiClient {
     required String exerciseName,
     String lang = 'en',
   }) async {
+    if (useMock) return _mockExerciseDetails(exerciseName);
+
     try {
       final response = await _dio.post<Map<String, dynamic>>(
         '/exerciseDetails',
@@ -89,6 +105,8 @@ class RapidApiClient {
     required String fitnessLevel,
     String lang = 'en',
   }) async {
+    if (useMock) return _mockNutritionAdvice(goal);
+
     try {
       final response = await _dio.post<Map<String, dynamic>>(
         '/nutritionAdvice',
@@ -116,6 +134,8 @@ class RapidApiClient {
     required int sessionDuration,
     String lang = 'en',
   }) async {
+    if (useMock) return _mockWorkoutPlan(goal, fitnessLevel, daysPerWeek);
+
     try {
       final response = await _dio.post<Map<String, dynamic>>(
         '/customWorkoutPlan',
@@ -144,6 +164,8 @@ class RapidApiClient {
     required String foodDescription,
     String lang = 'en',
   }) async {
+    if (useMock) return _mockFoodAnalysis(foodDescription);
+
     try {
       final response = await _dio.post<Map<String, dynamic>>(
         '/analyzeFoodPlate',
@@ -159,6 +181,93 @@ class RapidApiClient {
         statusCode: e.response?.statusCode,
       );
     }
+  }
+
+  // ── Mock Responses ────────────────────────────────────────────────────────
+
+  Map<String, dynamic> _mockWorkoutPlan(
+      String goal, String level, int days) {
+    return {
+      'plan_name': 'AI Generated Plan (Mock)',
+      'goal': goal,
+      'fitness_level': level,
+      'schedule': {'days_per_week': days, 'session_duration': 60},
+      'weeks': [
+        {
+          'week': 1,
+          'days': List.generate(
+            days,
+            (i) => {
+              'day': i + 1,
+              'muscle_group': ['Push', 'Pull', 'Legs', 'Full Body'][i % 4],
+              'exercises': [
+                {'name': 'Bench Press', 'sets': 3, 'reps': '8-10'},
+                {'name': 'Pull-ups', 'sets': 3, 'reps': '6-8'},
+                {'name': 'Squats', 'sets': 4, 'reps': '8-12'},
+              ],
+            },
+          ),
+        }
+      ],
+    };
+  }
+
+  Map<String, dynamic> _mockExerciseDetails(String name) {
+    return {
+      'exercise': name,
+      'description':
+          'A compound movement targeting multiple muscle groups. Keep your form strict and focus on the mind-muscle connection.',
+      'primary_muscles': ['Chest', 'Triceps'],
+      'secondary_muscles': ['Shoulders'],
+      'equipment': 'Barbell',
+      'tips': ['Keep your back flat', 'Breathe out on the push'],
+    };
+  }
+
+  Map<String, dynamic> _mockNutritionAdvice(String goal) {
+    final cals = goal == 'LOSE_WEIGHT'
+        ? 1800
+        : goal == 'GAIN_MUSCLE_MASS'
+            ? 2800
+            : 2200;
+    return {
+      'daily_calories': cals,
+      'macros': {
+        'protein_g': (cals * 0.30 / 4).round(),
+        'carbs_g': (cals * 0.40 / 4).round(),
+        'fat_g': (cals * 0.30 / 9).round(),
+      },
+      'meal_plan': [
+        {'meal': 'Breakfast', 'example': 'Oats with protein powder and banana'},
+        {'meal': 'Lunch', 'example': 'Grilled chicken, rice, and vegetables'},
+        {'meal': 'Dinner', 'example': 'Salmon with sweet potato and salad'},
+        {'meal': 'Snack', 'example': 'Greek yogurt with almonds'},
+      ],
+      'tips': [
+        'Drink at least 2L of water daily',
+        'Eat protein within 30 min of training',
+        'Avoid ultra-processed foods',
+      ],
+    };
+  }
+
+  Map<String, dynamic> _mockFoodAnalysis(String description) {
+    return {
+      'food': description,
+      'estimated_calories': 520,
+      'macros': {
+        'protein_g': 35,
+        'carbs_g': 55,
+        'fat_g': 15,
+      },
+      'micronutrients': {
+        'fiber_g': 6,
+        'sodium_mg': 480,
+        'sugar_g': 8,
+      },
+      'health_score': 7.2,
+      'notes': 'Good protein content. Consider adding more vegetables for fiber.',
+    };
   }
 }
 

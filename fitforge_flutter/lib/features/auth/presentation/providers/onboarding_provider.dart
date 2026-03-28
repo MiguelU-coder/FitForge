@@ -1,31 +1,41 @@
 import 'dart:convert';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fitforge/core/api/rapidapi/rapid_api_client.dart';
+import 'package:fitforge/core/api/api_client.dart';
 
 class WorkoutPlanSuggestion {
   final String? workoutPlan;
   final String? nutritionAdvice;
   final bool isLoading;
   final String? error;
+  final String? routineId;
+  final String? routineName;
 
   const WorkoutPlanSuggestion({
     this.workoutPlan,
     this.nutritionAdvice,
     this.isLoading = false,
     this.error,
+    this.routineId,
+    this.routineName,
   });
 
   Map<String, dynamic> toJson() => {
-        'workoutPlan': workoutPlan,
-        'nutritionAdvice': nutritionAdvice,
-        'error': error,
-      };
+    'workoutPlan': workoutPlan,
+    'nutritionAdvice': nutritionAdvice,
+    'error': error,
+    'routineId': routineId,
+    'routineName': routineName,
+  };
 
   factory WorkoutPlanSuggestion.fromJson(Map<String, dynamic> json) =>
       WorkoutPlanSuggestion(
         workoutPlan: json['workoutPlan'] as String?,
         nutritionAdvice: json['nutritionAdvice'] as String?,
         error: json['error'] as String?,
+        routineId: json['routineId'] as String?,
+        routineName: json['routineName'] as String?,
       );
 
   WorkoutPlanSuggestion copyWith({
@@ -33,12 +43,16 @@ class WorkoutPlanSuggestion {
     String? nutritionAdvice,
     bool? isLoading,
     String? error,
+    String? routineId,
+    String? routineName,
   }) {
     return WorkoutPlanSuggestion(
       workoutPlan: workoutPlan ?? this.workoutPlan,
       nutritionAdvice: nutritionAdvice ?? this.nutritionAdvice,
       isLoading: isLoading ?? this.isLoading,
       error: error ?? this.error,
+      routineId: routineId ?? this.routineId,
+      routineName: routineName ?? this.routineName,
     );
   }
 }
@@ -56,6 +70,7 @@ class OnboardingState {
   final bool isLoading;
   final String? error;
   final WorkoutPlanSuggestion? workoutPlanSuggestion;
+  final String? generatedRoutineId;
 
   const OnboardingState({
     this.currentStep = 1,
@@ -70,6 +85,7 @@ class OnboardingState {
     this.isLoading = false,
     this.error,
     this.workoutPlanSuggestion,
+    this.generatedRoutineId,
   });
 
   OnboardingState copyWith({
@@ -85,6 +101,7 @@ class OnboardingState {
     bool? isLoading,
     String? error,
     WorkoutPlanSuggestion? workoutPlanSuggestion,
+    String? generatedRoutineId,
   }) {
     return OnboardingState(
       currentStep: currentStep ?? this.currentStep,
@@ -100,12 +117,14 @@ class OnboardingState {
       error: error ?? this.error,
       workoutPlanSuggestion:
           workoutPlanSuggestion ?? this.workoutPlanSuggestion,
+      generatedRoutineId: generatedRoutineId ?? this.generatedRoutineId,
     );
   }
 }
 
 class OnboardingNotifier extends StateNotifier<OnboardingState> {
   final RapidApiClient _rapidApi = RapidApiClient();
+  final ApiClient _api = ApiClient();
 
   OnboardingNotifier() : super(const OnboardingState());
 
@@ -179,14 +198,13 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     if (state.mainGoal == null || state.trainingLevel == null) return;
 
     // Create a suggestion object if it doesn't exist
-    final currentSuggestion = state.workoutPlanSuggestion ?? const WorkoutPlanSuggestion();
+    final currentSuggestion =
+        state.workoutPlanSuggestion ?? const WorkoutPlanSuggestion();
 
     state = state.copyWith(
       isLoading: true,
       error: null,
-      workoutPlanSuggestion: currentSuggestion.copyWith(
-        isLoading: true,
-      ),
+      workoutPlanSuggestion: currentSuggestion.copyWith(isLoading: true),
     );
 
     try {
@@ -225,11 +243,150 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),
-        workoutPlanSuggestion: currentSuggestion.copyWith(
-          isLoading: false,
-        ),
+        workoutPlanSuggestion: currentSuggestion.copyWith(isLoading: false),
       );
     }
+  }
+
+  /// Generate and save workout routine using AI Coach endpoint
+  /// POST /ai/coach/routine
+  Future<void> generateAndSaveRoutine() async {
+    if (state.mainGoal == null || state.trainingLevel == null) {
+      state = state.copyWith(
+        error: 'Missing required data for routine generation',
+      );
+      return;
+    }
+
+    final currentSuggestion =
+        state.workoutPlanSuggestion ?? const WorkoutPlanSuggestion();
+
+    state = state.copyWith(
+      isLoading: true,
+      error: null,
+      workoutPlanSuggestion: currentSuggestion.copyWith(isLoading: true),
+    );
+
+    try {
+      // Build user data payload
+      final userData = {
+        'goal': state.mainGoal,
+        'level': state.trainingLevel,
+        'gender': state.gender,
+        'height': state.heightCm,
+        'weight': state.weightKg,
+        'goalWeight': state.goalWeightKg,
+        'activities': state.activities,
+        'dateOfBirth': state.dateOfBirth?.toIso8601String(),
+      };
+
+      // Call AI Coach routine generation endpoint
+      final response = await _api.dio.post<Map<String, dynamic>>(
+        '/ai/coach/routine',
+        data: userData,
+        options: Options(receiveTimeout: const Duration(seconds: 120)),
+      );
+
+      final body = response.data;
+      final data = body?['data'] as Map<String, dynamic>?;
+
+      if (data == null) {
+        throw Exception('Invalid response from server');
+      }
+
+      // Extract routine info
+      final routineId = data['routineId'] as String?;
+      final routineName =
+          data['routineName'] as String? ?? 'AI Generated Routine';
+      final formattedPlan = _formatRoutineResponse(data);
+
+      final suggestion = WorkoutPlanSuggestion(
+        workoutPlan: formattedPlan,
+        nutritionAdvice: currentSuggestion.nutritionAdvice,
+        isLoading: false,
+        routineId: routineId,
+        routineName: routineName,
+      );
+
+      state = state.copyWith(
+        workoutPlanSuggestion: suggestion,
+        generatedRoutineId: routineId,
+        isLoading: false,
+      );
+    } on DioException catch (e) {
+      String errorMessage = 'Failed to generate routine';
+      if (e.response?.data != null && e.response?.data['message'] != null) {
+        errorMessage = e.response?.data['message'];
+      } else if (e.message != null) {
+        errorMessage = e.message!;
+      }
+      state = state.copyWith(
+        isLoading: false,
+        error: errorMessage,
+        workoutPlanSuggestion: currentSuggestion.copyWith(isLoading: false),
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+        workoutPlanSuggestion: currentSuggestion.copyWith(isLoading: false),
+      );
+    }
+  }
+
+  /// Get the generated routine ID for starting a session
+  String? get generatedRoutineId => state.workoutPlanSuggestion?.routineId;
+
+  /// Format routine response for display
+  String _formatRoutineResponse(Map<String, dynamic> data) {
+    final buffer = StringBuffer();
+
+    if (data['name'] != null) {
+      buffer.writeln('🎯 ${data['name']}');
+      buffer.writeln();
+    }
+
+    if (data['description'] != null) {
+      buffer.writeln('${data['description']}');
+      buffer.writeln();
+    }
+
+    final schedule = data['schedule'];
+    if (schedule is Map) {
+      final days = schedule['daysPerWeek'] ?? schedule['days_per_week'] ?? '?';
+      final duration =
+          schedule['sessionDuration'] ?? schedule['session_duration'] ?? '?';
+      buffer.writeln('⏱️ Schedule: $days days/week, $duration min/session');
+      buffer.writeln();
+    }
+
+    final routines = data['routines'] ?? data['workouts'] ?? data['exercises'];
+    if (routines is List && routines.isNotEmpty) {
+      for (var day in routines) {
+        if (day is Map) {
+          final dayName = day['name'] ?? day['day'] ?? 'Workout Day';
+          buffer.writeln('📅 $dayName:');
+
+          final exercises = day['exercises'] ?? day['workouts'] ?? [];
+          if (exercises is List) {
+            for (var ex in exercises) {
+              if (ex is Map) {
+                final name = ex['name'] ?? 'Exercise';
+                final sets = ex['sets'] ?? ex['targetSets'] ?? '?';
+                final reps =
+                    ex['reps'] ?? ex['targetReps'] ?? ex['repetitions'] ?? '?';
+                buffer.writeln('  • $name ($sets sets × $reps reps)');
+              }
+            }
+          }
+          buffer.writeln();
+        }
+      }
+    }
+
+    return buffer.toString().trim().isNotEmpty
+        ? buffer.toString().trim()
+        : 'Routine generated successfully!';
   }
 
   /// Validate user data at each step

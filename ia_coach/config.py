@@ -13,15 +13,15 @@ class Settings(BaseSettings):
     jwt_access_secret: str = ""
     app_secret: str = "dev_secret_change_in_production"
     supabase_url: str = ""
+    ai_service_secret: str = ""
 
     # Redis (compartido con ia_microservices)
     redis_url: str = "redis://localhost:6379"
 
-    # ── External APIs ──────────────────────────────────────────────────────────
-    # OpenRouter (LLM gratuito compatible con OpenAI SDK)
-    openrouter_api_key: str = ""
-    openrouter_base_url: str = "https://openrouter.ai/api/v1"
-    openrouter_model: str = "meta-llama/llama-3.3-70b-instruct:free"
+    # ── Google Gemini API (Gratuita) ───────────────────────────────────────────
+    # Obtén tu API key gratis en: https://aistudio.google.com/app/apikey
+    # Límite: 1.5M tokens/mes gratis con Gemini 1.5 Flash
+    gemini_api_key: str = ""
 
     # ExerciseDB via RapidAPI
     exercise_db_api_key: str = ""

@@ -21,33 +21,38 @@ class GenderStep extends ConsumerWidget {
           Row(
             children: [
               Container(
-                width: 40,
-                height: 40,
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppTheme.neon.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
+                  color: AppTheme.neon.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.person_outline, color: AppTheme.neon, size: 22),
+                child: const Icon(Icons.person_outline_rounded, color: AppTheme.neon, size: 24),
               ),
-              const SizedBox(width: 12),
-              const Text(
-                'What is your gender?',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.textPri,
-                  letterSpacing: -0.5,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'What is your gender?',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.textPri,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    Text(
+                      'This affects calorie and health metrics',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textSec.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 8),
-          const Padding(
-            padding: EdgeInsets.only(left: 52),
-            child: Text(
-              'This affects calorie calculations',
-              style: TextStyle(fontSize: 14, color: AppTheme.textSec),
-            ),
           ),
           const SizedBox(height: 32),
           OnboardingSelectionCard(

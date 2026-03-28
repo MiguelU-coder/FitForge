@@ -94,7 +94,13 @@ async def verify_jwt_token(
 
     last_error: str = "Authentication failed"
 
-    # ── Intento 1: RS256/ES256 con JWKS de Supabase ───────────────────────────
+    # ── Intento 1: HS256 con secret del backend NestJS ────────────────────────
+    # Los tokens del backend son locales y rápidos de verificar.
+    hs256_payload = _try_hs256(token)
+    if hs256_payload is not None:
+        return hs256_payload  # ✅ Token del backend válido
+
+    # ── Intento 2: RS256/ES256 con JWKS de Supabase ───────────────────────────
     if settings.supabase_url:
         try:
             jwks = await _get_jwks()
@@ -109,14 +115,7 @@ async def verify_jwt_token(
         except ExpiredSignatureError:
             raise HTTPException(status_code=401, detail="Token has expired")
         except (JWTError, JWTClaimsError, Exception) as e:
-            # Cualquier error → intentar HS256 a continuación.
             last_error = str(e)
-
-
-    # ── Intento 2: HS256 con secret del backend NestJS ────────────────────────
-    hs256_payload = _try_hs256(token)
-    if hs256_payload is not None:
-        return hs256_payload  # ✅ Token del backend válido
 
     # ── Ninguno funcionó → 401 ────────────────────────────────────────────────
     raise HTTPException(

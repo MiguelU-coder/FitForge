@@ -34,14 +34,21 @@ class OnboardingFlowScreen extends ConsumerWidget {
       body: SafeArea(
         child: Column(
           children: [
-            // Custom App Bar with Circular Progress
+            // Linear Progress Bar at the top
+            LinearProgressIndicator(
+              value: progress,
+              backgroundColor: AppTheme.border.withValues(alpha: 0.2),
+              valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.neon),
+              minHeight: 3,
+            ),
+            
+            // Custom App Bar
             _buildAppBar(
               context,
               state,
               notifier,
               totalSteps,
               stepName,
-              progress,
             ),
 
             // Main Content with transitions
@@ -57,26 +64,16 @@ class OnboardingFlowScreen extends ConsumerWidget {
 
   String _getStepName(int step) {
     switch (step) {
-      case 1:
-        return 'Goal';
-      case 2:
-        return 'Level';
-      case 3:
-        return 'Gender';
-      case 4:
-        return 'Height';
-      case 5:
-        return 'Weight';
-      case 6:
-        return 'Goal Weight';
-      case 7:
-        return 'Birthday';
-      case 8:
-        return 'Activities';
-      case 9:
-        return 'Summary';
-      default:
-        return 'Step $step';
+      case 1: return 'Goal';
+      case 2: return 'Fitness Level';
+      case 3: return 'Gender';
+      case 4: return 'Height';
+      case 5: return 'Weight';
+      case 6: return 'Goal Weight';
+      case 7: return 'Birthday';
+      case 8: return 'Activities';
+      case 9: return 'Final Summary';
+      default: return 'Step $step';
     }
   }
 
@@ -86,17 +83,16 @@ class OnboardingFlowScreen extends ConsumerWidget {
     OnboardingNotifier notifier,
     int totalSteps,
     String stepName,
-    double progress,
   ) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.fromLTRB(8, 12, 16, 8),
       child: Row(
         children: [
           // Back button
           if (state.currentStep > 1)
             IconButton(
               icon: const Icon(
-                Icons.arrow_back_ios_new,
+                Icons.arrow_back_ios_new_rounded,
                 color: AppTheme.textPri,
                 size: 20,
               ),
@@ -105,61 +101,42 @@ class OnboardingFlowScreen extends ConsumerWidget {
           else
             const SizedBox(width: 48),
 
-          // Circular Progress Indicator
           Expanded(
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: 60,
-                    height: 60,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        CircularProgressIndicator(
-                          value: progress,
-                          strokeWidth: 4,
-                          backgroundColor: AppTheme.border.withValues(
-                            alpha: 0.3,
-                          ),
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                            AppTheme.neon,
-                          ),
-                        ),
-                        Center(
-                          child: Text(
-                            '${(progress * 100).toInt()}%',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              color: AppTheme.textPri,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+            child: Column(
+              children: [
+                Text(
+                  stepName,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.textPri,
+                    letterSpacing: -0.5,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '$stepName - ${state.currentStep}/$totalSteps',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textSec,
-                    ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Step ${state.currentStep} of $totalSteps',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textSec.withValues(alpha: 0.6),
+                    letterSpacing: 0.2,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
 
           // Skip button
           TextButton(
             onPressed: () => context.go(AppRoutes.home),
-            child: const Text(
+            child: Text(
               'Skip',
-              style: TextStyle(color: AppTheme.textSec),
+              style: TextStyle(
+                color: AppTheme.textSec.withValues(alpha: 0.6),
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],
@@ -173,13 +150,10 @@ class OnboardingFlowScreen extends ConsumerWidget {
       switchInCurve: Curves.easeOutCubic,
       switchOutCurve: Curves.easeInCubic,
       transitionBuilder: (child, animation) {
-        final slideAnimation =
-            Tween<Offset>(
-              begin: const Offset(1.0, 0.0),
-              end: Offset.zero,
-            ).animate(
-              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-            );
+        final slideAnimation = Tween<Offset>(
+          begin: const Offset(1.0, 0.0),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
 
         return SlideTransition(
           position: slideAnimation,
@@ -213,49 +187,47 @@ class OnboardingFlowScreen extends ConsumerWidget {
     int totalSteps,
   ) {
     final isLastStep = state.currentStep == totalSteps;
+    final canContinue = _canContinue(state) &&
+        !state.isLoading &&
+        !ref.watch(authStateProvider).isLoading;
 
     return Padding(
-      padding: const EdgeInsets.all(24),
-      child: FilledButton(
-        onPressed:
-            _canContinue(state) &&
-                !state.isLoading &&
-                !ref.watch(authStateProvider).isLoading
-            ? () => _handleContinue(context, ref, state, notifier)
-            : null,
-        style: FilledButton.styleFrom(
-          minimumSize: const Size(double.infinity, 56),
-          backgroundColor: AppTheme.neon,
-          foregroundColor: Colors.black,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 200),
+        opacity: canContinue ? 1.0 : 0.5,
+        child: FilledButton(
+          onPressed: canContinue
+              ? () => _handleContinue(context, ref, state, notifier)
+              : null,
+          style: FilledButton.styleFrom(
+            minimumSize: const Size(double.infinity, 58),
+            backgroundColor: AppTheme.neon,
+            foregroundColor: Colors.black,
+            elevation: isLastStep ? 8 : 0,
+            shadowColor: AppTheme.neon.withValues(alpha: 0.3),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+            ),
           ),
-        ),
-        child: state.isLoading || ref.watch(authStateProvider).isLoading
-            ? const SizedBox(
-                height: 24,
-                width: 24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.black,
-                ),
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    isLastStep ? 'Start Training' : 'Continue',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                    ),
+          child: state.isLoading || ref.watch(authStateProvider).isLoading
+              ? const SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.black,
                   ),
-                  if (!isLastStep) ...[
-                    const SizedBox(width: 8),
-                    const Icon(Icons.arrow_forward, size: 20),
-                  ],
-                ],
-              ),
+                )
+              : Text(
+                  isLastStep ? 'START TRAINING' : 'CONTINUE',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+        ),
       ),
     );
   }

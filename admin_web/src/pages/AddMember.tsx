@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import {
   UserPlus,
   ArrowLeft,
@@ -12,49 +12,188 @@ import {
   Loader2,
   Shield,
   Check,
-} from 'lucide-react';
+  Eye,
+  EyeOff,
+} from "lucide-react";
 
-const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:3000/api/v1';
+const API_URL =
+  (import.meta as any).env.VITE_API_URL || "http://localhost:3000/api/v1";
 
-const AddMember: React.FC<{ session: any; profile: any }> = ({ session, profile }) => {
+/* ── Role accent colors ── */
+const ROLES = [
+  {
+    value: "CLIENT",
+    label: "Cliente",
+    desc: "Miembro del gimnasio",
+    color: "#10b981",
+    bg: "rgba(16,185,129,0.08)",
+    border: "rgba(16,185,129,0.25)",
+  },
+  {
+    value: "TRAINER",
+    label: "Entrenador",
+    desc: "Imparte clases y rutinas",
+    color: "#3b82f6",
+    bg: "rgba(59,130,246,0.08)",
+    border: "rgba(59,130,246,0.25)",
+  },
+  {
+    value: "ORG_ADMIN",
+    label: "Administrador",
+    desc: "Acceso completo al dashboard",
+    color: "#8b5cf6",
+    bg: "rgba(139,92,246,0.08)",
+    border: "rgba(139,92,246,0.25)",
+  },
+];
+
+/* ── Shared styles ── */
+const labelStyle: React.CSSProperties = {
+  fontSize: "10px",
+  color: "#475569",
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  fontWeight: 700,
+  display: "block",
+  marginBottom: "8px",
+};
+
+const baseInput: React.CSSProperties = {
+  width: "100%",
+  background: "rgba(255,255,255,0.03)",
+  border: "1px solid rgba(255,255,255,0.07)",
+  borderRadius: "9px",
+  height: "38px",
+  fontSize: "12px",
+  color: "#e2e8f0",
+  outline: "none",
+  transition: "border-color 0.2s",
+  boxSizing: "border-box",
+};
+
+/* ── Field wrapper with optional leading icon ── */
+const Field: React.FC<{
+  label: string;
+  required?: boolean;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+}> = ({ label, required, icon, children }) => (
+  <div>
+    <label style={labelStyle}>
+      {label}
+      {required && (
+        <span style={{ color: "#f43f5e", marginLeft: "3px" }}>*</span>
+      )}
+    </label>
+    <div style={{ position: "relative" }}>
+      {icon && (
+        <span
+          style={{
+            position: "absolute",
+            left: "11px",
+            top: "50%",
+            transform: "translateY(-50%)",
+            color: "#334155",
+            pointerEvents: "none",
+            display: "flex",
+          }}
+        >
+          {icon}
+        </span>
+      )}
+      {children}
+    </div>
+  </div>
+);
+
+/* ── Section divider ── */
+const SectionTitle: React.FC<{
+  icon: React.ReactNode;
+  title: string;
+  color?: string;
+}> = ({ icon, title, color = "#8b5cf6" }) => (
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "10px",
+      marginBottom: "16px",
+      paddingBottom: "12px",
+      borderBottom: "1px solid rgba(255,255,255,0.05)",
+    }}
+  >
+    <span
+      style={{
+        width: "26px",
+        height: "26px",
+        minWidth: "26px",
+        borderRadius: "7px",
+        background: `${color}18`,
+        border: `1px solid ${color}30`,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color,
+      }}
+    >
+      {icon}
+    </span>
+    <h3 style={{ fontSize: "13px", fontWeight: 700, color: "#e2e8f0" }}>
+      {title}
+    </h3>
+  </div>
+);
+
+/* ─────────────────────────────── */
+const AddMember: React.FC<{ session: any; profile: any }> = ({
+  session,
+  profile,
+}) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const organizationId = profile?.organizations?.[0]?.id;
 
   const [formData, setFormData] = useState({
-    displayName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    phoneNumber: '',
-    dateOfBirth: '',
-    role: 'CLIENT',
+    displayName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    phoneNumber: "",
+    dateOfBirth: "",
+    role: "CLIENT",
   });
+
+  const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setFormData((prev) => ({ ...prev, [key]: e.target.value }));
+
+  const focusBorder = (e: React.FocusEvent<HTMLInputElement>) =>
+    (e.target.style.borderColor = "rgba(16,185,129,0.4)");
+  const blurBorder = (e: React.FocusEvent<HTMLInputElement>) =>
+    (e.target.style.borderColor = "rgba(255,255,255,0.07)");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     if (!formData.displayName || !formData.email || !formData.password) {
-      setError('Por favor completa todos los campos requeridos');
+      setError("Por favor completa todos los campos requeridos");
       return;
     }
-
     if (formData.password !== formData.confirmPassword) {
-      setError('Las contraseñas no coinciden');
+      setError("Las contraseñas no coinciden");
       return;
     }
-
     if (formData.password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
+      setError("La contraseña debe tener al menos 6 caracteres");
       return;
     }
 
     setLoading(true);
-
     try {
       const response = await axios.post(
         `${API_URL}/organizations/${organizationId}/members`,
@@ -66,231 +205,623 @@ const AddMember: React.FC<{ session: any; profile: any }> = ({ session, profile 
           dateOfBirth: formData.dateOfBirth || undefined,
           role: formData.role,
         },
-        {
-          headers: { Authorization: `Bearer ${session?.access_token}` },
-        }
+        { headers: { Authorization: `Bearer ${session?.access_token}` } },
       );
-
       if (response.data.success) {
         setSuccess(true);
-        setTimeout(() => {
-          navigate('/members');
-        }, 1500);
+        setTimeout(() => navigate("/members"), 1500);
       }
     } catch (err: any) {
-      console.error('Error creating member:', err);
-      setError(err.response?.data?.message || 'Error al crear el miembro');
+      setError(err.response?.data?.message || "Error al crear el miembro");
     } finally {
       setLoading(false);
     }
   };
 
+  /* ── Success screen ── */
   if (success) {
     return (
-      <div className="dashboard-content animate-fade-in" style={{ padding: '0.5rem' }}>
-        <div className="vd-card text-center py-20">
+      <div
+        className="dashboard-content animate-fade-in"
+        style={{ padding: "0.5rem" }}
+      >
+        <div
+          className="vd-card"
+          style={{ padding: "80px 40px", textAlign: "center" }}
+        >
           <div
-            className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-            style={{ background: 'rgba(16, 185, 129, 0.15)' }}
+            style={{
+              width: "64px",
+              height: "64px",
+              borderRadius: "50%",
+              background: "rgba(16,185,129,0.1)",
+              border: "1px solid rgba(16,185,129,0.25)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 20px",
+              boxShadow: "0 0 32px rgba(16,185,129,0.15)",
+            }}
           >
-            <Check size={32} className="text-emerald-400" />
+            <Check size={28} style={{ color: "#10b981" }} />
           </div>
-          <h2 className="text-xl font-bold mb-2">Miembro Creado</h2>
-          <p className="text-sm text-slate-400">Redirigiendo a la lista de miembros...</p>
+          <h2
+            style={{
+              fontSize: "18px",
+              fontWeight: 800,
+              color: "#e2e8f0",
+              marginBottom: "8px",
+            }}
+          >
+            ¡Miembro Creado!
+          </h2>
+          <p style={{ fontSize: "12px", color: "#475569" }}>
+            Redirigiendo a la lista de miembros…
+          </p>
         </div>
       </div>
     );
   }
 
+  /* ── Main form ── */
   return (
-    <div className="dashboard-content animate-fade-in" style={{ padding: '0.5rem' }}>
+    <div
+      className="dashboard-content animate-fade-in"
+      style={{ padding: "0.5rem" }}
+    >
+      {/* ── HEADER ── */}
       <header className="flex items-center gap-4 mb-6">
         <button
-          onClick={() => navigate('/members')}
-          className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+          onClick={() => navigate("/members")}
+          style={{
+            width: "34px",
+            height: "34px",
+            minWidth: "34px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: "9px",
+            border: "1px solid rgba(255,255,255,0.07)",
+            background: "rgba(255,255,255,0.03)",
+            color: "#64748b",
+            cursor: "pointer",
+            transition: "all 0.15s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+            e.currentTarget.style.color = "#e2e8f0";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+            e.currentTarget.style.color = "#64748b";
+          }}
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft size={16} />
         </button>
         <div>
           <h1 className="text-2xl font-bold mb-1">Agregar Miembro</h1>
-          <p className="text-xs text-muted">Registra un nuevo miembro en tu gimnasio</p>
+          <p className="text-xs text-muted">
+            Registra un nuevo miembro en tu gimnasio
+          </p>
         </div>
+        {/* Submit in header */}
+        <button
+          onClick={handleSubmit as any}
+          disabled={loading}
+          style={{
+            marginLeft: "auto",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            padding: "8px 18px",
+            borderRadius: "10px",
+            fontSize: "13px",
+            fontWeight: 700,
+            color: "#fff",
+            border: "none",
+            cursor: loading ? "not-allowed" : "pointer",
+            background: "linear-gradient(135deg,#10b981,#059669)",
+            boxShadow: "0 4px 16px rgba(16,185,129,0.3)",
+            transition: "filter 0.2s",
+            opacity: loading ? 0.7 : 1,
+          }}
+          onMouseEnter={(e) => {
+            if (!loading) e.currentTarget.style.filter = "brightness(1.1)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.filter = "brightness(1)";
+          }}
+        >
+          {loading ? (
+            <Loader2 size={14} className="animate-spin" />
+          ) : (
+            <UserPlus size={14} />
+          )}
+          {loading ? "Creando…" : "Crear Miembro"}
+        </button>
       </header>
 
-      <div className="vd-card max-w-2xl">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Personal Info */}
-          <div>
-            <h3 className="text-sm font-bold mb-4 flex items-center gap-2">
-              <User size={16} className="text-purple-400" />
-              Información Personal
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
+      <div className="vd-card" style={{ padding: "28px 32px" }}>
+        <form
+          onSubmit={handleSubmit}
+          style={{ display: "flex", flexDirection: "column", gap: "28px" }}
+        >
+          {/* ── Two-column layout: form left, sidebar right ── */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 340px",
+              gap: "28px",
+              alignItems: "start",
+            }}
+          >
+            {/* LEFT: Personal + Security */}
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "28px" }}
+            >
+              {/* Personal Info */}
               <div>
-                <label className="text-[10px] text-muted uppercase tracking-widest block mb-2">
-                  Nombre Completo *
-                </label>
-                <input
-                  type="text"
-                  value={formData.displayName}
-                  onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
-                  className="w-full bg-slate-900/50 border border-white-05 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-purple-500"
-                  placeholder="Juan Pérez"
+                <SectionTitle
+                  icon={<User size={13} />}
+                  title="Información Personal"
+                  color="#8b5cf6"
                 />
-              </div>
-              <div>
-                <label className="text-[10px] text-muted uppercase tracking-widest block mb-2">
-                  Email *
-                </label>
-                <div className="relative">
-                  <Mail
-                    size={14}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-                  />
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full bg-slate-900/50 border border-white-05 rounded-lg pl-10 pr-3 py-2.5 text-sm focus:outline-none focus:border-purple-500"
-                    placeholder="juan@email.com"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-[10px] text-muted uppercase tracking-widest block mb-2">
-                  Teléfono
-                </label>
-                <div className="relative">
-                  <Phone
-                    size={14}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-                  />
-                  <input
-                    type="tel"
-                    value={formData.phoneNumber}
-                    onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                    className="w-full bg-slate-900/50 border border-white-05 rounded-lg pl-10 pr-3 py-2.5 text-sm focus:outline-none focus:border-purple-500"
-                    placeholder="+1 234 567 8900"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-[10px] text-muted uppercase tracking-widest block mb-2">
-                  Fecha de Nacimiento
-                </label>
-                <div className="relative">
-                  <Calendar
-                    size={14}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-                  />
-                  <input
-                    type="date"
-                    value={formData.dateOfBirth}
-                    onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                    className="w-full bg-slate-900/50 border border-white-05 rounded-lg pl-10 pr-3 py-2.5 text-sm focus:outline-none focus:border-purple-500"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Security */}
-          <div>
-            <h3 className="text-sm font-bold mb-4 flex items-center gap-2">
-              <Lock size={16} className="text-purple-400" />
-              Seguridad
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-[10px] text-muted uppercase tracking-widest block mb-2">
-                  Contraseña *
-                </label>
-                <input
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full bg-slate-900/50 border border-white-05 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-purple-500"
-                  placeholder="Mínimo 6 caracteres"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] text-muted uppercase tracking-widest block mb-2">
-                  Confirmar Contraseña *
-                </label>
-                <input
-                  type="password"
-                  value={formData.confirmPassword}
-                  onChange={(e) =>
-                    setFormData({ ...formData, confirmPassword: e.target.value })
-                  }
-                  className="w-full bg-slate-900/50 border border-white-05 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-purple-500"
-                  placeholder="Repite la contraseña"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Role */}
-          <div>
-            <h3 className="text-sm font-bold mb-4 flex items-center gap-2">
-              <Shield size={16} className="text-purple-400" />
-              Rol en el Gimnasio
-            </h3>
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { value: 'CLIENT', label: 'Cliente', desc: 'Miembro del gimnasio' },
-                { value: 'TRAINER', label: 'Entrenador', desc: 'Imparte clases y rutinas' },
-                {
-                  value: 'ORG_ADMIN',
-                  label: 'Administrador',
-                  desc: 'Acceso completo al dashboard',
-                },
-              ].map((role) => (
-                <button
-                  key={role.value}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, role: role.value })}
-                  className={`p-4 rounded-lg border text-left transition-all ${
-                    formData.role === role.value
-                      ? 'border-purple-500 bg-purple-500/10'
-                      : 'border-white-05 bg-slate-900/30 hover:border-white-10'
-                  }`}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "16px",
+                  }}
                 >
-                  <p className="text-sm font-bold">{role.label}</p>
-                  <p className="text-[10px] text-slate-500">{role.desc}</p>
-                </button>
-              ))}
+                  <Field label="Nombre Completo" required>
+                    <input
+                      type="text"
+                      value={formData.displayName}
+                      onChange={set("displayName")}
+                      placeholder="Juan Pérez"
+                      style={{ ...baseInput, padding: "0 12px" }}
+                      onFocus={focusBorder}
+                      onBlur={blurBorder}
+                    />
+                  </Field>
+
+                  <Field label="Email" required icon={<Mail size={13} />}>
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={set("email")}
+                      placeholder="juan@email.com"
+                      style={{
+                        ...baseInput,
+                        paddingLeft: "34px",
+                        paddingRight: "12px",
+                      }}
+                      onFocus={focusBorder}
+                      onBlur={blurBorder}
+                    />
+                  </Field>
+
+                  <Field label="Teléfono" icon={<Phone size={13} />}>
+                    <input
+                      type="tel"
+                      value={formData.phoneNumber}
+                      onChange={set("phoneNumber")}
+                      placeholder="+57 300 000 0000"
+                      style={{
+                        ...baseInput,
+                        paddingLeft: "34px",
+                        paddingRight: "12px",
+                      }}
+                      onFocus={focusBorder}
+                      onBlur={blurBorder}
+                    />
+                  </Field>
+
+                  <Field
+                    label="Fecha de Nacimiento"
+                    icon={<Calendar size={13} />}
+                  >
+                    <input
+                      type="date"
+                      value={formData.dateOfBirth}
+                      onChange={set("dateOfBirth")}
+                      style={{
+                        ...baseInput,
+                        paddingLeft: "34px",
+                        paddingRight: "12px",
+                        colorScheme: "dark",
+                      }}
+                      onFocus={focusBorder}
+                      onBlur={blurBorder}
+                    />
+                  </Field>
+                </div>
+              </div>
+
+              {/* Security */}
+              <div>
+                <SectionTitle
+                  icon={<Lock size={13} />}
+                  title="Seguridad"
+                  color="#3b82f6"
+                />
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "16px",
+                  }}
+                >
+                  <Field label="Contraseña" required>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={formData.password}
+                      onChange={set("password")}
+                      placeholder="Mínimo 6 caracteres"
+                      style={{ ...baseInput, padding: "0 36px 0 12px" }}
+                      onFocus={focusBorder}
+                      onBlur={blurBorder}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      style={{
+                        position: "absolute",
+                        right: "10px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        color: "#334155",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: 0,
+                        display: "flex",
+                      }}
+                    >
+                      {showPassword ? <EyeOff size={13} /> : <Eye size={13} />}
+                    </button>
+                  </Field>
+
+                  <Field label="Confirmar Contraseña" required>
+                    <input
+                      type={showConfirm ? "text" : "password"}
+                      value={formData.confirmPassword}
+                      onChange={set("confirmPassword")}
+                      placeholder="Repite la contraseña"
+                      style={{
+                        ...baseInput,
+                        padding: "0 36px 0 12px",
+                        borderColor:
+                          formData.confirmPassword &&
+                          formData.password !== formData.confirmPassword
+                            ? "rgba(244,63,94,0.4)"
+                            : undefined,
+                      }}
+                      onFocus={focusBorder}
+                      onBlur={blurBorder}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirm((v) => !v)}
+                      style={{
+                        position: "absolute",
+                        right: "10px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        color: "#334155",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: 0,
+                        display: "flex",
+                      }}
+                    >
+                      {showConfirm ? <EyeOff size={13} /> : <Eye size={13} />}
+                    </button>
+                  </Field>
+                </div>
+                {formData.confirmPassword &&
+                  formData.password !== formData.confirmPassword && (
+                    <p
+                      style={{
+                        marginTop: "8px",
+                        fontSize: "10px",
+                        color: "#f43f5e",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "5px",
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: "5px",
+                          height: "5px",
+                          borderRadius: "50%",
+                          background: "#f43f5e",
+                          display: "inline-block",
+                        }}
+                      />
+                      Las contraseñas no coinciden
+                    </p>
+                  )}
+              </div>
+            </div>
+
+            {/* RIGHT SIDEBAR: Role + summary */}
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+            >
+              <div
+                style={{
+                  background: "rgba(255,255,255,0.015)",
+                  border: "1px solid rgba(255,255,255,0.06)",
+                  borderRadius: "12px",
+                  padding: "20px",
+                }}
+              >
+                <SectionTitle
+                  icon={<Shield size={13} />}
+                  title="Rol en el Gimnasio"
+                  color="#f59e0b"
+                />
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px",
+                  }}
+                >
+                  {ROLES.map((role) => {
+                    const sel = formData.role === role.value;
+                    return (
+                      <button
+                        key={role.value}
+                        type="button"
+                        onClick={() =>
+                          setFormData((prev) => ({ ...prev, role: role.value }))
+                        }
+                        style={{
+                          padding: "12px 14px",
+                          borderRadius: "10px",
+                          textAlign: "left",
+                          cursor: "pointer",
+                          transition: "all 0.15s",
+                          border: sel
+                            ? `1px solid ${role.border}`
+                            : "1px solid rgba(255,255,255,0.06)",
+                          background: sel ? role.bg : "rgba(255,255,255,0.02)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: "10px",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!sel)
+                            e.currentTarget.style.borderColor =
+                              "rgba(255,255,255,0.1)";
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!sel)
+                            e.currentTarget.style.borderColor =
+                              "rgba(255,255,255,0.06)";
+                        }}
+                      >
+                        <div>
+                          <p
+                            style={{
+                              fontSize: "12px",
+                              fontWeight: 700,
+                              color: sel ? role.color : "#94a3b8",
+                              marginBottom: "2px",
+                            }}
+                          >
+                            {role.label}
+                          </p>
+                          <p
+                            style={{
+                              fontSize: "10px",
+                              color: sel ? role.color + "80" : "#334155",
+                            }}
+                          >
+                            {role.desc}
+                          </p>
+                        </div>
+                        <span
+                          style={{
+                            width: "18px",
+                            height: "18px",
+                            minWidth: "18px",
+                            borderRadius: "50%",
+                            background: sel
+                              ? role.color
+                              : "rgba(255,255,255,0.04)",
+                            border: sel
+                              ? "none"
+                              : "1px solid rgba(255,255,255,0.08)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            boxShadow: sel ? `0 0 8px ${role.color}60` : "none",
+                            transition: "all 0.15s",
+                          }}
+                        >
+                          {sel && (
+                            <Check
+                              size={10}
+                              style={{ color: "#fff", strokeWidth: 3 }}
+                            />
+                          )}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Mini info card */}
+              <div
+                style={{
+                  background: "rgba(16,185,129,0.04)",
+                  border: "1px solid rgba(16,185,129,0.12)",
+                  borderRadius: "10px",
+                  padding: "14px 16px",
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: "10px",
+                    fontWeight: 700,
+                    color: "#10b981",
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                    marginBottom: "8px",
+                  }}
+                >
+                  Resumen
+                </p>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "6px",
+                  }}
+                >
+                  {[
+                    { label: "Nombre", value: formData.displayName || "—" },
+                    { label: "Email", value: formData.email || "—" },
+                    {
+                      label: "Rol",
+                      value:
+                        ROLES.find((r) => r.value === formData.role)?.label ||
+                        "—",
+                    },
+                  ].map(({ label, value }) => (
+                    <div
+                      key={label}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <span style={{ fontSize: "10px", color: "#475569" }}>
+                        {label}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: 600,
+                          color: "#94a3b8",
+                          maxWidth: "160px",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Error */}
+          {/* ── Error banner ── */}
           {error && (
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-              <p className="text-xs text-red-400">{error}</p>
+            <div
+              style={{
+                padding: "12px 16px",
+                borderRadius: "9px",
+                background: "rgba(244,63,94,0.06)",
+                border: "1px solid rgba(244,63,94,0.2)",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              <span
+                style={{
+                  width: "5px",
+                  height: "5px",
+                  minWidth: "5px",
+                  borderRadius: "50%",
+                  background: "#f43f5e",
+                  boxShadow: "0 0 4px #f43f5e",
+                }}
+              />
+              <p style={{ fontSize: "11px", color: "#f43f5e" }}>{error}</p>
             </div>
           )}
 
-          {/* Submit */}
-          <div className="flex justify-end gap-3 pt-4">
+          {/* ── Footer actions ── */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              alignItems: "center",
+              gap: "10px",
+              paddingTop: "4px",
+              borderTop: "1px solid rgba(255,255,255,0.05)",
+            }}
+          >
             <button
               type="button"
-              onClick={() => navigate('/members')}
-              className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+              onClick={() => navigate("/members")}
+              style={{
+                padding: "8px 16px",
+                borderRadius: "9px",
+                fontSize: "12px",
+                fontWeight: 600,
+                color: "#475569",
+                background: "transparent",
+                border: "1px solid rgba(255,255,255,0.06)",
+                cursor: "pointer",
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "#94a3b8";
+                e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "#475569";
+                e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)";
+              }}
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary py-2.5 px-6 text-sm bg-purple-600 rounded-lg flex items-center gap-2 hover:brightness-110 transition-all disabled:opacity-50"
-              style={{ border: 'none', cursor: 'pointer', color: '#fff', fontWeight: 700 }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "8px 20px",
+                borderRadius: "10px",
+                fontSize: "13px",
+                fontWeight: 700,
+                color: "#fff",
+                border: "none",
+                cursor: loading ? "not-allowed" : "pointer",
+                background: "linear-gradient(135deg,#10b981,#059669)",
+                boxShadow: "0 4px 16px rgba(16,185,129,0.3)",
+                transition: "filter 0.2s",
+                opacity: loading ? 0.7 : 1,
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) e.currentTarget.style.filter = "brightness(1.1)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.filter = "brightness(1)";
+              }}
             >
               {loading ? (
-                <Loader2 size={16} className="animate-spin" />
+                <Loader2 size={14} className="animate-spin" />
               ) : (
-                <UserPlus size={16} />
+                <UserPlus size={14} />
               )}
-              {loading ? 'Creando...' : 'Crear Miembro'}
+              {loading ? "Creando…" : "Crear Miembro"}
             </button>
           </div>
         </form>

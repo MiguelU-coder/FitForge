@@ -18,7 +18,9 @@ import '../../../exercises/data/models/exercise_model.dart';
 import '../../../exercises/data/sources/exercises_remote_source.dart';
 
 class ActiveSessionScreen extends ConsumerStatefulWidget {
-  const ActiveSessionScreen({super.key});
+  final String? initialRoutineId;
+
+  const ActiveSessionScreen({super.key, this.initialRoutineId});
   @override
   ConsumerState<ActiveSessionScreen> createState() =>
       _ActiveSessionScreenState();
@@ -28,8 +30,9 @@ class _ActiveSessionScreenState extends ConsumerState<ActiveSessionScreen> {
   late Timer _timer;
   int _elapsed = 0;
   bool _showRestTimer = false;
-  int _expandedIndex = -1; // acordeón
+  int _expandedIndex = -1;
   bool _isFinishing = false;
+  bool _initialized = false;
 
   @override
   void initState() {
@@ -42,6 +45,24 @@ class _ActiveSessionScreenState extends ConsumerState<ActiveSessionScreen> {
         );
       }
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized && widget.initialRoutineId != null) {
+      _initialized = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _startWithRoutine(widget.initialRoutineId!);
+      });
+    }
+  }
+
+  Future<void> _startWithRoutine(String routineId) async {
+    // Start session with the generated routine
+    await ref
+        .read(activeSessionProvider.notifier)
+        .startSession(name: 'AI Generated Workout', routineId: routineId);
   }
 
   @override
@@ -679,24 +700,31 @@ class _ExerciseAccordionState extends ConsumerState<_ExerciseAccordion>
     if (userId != null) {
       final w = weight ?? (wL ?? 0);
       final r = reps ?? (rL ?? 0);
-      
+
       // Get most recent 3 sets including this one
-      final currentSets = widget.block.sets.reversed.take(2).map((s) => {
-        'weight': s.weightKg ?? s.weightKgLeft ?? 0,
-        'reps': s.reps ?? s.repsLeft ?? 0,
-        'rpe': 8.0,
-      }).toList();
+      final currentSets = widget.block.sets.reversed
+          .take(2)
+          .map(
+            (s) => {
+              'weight': s.weightKg ?? s.weightKgLeft ?? 0,
+              'reps': s.reps ?? s.repsLeft ?? 0,
+              'rpe': 8.0,
+            },
+          )
+          .toList();
       currentSets.insert(0, {'weight': w, 'reps': r, 'rpe': 8.0});
 
-      ref.read(coachProvider(widget.block.id).notifier).fetchCoachFeedback(
-        userId: userId,
-        exercise: widget.block.exerciseName,
-        sets: currentSets,
-        fatigueScore: 60.0,
-        estimated1RM: w * (1 + r / 30),
-        isPR: false,
-        injuryRisk: 'LOW',
-      );
+      ref
+          .read(coachProvider(widget.block.id).notifier)
+          .fetchCoachFeedback(
+            userId: userId,
+            exercise: widget.block.exerciseName,
+            sets: currentSets,
+            fatigueScore: 60.0,
+            estimated1RM: w * (1 + r / 30),
+            isPR: false,
+            injuryRisk: 'LOW',
+          );
     }
 
     setState(() {
@@ -981,7 +1009,9 @@ class _ExerciseAccordionState extends ConsumerState<_ExerciseAccordion>
                       const SizedBox(height: 4),
 
                       // AI Coach Banner (Phase 3 upgrade)
-                      CoachBanner(coachState: ref.watch(coachProvider(widget.block.id))),
+                      CoachBanner(
+                        coachState: ref.watch(coachProvider(widget.block.id)),
+                      ),
                     ],
                   ),
                 ),

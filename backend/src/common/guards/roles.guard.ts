@@ -1,4 +1,4 @@
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { UserRole } from '@prisma/client';
 import { ROLES_KEY } from '../decorators/roles.decorator';
@@ -6,6 +6,8 @@ import { AuthUser } from '../../modules/auth/strategies/jwt.strategy';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
+  private readonly logger = new Logger(RolesGuard.name);
+
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
@@ -14,13 +16,16 @@ export class RolesGuard implements CanActivate {
       context.getClass(),
     ]);
 
+    // No @Roles() decorator → endpoint is open to any authenticated user
     if (!requiredRoles || requiredRoles.length === 0) {
       return true;
     }
 
+    // From here on, roles ARE required — we need a valid user
     const { user, params } = context.switchToHttp().getRequest<{ user: AuthUser; params: any }>();
-    
-    if (!user || !user.organizations) {
+
+    if (!user) {
+      this.logger.warn('RolesGuard: no user on request — JWT may have failed');
       return false;
     }
 
@@ -29,7 +34,12 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    // 2. Check for specific organization access if organizationId is in params
+    // 2. No organizations → cannot satisfy any role requirement
+    if (!user.organizations || user.organizations.length === 0) {
+      return false;
+    }
+
+    // 3. Check for specific organization access if organizationId is in params
     const organizationId = params.id || params.organizationId;
 
     if (organizationId) {
@@ -39,7 +49,7 @@ export class RolesGuard implements CanActivate {
       return requiredRoles.includes(userOrg.role as UserRole);
     }
 
-    // 3. If no organizationId is provided, check if the user has the required role in ANY organization
+    // 4. If no organizationId is provided, check if the user has the required role in ANY organization
     return user.organizations.some(org => requiredRoles.includes(org.role as UserRole));
   }
 }

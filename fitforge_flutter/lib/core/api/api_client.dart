@@ -2,10 +2,12 @@
 //
 // Cliente HTTP central con:
 //   - Usa el token de sesión de Supabase para autenticación
+//   - Refresca el token automáticamente si está vencido
 //   - Logging en modo debug
 //   - Manejo de errores tipado
 
 import 'package:dio/dio.dart';
+import 'dart:developer' as dev;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -132,16 +134,43 @@ class _SupabaseAuthInterceptor extends Interceptor {
       return handler.next(options);
     }
 
-    // Obtener token de sesión de Supabase
     final supabase = Supabase.instance.client;
-    final session = supabase.auth.currentSession;
+    var session = supabase.auth.currentSession;
+
+    // If the session is null or the access token is expired/near-expiry,
+    // proactively refresh it before sending the request.
+    if (session == null || _isTokenExpiredOrExpiring(session)) {
+      dev.log('[ApiClient] Session is null or expiring. Refreshing...');
+      try {
+        final refreshed = await supabase.auth.refreshSession().timeout(
+          const Duration(seconds: 15),
+          onTimeout: () => throw Exception('Supabase session refresh timed out'),
+        );
+        session = refreshed.session;
+        dev.log('[ApiClient] Session refreshed successfully');
+      } catch (e) {
+        dev.log('[ApiClient] Session refresh failed: $e');
+      }
+    }
 
     if (session != null) {
-      // Usar el access token de Supabase
       options.headers['Authorization'] = 'Bearer ${session.accessToken}';
+    } else {
+      dev.log('[ApiClient] No session available for request to ${options.path}');
     }
 
     handler.next(options);
+  }
+
+  /// Returns true if the token is already expired or expires in < 60 seconds.
+  bool _isTokenExpiredOrExpiring(Session session) {
+    final expiresAt = session.expiresAt;
+    if (expiresAt == null) return false;
+    final expiresAtDate =
+        DateTime.fromMillisecondsSinceEpoch(expiresAt * 1000, isUtc: true);
+    return DateTime.now().toUtc().isAfter(
+          expiresAtDate.subtract(const Duration(seconds: 60)),
+        );
   }
 
   @override
@@ -165,16 +194,17 @@ class _SupabaseAuthInterceptor extends Interceptor {
       if (response.session != null) {
         // Reintentar el request original con el nuevo token
         final retryOptions = err.requestOptions;
-        retryOptions.headers['Authorization'] = 'Bearer ${response.session!.accessToken}';
+        retryOptions.headers['Authorization'] =
+            'Bearer ${response.session!.accessToken}';
 
-        final retryResponse = await _client.dio.fetch<Map<String, dynamic>>(retryOptions);
+        final retryResponse =
+            await _client.dio.fetch<Map<String, dynamic>>(retryOptions);
         return handler.resolve(retryResponse);
       } else {
         // No se pudo refrescar - forzar logout
         await supabase.auth.signOut();
         return handler.next(err);
       }
-
     } catch (_) {
       // Refresh falló
       return handler.next(err);

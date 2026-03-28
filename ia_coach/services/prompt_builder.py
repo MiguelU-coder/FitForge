@@ -18,8 +18,17 @@ evidence-based strength training and hypertrophy programming. Your coaching styl
 - Concise for in-workout messages (max 3 sentences per field)
 - Bilingual: respond in SPANISH if the data includes Spanish context, otherwise match the user language
 
-CRITICAL: You MUST base your analysis on the exact weight, reps, and RIR data provided.
-Never give generic advice. Always reference the specific numbers in your response.
+CRITICAL SAFETY RULES - YOU MUST FOLLOW THESE EXACTLY:
+1. RIR (Reps In Reserve): 0 = failure, 1 = 1 rep left, 2 = 2 reps left, etc.
+2. RPE (Rate of Perceived Exertion): 10 = failure, 9 = 1 rep left, 8 = 2 reps left (RPE = 10 - RIR)
+3. When RIR <= 1 OR RPE >= 9: NEVER recommend increasing weight - this is dangerous!
+4. When RIR = 0 (failure) or RPE = 10: ALWAYS warn user and recommend rest or weight reduction
+5. injury_risk: if "HIGH" or "MODERATE", MUST include warning and recommend reducing weight
+6. fatigue_score > 70: MUST recommend shorter rest or ending the exercise
+7. Single reps (1 rep) at high intensity: DO NOT recommend adding weight
+
+YOUR PRIMARY GOAL IS INJURY PREVENTION. Progressive overload matters, but NOT at the cost of injury.
+When in doubt, be CONSERVATIVE - suggest maintaining or reducing weight rather than risking injury.
 """.strip()
 
 
@@ -37,7 +46,7 @@ def build_set_feedback_prompt(
     Inyecta los datos exactos del set para feedback personalizado.
     """
     sets_text = "\n".join(
-        f"  Set {i+1}: {s.get('weight', '?')}kg × {s.get('reps', '?')} reps @ RPE {s.get('rpe', '?')}"
+        f"  Set {i+1}: {s.get('weight', '?')}kg × {s.get('reps', '?')} reps @ RPE {s.get('rpe', '?')}, RIR {s.get('rir', '?')}"
         for i, s in enumerate(recent_sets)
     )
 
@@ -45,34 +54,48 @@ def build_set_feedback_prompt(
     weight   = last_set.get("weight", "unknown")
     reps     = last_set.get("reps", "unknown")
     rpe      = last_set.get("rpe", "unknown")
+    rir      = last_set.get("rir")  # May be None
 
     # Calcular RIR estimado desde RPE
-    rir_estimated = 10 - float(rpe) if isinstance(rpe, (int, float)) else "unknown"
+    if rir is not None:
+        rir_estimated = rir
+    elif isinstance(rpe, (int, float)):
+        rir_estimated = 10 - float(rpe)
+    else:
+        rir_estimated = "unknown"
 
     volume_line = f"- Weekly volume so far: {weekly_volume:.0f}kg" if weekly_volume else ""
 
     return f"""
-Analyze this workout set and provide specific coaching feedback:
+Analiza este set de entrenamiento y proporciona retroalimentación específica:
 
-EXERCISE: {exercise}
-LAST SET: {weight}kg × {reps} reps @ RPE {rpe} (estimated RIR: {rir_estimated})
-ALL SETS THIS EXERCISE:
+EJERCICIO: {exercise}
+ÚLTIMO SET: {weight}kg × {reps} reps @ RPE {rpe}, RIR {rir_estimated}
+TODOS LOS SETS DE ESTE EJERCICIO:
 {sets_text}
 
-USER STATS:
-- Estimated 1RM for this exercise: {estimated_1rm:.1f}kg
-- Current fatigue score: {fatigue_score:.0f}/100 (0=fresh, 100=exhausted)
-- Injury risk level: {injury_risk}
-- Personal Record this set: {"YES 🏆" if is_pr else "No"}
+ESTADÍSTICAS DEL USUARIO:
+- 1RM estimado para este ejercicio: {estimated_1rm:.1f}kg
+- Nivel de fatiga actual: {fatigue_score:.0f}/100 (0=descansado, 100=agotado)
+- Nivel de riesgo de lesión: {injury_risk}
+- Récord personal en este set: {"SÍ 🏆" if is_pr else "No"}
 {volume_line}
 
-Respond ONLY in valid JSON with this exact structure:
+⚠️ INSTRUCCIONES DE SEGURIDAD OBLIGATORIAS:
+- Si RIR <= 1 (o RPE >= 9): El usuario está en riesgo. NO recomiendes aumentar peso.
+- Si RIR = 0 (failure): Este es un set a fallo. Recomienda DESCANSAR o mantener peso.
+- Si injury_risk es HIGH: Recomienda REDUCIR peso o terminar el ejercicio.
+- Si injury_risk es MODERATE: Recomienda mantener o reducir peso, NO aumentar.
+- Si fatigue_score > 70: El usuario está fatigado. Recomienda descansar más.
+- Si es 1 solo rep a alta intensidad: ¡PELIGRO! No sugerir aumento.
+
+Responde SOLO en JSON válido con esta estructura exacta:
 {{
-  "summary": "One sentence headline about THIS specific set performance (mention actual weight/reps)",
-  "insights": ["2-3 specific observations about the data above"],
-  "recommendations": ["1-2 concrete next-set recommendations with specific weight/rep targets"],
-  "warnings": ["Only include if injury_risk is HIGH or fatigue_score > 80, otherwise empty array"],
-  "motivation": "One short motivational sentence, personalized to this performance"
+  "summary": "Una oración sobre el rendimiento de ESTE set específico (menciona peso/reps/RIR si aplica)",
+  "insights": ["2-3 observaciones específicas sobre los datos anteriores"],
+  "recommendations": ["1-2 recomendaciones concretas - SI RIR <= 1 O injury_risk=HIGH: recomendar mantener o reducir peso, NO aumentar"],
+  "warnings": ["SIEMPRE incluye warning si: RIR <= 1, O injury_risk=HIGH/MODERATE, O fatigue_score > 70, O reps=1 a alta intensidad. Ej: 'Riesgo de lesión elevado - considera reducir peso'"],
+  "motivation": "Una oración corta motivacional"
 }}
 """.strip()
 
@@ -158,11 +181,14 @@ AVAILABLE EXERCISES (from ExerciseDB):
 {exercises_sample}
 
 GUIDELINES:
-- Use Mike Israetel's MEV/MRV framework for volume
-- Include progressive overload instructions
-- Specify sets, rep ranges, and RIR targets for each exercise
-- Structure in logical training splits (Push/Pull/Legs or Full Body based on frequency)
-- Duration 45-75 minutes per session
+- Use Mike Israetel's MEV/MRV framework for volume.
+- Include progressive overload instructions.
+- Specify sets, rep ranges, and RIR targets for each exercise.
+- **CRITICAL: Generate a set of UNIQUE workout templates.** 
+- If training {days_per_week} days/week, provide 2 to 4 UNIQUE templates (e.g. 'Push', 'Pull', 'Legs' or 'Upper', 'Lower').
+- **DO NOT repeat the same workout content multiple times in the JSON.** The app will handle the weekly scheduling.
+- Each session should have a distinct name (e.g., 'Upper A', 'Lower A').
+- Duration 45-75 minutes per session.
 
 Respond ONLY in valid JSON with this exact structure:
 {{
@@ -171,7 +197,7 @@ Respond ONLY in valid JSON with this exact structure:
   "days_per_week": {days_per_week},
   "sessions": [
     {{
-      "day_label": "Day 1 - Push",
+      "day_label": "Unique Session Name (e.g. Upper Body A)",
       "exercises": [
         {{
           "name": "Exercise name",

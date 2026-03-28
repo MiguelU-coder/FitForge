@@ -20,55 +20,60 @@ class DobStep extends ConsumerWidget {
           Row(
             children: [
               Container(
-                width: 40,
-                height: 40,
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppTheme.neon.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
+                  color: AppTheme.neon.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.cake_outlined, color: AppTheme.neon, size: 22),
+                child: const Icon(Icons.cake_rounded, color: AppTheme.neon, size: 24),
               ),
-              const SizedBox(width: 12),
-              const Text(
-                'When were you born?',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.textPri,
-                  letterSpacing: -0.5,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Your Birthday',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.textPri,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    Text(
+                      'Used for age-specific training metrics',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textSec.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          const Padding(
-            padding: EdgeInsets.only(left: 52),
-            child: Text(
-              'Used to calculate your age and metabolic rate',
-              style: TextStyle(fontSize: 14, color: AppTheme.textSec),
-            ),
-          ),
           const SizedBox(height: 48),
           Center(
             child: Container(
-              padding: EdgeInsets.all(state.dateOfBirth != null ? 32 : 40),
+              padding: EdgeInsets.all(state.dateOfBirth != null ? 36 : 48),
               decoration: BoxDecoration(
                 color: state.dateOfBirth != null
-                    ? AppTheme.neon.withValues(alpha: 0.1)
-                    : AppTheme.bgElevated.withValues(alpha: 0.5),
+                    ? AppTheme.neon.withValues(alpha: 0.08)
+                    : AppTheme.bgCard,
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: state.dateOfBirth != null
-                      ? AppTheme.neon
-                      : AppTheme.border,
+                      ? AppTheme.neon.withValues(alpha: 0.6)
+                      : AppTheme.border.withValues(alpha: 0.8),
                   width: 2,
                 ),
                 boxShadow: state.dateOfBirth != null
                     ? [
                         BoxShadow(
-                          color: AppTheme.neon.withValues(alpha: 0.2),
-                          blurRadius: 20,
-                          spreadRadius: 2,
+                          color: AppTheme.neon.withValues(alpha: 0.1),
+                          blurRadius: 24,
+                          spreadRadius: 0,
                         ),
                       ]
                     : null,
@@ -80,25 +85,27 @@ class DobStep extends ConsumerWidget {
                         Text(
                           '${state.dateOfBirth!.day.toString().padLeft(2, '0')}/${state.dateOfBirth!.month.toString().padLeft(2, '0')}',
                           style: const TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.w800,
+                            fontSize: 36,
+                            fontWeight: FontWeight.w900,
                             color: AppTheme.neon,
+                            letterSpacing: -1,
                           ),
                         ),
                         Text(
                           state.dateOfBirth!.year.toString(),
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.textPri,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textPri.withValues(alpha: 0.9),
+                            letterSpacing: 1,
                           ),
                         ),
                       ],
                     )
-                  : const Icon(
-                      Icons.calendar_today_rounded,
-                      size: 64,
-                      color: AppTheme.neon,
+                  : Icon(
+                      Icons.calendar_month_rounded,
+                      size: 56,
+                      color: AppTheme.textSec.withValues(alpha: 0.4),
                     ),
             ),
           ),

@@ -75,18 +75,20 @@ class CoachNotifier extends StateNotifier<CoachState> {
           if (weeklyVolume != null) 'weeklyVolume': weeklyVolume,
         },
         cancelToken: _cancelToken,
-        options: Options(
-          receiveTimeout: const Duration(seconds: 60),
-        ),
+        options: Options(receiveTimeout: const Duration(seconds: 180)),
       );
-      
+
       final dynamic body = response.data;
-      final Map<String, dynamic>? bodyMap = (body is Map) ? Map<String, dynamic>.from(body) : null;
+      final Map<String, dynamic>? bodyMap = (body is Map)
+          ? Map<String, dynamic>.from(body)
+          : null;
       final coachData = bodyMap?['data'];
 
       state = state.copyWith(
         isLoading: false,
-        response: CoachResponse.fromJson((coachData as Map<String, dynamic>?) ?? {}),
+        response: CoachResponse.fromJson(
+          (coachData as Map<String, dynamic>?) ?? {},
+        ),
       );
 
       // Start 60s cooldown to clear the UI
@@ -114,18 +116,20 @@ class CoachNotifier extends StateNotifier<CoachState> {
           if (durationMin != null) 'durationMin': durationMin,
           if (totalVolume != null) 'totalVolume': totalVolume,
         },
-        options: Options(
-          receiveTimeout: const Duration(seconds: 90),
-        ),
+        options: Options(receiveTimeout: const Duration(seconds: 180)),
       );
 
       final dynamic body = response.data;
-      final Map<String, dynamic>? bodyMap = (body is Map) ? Map<String, dynamic>.from(body) : null;
+      final Map<String, dynamic>? bodyMap = (body is Map)
+          ? Map<String, dynamic>.from(body)
+          : null;
       final coachData = bodyMap?['data'];
 
       state = state.copyWith(
         isLoading: false,
-        response: CoachResponse.fromJson((coachData as Map<String, dynamic>?) ?? {}),
+        response: CoachResponse.fromJson(
+          (coachData as Map<String, dynamic>?) ?? {},
+        ),
       );
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
@@ -153,4 +157,3 @@ final coachProvider =
     StateNotifierProvider.family<CoachNotifier, CoachState, String>(
       (ref, blockId) => CoachNotifier(ref.read(apiClientProvider)),
     );
-

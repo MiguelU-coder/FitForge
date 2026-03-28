@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import {
   CreditCard,
   DollarSign,
@@ -12,9 +12,16 @@ import {
   Plus,
   Download,
   Filter,
-} from 'lucide-react';
+  ChevronLeft,
+  ChevronRight,
+  Calendar,
+  MoreVertical,
+  Eye,
+  Banknote,
+} from "lucide-react";
 
-const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:3000/api/v1';
+const API_URL =
+  (import.meta as any).env.VITE_API_URL || "http://localhost:3000/api/v1";
 
 interface Payment {
   id: string;
@@ -28,285 +35,674 @@ interface Payment {
   createdAt: string;
 }
 
-const OrganizationPayments: React.FC<{ session: any; profile: any }> = ({ session, profile }) => {
+/* ── Status helpers ── */
+const statusAccent = (status: string) => {
+  switch (status) {
+    case "PAID":
+      return {
+        color: "#10b981",
+        bg: "rgba(16,185,129,0.08)",
+        border: "rgba(16,185,129,0.2)",
+        label: "Pagado",
+      };
+    case "PENDING":
+      return {
+        color: "#f59e0b",
+        bg: "rgba(245,158,11,0.08)",
+        border: "rgba(245,158,11,0.2)",
+        label: "Pendiente",
+      };
+    case "OVERDUE":
+      return {
+        color: "#f43f5e",
+        bg: "rgba(244,63,94,0.08)",
+        border: "rgba(244,63,94,0.2)",
+        label: "Vencido",
+      };
+    default:
+      return {
+        color: "#64748b",
+        bg: "rgba(100,116,139,0.08)",
+        border: "rgba(100,116,139,0.2)",
+        label: status,
+      };
+  }
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  PAID: "Pagado",
+  PENDING: "Pendiente",
+  OVERDUE: "Vencido",
+};
+
+/* ─────────────────────────────── */
+const OrganizationPayments: React.FC<{ session: any; profile: any }> = ({
+  session,
+  profile,
+}) => {
   const navigate = useNavigate();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState("");
   const [stats, setStats] = useState({
     totalRevenue: 0,
     thisMonthRevenue: 0,
     pendingCount: 0,
     overdueCount: 0,
   });
-  const [statusFilter, setStatusFilter] = useState('');
 
   const organizationId = profile?.organizations?.[0]?.id;
 
   useEffect(() => {
-    const fetchPayments = async () => {
-      if (!organizationId) {
-        setLoading(false);
-        return;
-      }
+    if (!organizationId) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (statusFilter) params.append("status", statusFilter);
 
-      try {
-        const { data } = await axios.get(
-          `${API_URL}/organizations/${organizationId}/payments`,
-          { headers: { Authorization: `Bearer ${session?.access_token}` } }
-        );
+    axios
+      .get(`${API_URL}/organizations/${organizationId}/payments?${params}`, {
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      })
+      .then(({ data }) => {
         if (data.success) {
           setPayments(data.data.payments || []);
-          setStats(data.data.stats || {
-            totalRevenue: 0,
-            thisMonthRevenue: 0,
-            pendingCount: 0,
-            overdueCount: 0,
-          });
+          setStats(
+            data.data.stats || {
+              totalRevenue: 0,
+              thisMonthRevenue: 0,
+              pendingCount: 0,
+              overdueCount: 0,
+            },
+          );
         }
-      } catch (err) {
-        console.error('Error fetching payments:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (session?.access_token && organizationId) {
-      fetchPayments();
-    } else {
-      setLoading(false);
-    }
-  }, [session, organizationId]);
+      })
+      .catch((e) => console.error(e))
+      .finally(() => setLoading(false));
+  }, [session, organizationId, statusFilter]);
 
   const filteredPayments = statusFilter
     ? payments.filter((p) => p.status === statusFilter)
     : payments;
 
-  const getStatusInfo = (status: string) => {
-    switch (status) {
-      case 'PAID':
-        return { label: 'Pagado', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', icon: CheckCircle };
-      case 'PENDING':
-        return { label: 'Pendiente', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', icon: Clock };
-      case 'OVERDUE':
-        return { label: 'Vencido', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)', icon: AlertTriangle };
-      default:
-        return { label: status, color: '#64748b', bg: 'rgba(100, 116, 139, 0.15)', icon: Clock };
-    }
-  };
-
   return (
-    <div className="dashboard-content animate-fade-in" style={{ padding: '0.5rem' }}>
+    <div
+      className="dashboard-content animate-fade-in"
+      style={{ padding: "0.5rem" }}
+    >
+      {/* ── HEADER ── */}
       <header className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold mb-1">Pagos de Miembros</h1>
-          <p className="text-xs text-muted">Historial de pagos y facturación de miembros</p>
+          <h1 className="text-2xl font-bold mb-1">Pagos</h1>
+          <p className="text-xs text-muted">
+            Historial de pagos y facturación de miembros
+          </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex gap-2">
           <button
-            onClick={() => navigate('/payments/new')}
-            className="btn-primary py-2 px-4 text-xs bg-purple-600 rounded-md flex items-center gap-1.5 hover:brightness-110 active:scale-95 transition-all"
-            style={{ border: 'none', cursor: 'pointer', color: '#fff', fontWeight: 700 }}
+            className="icon-btn text-xs border border-white-05 flex items-center gap-1.5"
+            style={{ padding: "8px 14px" }}
+          >
+            <Download size={14} /> Exportar
+          </button>
+          <button
+            onClick={() => navigate("/payments/new")}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "8px 18px",
+              borderRadius: "10px",
+              fontSize: "13px",
+              fontWeight: 700,
+              color: "#fff",
+              border: "none",
+              cursor: "pointer",
+              background: "linear-gradient(135deg,#10b981,#059669)",
+              boxShadow: "0 4px 16px rgba(16,185,129,0.3)",
+              transition: "filter 0.2s",
+            }}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.filter = "brightness(1.1)")
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.filter = "brightness(1)")
+            }
           >
             <Plus size={14} /> Registrar Pago
-          </button>
-          <button className="icon-btn text-xs border border-white-05 px-3">
-            <Download size={14} className="mr-1" /> Exportar
           </button>
         </div>
       </header>
 
-      {/* Stats */}
+      {/* ── KPI STRIP ── */}
       <div className="grid-cols-stats mb-6">
-        <StatCard
-          icon={<DollarSign size={14} />}
-          title="Ingresos Totales"
-          value={`$${stats.totalRevenue.toLocaleString()}`}
-          color="#10b981"
-        />
-        <StatCard
-          icon={<TrendingUp size={14} />}
-          title="Este Mes"
-          value={`$${stats.thisMonthRevenue.toLocaleString()}`}
-          color="#3b82f6"
-        />
-        <StatCard
-          icon={<Clock size={14} />}
-          title="Pendientes"
-          value={stats.pendingCount.toString()}
-          color="#f59e0b"
-        />
-        <StatCard
-          icon={<AlertTriangle size={14} />}
-          title="Vencidos"
-          value={stats.overdueCount.toString()}
-          color="#ef4444"
-        />
+        {[
+          {
+            icon: <DollarSign size={13} />,
+            label: "Ingresos Totales",
+            value: `$${stats.totalRevenue.toLocaleString()}`,
+            color: "#10b981",
+          },
+          {
+            icon: <TrendingUp size={13} />,
+            label: "Este Mes",
+            value: `$${stats.thisMonthRevenue.toLocaleString()}`,
+            color: "#3b82f6",
+          },
+          {
+            icon: <Clock size={13} />,
+            label: "Pendientes",
+            value: stats.pendingCount,
+            color: "#f59e0b",
+          },
+          {
+            icon: <AlertTriangle size={13} />,
+            label: "Vencidos",
+            value: stats.overdueCount,
+            color: "#f43f5e",
+          },
+        ].map((c) => (
+          <div
+            key={c.label}
+            className="vd-card flex flex-col justify-between"
+            style={{ padding: "16px 20px" }}
+          >
+            <span className="text-[10px] text-muted flex items-center gap-1.5 mb-2">
+              <span
+                style={{
+                  width: "18px",
+                  height: "18px",
+                  minWidth: "18px",
+                  borderRadius: "5px",
+                  background: `${c.color}18`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: c.color,
+                }}
+              >
+                {c.icon}
+              </span>
+              {c.label}
+            </span>
+            <h4 className="text-xl font-bold">{c.value}</h4>
+          </div>
+        ))}
       </div>
 
-      {/* Filters */}
-      <div className="vd-card mb-4">
-        <div className="flex items-center gap-4">
-          <Filter size={14} className="text-slate-500" />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-slate-900/50 border border-white-05 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-500"
-          >
-            <option value="">Todos los estados</option>
-            <option value="PAID">Pagados</option>
-            <option value="PENDING">Pendientes</option>
-            <option value="OVERDUE">Vencidos</option>
-          </select>
+      {/* ── FILTERS TOOLBAR ── */}
+      <div className="vd-card mb-4" style={{ padding: "14px 20px" }}>
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Status filter — styled select */}
+          <div style={{ position: "relative" }}>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              style={{
+                appearance: "none",
+                WebkitAppearance: "none",
+                padding: "0 32px 0 12px",
+                height: "36px",
+                background: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.07)",
+                borderRadius: "9px",
+                fontSize: "12px",
+                color: "#94a3b8",
+                outline: "none",
+                cursor: "pointer",
+                transition: "border-color 0.2s",
+              }}
+              onFocus={(e) =>
+                (e.target.style.borderColor = "rgba(16,185,129,0.4)")
+              }
+              onBlur={(e) =>
+                (e.target.style.borderColor = "rgba(255,255,255,0.07)")
+              }
+            >
+              <option value="">Todos los estados</option>
+              <option value="PAID">Pagados</option>
+              <option value="PENDING">Pendientes</option>
+              <option value="OVERDUE">Vencidos</option>
+            </select>
+            <Filter
+              size={11}
+              style={{
+                position: "absolute",
+                right: "10px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "#475569",
+                pointerEvents: "none",
+              }}
+            />
+          </div>
+
+          {/* Active status pills */}
+          {["PAID", "PENDING", "OVERDUE"].map((s) => {
+            const ac = statusAccent(s);
+            const sel = statusFilter === s;
+            return (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(sel ? "" : s)}
+                style={{
+                  padding: "5px 12px",
+                  borderRadius: "20px",
+                  fontSize: "10px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                  letterSpacing: "0.04em",
+                  border: sel
+                    ? `1px solid ${ac.border}`
+                    : "1px solid rgba(255,255,255,0.07)",
+                  background: sel ? ac.bg : "rgba(255,255,255,0.02)",
+                  color: sel ? ac.color : "#475569",
+                }}
+              >
+                {STATUS_LABELS[s]}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Payments Table */}
-      <div className="vd-card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div className="flex justify-between items-center border-b border-white-05" style={{ padding: '16px 24px' }}>
+      {/* ── TABLE ── */}
+      <div className="vd-card" style={{ padding: 0, overflow: "hidden" }}>
+        {/* Toolbar */}
+        <div
+          className="flex justify-between items-center border-b border-white-05 bg-slate-950/20"
+          style={{ padding: "14px 24px" }}
+        >
           <h3 className="text-sm font-bold">Historial de Transacciones</h3>
+          <span className="text-[11px] text-muted">
+            {filteredPayments.length} pagos encontrados
+          </span>
         </div>
 
         {loading ? (
-          <div className="py-20 text-center">
-            <Loader2 size={28} className="animate-spin text-purple-500 mx-auto mb-2" />
-            <p className="text-xs text-muted">Cargando pagos...</p>
+          <div style={{ padding: "60px 0", textAlign: "center" }}>
+            <Loader2
+              size={26}
+              className="animate-spin text-purple-500 mx-auto mb-2"
+            />
+            <p className="text-xs text-muted">Cargando pagos…</p>
           </div>
         ) : filteredPayments.length === 0 ? (
-          <div className="py-20 text-center">
-            <CreditCard size={40} className="mx-auto mb-3 text-slate-500 opacity-50" />
-            <p className="text-sm text-slate-300 font-semibold mb-1">Sin pagos registrados</p>
-            <p className="text-xs text-slate-500">
+          <div style={{ padding: "60px 0", textAlign: "center" }}>
+            <div
+              style={{
+                width: "56px",
+                height: "56px",
+                borderRadius: "16px",
+                background: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.06)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 16px",
+              }}
+            >
+              <CreditCard size={24} style={{ color: "#334155" }} />
+            </div>
+            <p
+              style={{
+                fontSize: "14px",
+                fontWeight: 600,
+                color: "#94a3b8",
+                marginBottom: "4px",
+              }}
+            >
+              Sin pagos registrados
+            </p>
+            <p style={{ fontSize: "12px", color: "#475569" }}>
               Los pagos de los miembros aparecerán aquí
             </p>
+            <button
+              onClick={() => navigate("/payments/new")}
+              style={{
+                marginTop: "20px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "9px 20px",
+                borderRadius: "10px",
+                fontSize: "12px",
+                fontWeight: 700,
+                color: "#fff",
+                border: "none",
+                cursor: "pointer",
+                background: "linear-gradient(135deg,#10b981,#059669)",
+                boxShadow: "0 4px 14px rgba(16,185,129,0.25)",
+              }}
+            >
+              <Plus size={13} /> Registrar primer pago
+            </button>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  {['Miembro', 'Monto', 'Estado', 'Método', 'Fecha'].map((h) => (
-                    <th
-                      key={h}
-                      style={{
-                        padding: '12px 16px',
-                        textAlign: 'left',
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        color: '#475569',
-                        letterSpacing: '0.08em',
-                        textTransform: 'uppercase',
-                      }}
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredPayments.map((payment, idx) => {
-                  const statusInfo = getStatusInfo(payment.status);
-                  const StatusIcon = statusInfo.icon;
+          <>
+            <div style={{ overflowX: "auto" }}>
+              <table
+                style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  minWidth: "700px",
+                }}
+              >
+                <thead>
+                  <tr
+                    style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
+                  >
+                    {[
+                      { label: "Miembro", w: "26%" },
+                      { label: "Monto", w: "14%" },
+                      { label: "Estado", w: "14%" },
+                      { label: "Método", w: "14%" },
+                      { label: "Fecha", w: "20%" },
+                      { label: "", w: "12%" },
+                    ].map(({ label, w }) => (
+                      <th
+                        key={label}
+                        style={{
+                          padding: "12px 16px",
+                          textAlign: "left",
+                          fontSize: "10px",
+                          fontWeight: 700,
+                          color: "#475569",
+                          letterSpacing: "0.08em",
+                          textTransform: "uppercase",
+                          whiteSpace: "nowrap",
+                          width: w,
+                        }}
+                      >
+                        {label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredPayments.map((payment, idx) => {
+                    const sa = statusAccent(payment.status);
+                    const isLast = idx === filteredPayments.length - 1;
 
-                  return (
-                    <tr
-                      key={payment.id}
-                      className="hover:bg-white/[0.02] transition-colors cursor-pointer"
-                      style={{
-                        borderBottom:
-                          idx === filteredPayments.length - 1
-                            ? 'none'
-                            : '1px solid rgba(255,255,255,0.04)',
-                      }}
-                      onClick={() => navigate(`/payments/${payment.id}`)}
-                    >
-                      <td style={{ padding: '14px 16px' }}>
-                        <div className="flex items-center gap-3">
+                    return (
+                      <tr
+                        key={payment.id}
+                        className="hover:bg-white/[0.02] transition-colors cursor-pointer group"
+                        style={{
+                          borderBottom: isLast
+                            ? "none"
+                            : "1px solid rgba(255,255,255,0.04)",
+                        }}
+                        onClick={() => navigate(`/payments/${payment.id}`)}
+                      >
+                        {/* Member */}
+                        <td style={{ padding: "16px", whiteSpace: "nowrap" }}>
                           <div
-                            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
-                            style={{ background: 'rgba(139, 92, 246, 0.15)', color: '#a855f7' }}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "12px",
+                            }}
                           >
-                            {payment.user?.displayName?.[0]?.toUpperCase() || 'U'}
+                            <div
+                              style={{
+                                width: "36px",
+                                height: "36px",
+                                minWidth: "36px",
+                                borderRadius: "10px",
+                                background: "rgba(139,92,246,0.1)",
+                                border: "1px solid rgba(139,92,246,0.25)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: "13px",
+                                fontWeight: 800,
+                                color: "#8b5cf6",
+                                overflow: "hidden",
+                                flexShrink: 0,
+                              }}
+                            >
+                              {payment.user?.avatarUrl ? (
+                                <img
+                                  src={payment.user.avatarUrl}
+                                  alt={payment.user.displayName}
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                  }}
+                                />
+                              ) : (
+                                payment.user?.displayName?.[0]?.toUpperCase() ||
+                                "U"
+                              )}
+                            </div>
+                            <div>
+                              <div
+                                style={{
+                                  fontSize: "13px",
+                                  fontWeight: 700,
+                                  color: "#e2e8f0",
+                                  marginBottom: "2px",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {payment.user?.displayName || "Sin nombre"}
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: "10px",
+                                  color: "#475569",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {payment.user?.email}
+                              </div>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-xs font-semibold">
-                              {payment.user?.displayName || 'Sin nombre'}
-                            </p>
-                            <p className="text-[10px] text-slate-500">{payment.user?.email}</p>
+                        </td>
+
+                        {/* Amount */}
+                        <td style={{ padding: "16px", whiteSpace: "nowrap" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "baseline",
+                              gap: "4px",
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: "14px",
+                                fontWeight: 800,
+                                color: "#e2e8f0",
+                              }}
+                            >
+                              ${payment.amount.toLocaleString()}
+                            </span>
+                            <span
+                              style={{ fontSize: "10px", color: "#475569" }}
+                            >
+                              {payment.currency}
+                            </span>
                           </div>
-                        </div>
-                      </td>
-                      <td style={{ padding: '14px 16px' }}>
-                        <span className="text-sm font-bold">
-                          ${payment.amount.toLocaleString()}
-                        </span>
-                        <span className="text-[10px] text-slate-500 ml-1">
-                          {payment.currency}
-                        </span>
-                      </td>
-                      <td style={{ padding: '14px 16px' }}>
-                        <div className="flex items-center gap-2">
-                          <StatusIcon size={14} style={{ color: statusInfo.color }} />
+                        </td>
+
+                        {/* Status */}
+                        <td style={{ padding: "16px", whiteSpace: "nowrap" }}>
                           <span
-                            className="text-[10px] px-2 py-0.5 rounded font-bold"
-                            style={{ background: statusInfo.bg, color: statusInfo.color }}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "5px",
+                              padding: "4px 10px",
+                              borderRadius: "20px",
+                              fontSize: "10px",
+                              fontWeight: 700,
+                              color: sa.color,
+                              background: sa.bg,
+                              border: `1px solid ${sa.border}`,
+                            }}
                           >
-                            {statusInfo.label}
+                            <span
+                              style={{
+                                width: "5px",
+                                height: "5px",
+                                borderRadius: "50%",
+                                background: sa.color,
+                                boxShadow: `0 0 4px ${sa.color}`,
+                                flexShrink: 0,
+                              }}
+                            />
+                            {sa.label}
                           </span>
-                        </div>
-                      </td>
-                      <td style={{ padding: '14px 16px' }}>
-                        <span className="text-xs text-slate-400">
-                          {payment.paymentMethod || '-'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '14px 16px' }}>
-                        <div className="flex flex-col">
-                          <span className="text-xs text-slate-300">
-                            {new Date(payment.createdAt).toLocaleDateString('es-ES', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                            })}
-                          </span>
-                          {payment.paidAt && (
-                            <span className="text-[10px] text-slate-500">
-                              Pagado: {new Date(payment.paidAt).toLocaleDateString('es-ES')}
+                        </td>
+
+                        {/* Method */}
+                        <td style={{ padding: "16px", whiteSpace: "nowrap" }}>
+                          {payment.paymentMethod ? (
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "5px",
+                                fontSize: "11px",
+                                color: "#64748b",
+                              }}
+                            >
+                              <Banknote
+                                size={11}
+                                style={{ flexShrink: 0, color: "#334155" }}
+                              />
+                              {payment.paymentMethod}
+                            </span>
+                          ) : (
+                            <span
+                              style={{ fontSize: "11px", color: "#334155" }}
+                            >
+                              —
                             </span>
                           )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        </td>
+
+                        {/* Date */}
+                        <td
+                          style={{
+                            padding: "16px",
+                            fontSize: "11px",
+                            color: "#475569",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "3px",
+                            }}
+                          >
+                            <span
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "6px",
+                              }}
+                            >
+                              <Calendar
+                                size={11}
+                                style={{ flexShrink: 0, color: "#334155" }}
+                              />
+                              {new Date(payment.createdAt).toLocaleDateString(
+                                "es-ES",
+                              )}
+                            </span>
+                            {payment.paidAt && (
+                              <span
+                                style={{
+                                  fontSize: "10px",
+                                  color: "#334155",
+                                  paddingLeft: "17px",
+                                }}
+                              >
+                                Pagado:{" "}
+                                {new Date(payment.paidAt).toLocaleDateString(
+                                  "es-ES",
+                                )}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Actions */}
+                        <td
+                          style={{
+                            padding: "16px 24px 16px 16px",
+                            textAlign: "right",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "flex-end",
+                              gap: "4px",
+                            }}
+                          >
+                            <button
+                              className="icon-btn p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                              style={{ color: "#a78bfa" }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/payments/${payment.id}`);
+                              }}
+                              title="Ver detalle"
+                            >
+                              <Eye size={14} />
+                            </button>
+                            <button
+                              className="icon-btn p-1.5 text-slate-600 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreVertical size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Footer */}
+            <div
+              className="flex justify-between items-center border-t border-white-05"
+              style={{ padding: "13px 24px" }}
+            >
+              <span className="text-[10px] text-muted">
+                Mostrando {filteredPayments.length} pagos
+              </span>
+              <div className="flex items-center gap-2">
+                <button className="p-1.5 rounded-lg border border-white-05 text-slate-500 hover:text-white hover:bg-white/5 transition-all">
+                  <ChevronLeft size={13} />
+                </button>
+                <span className="text-[10px] text-emerald-400 font-bold bg-emerald-400/10 px-3 py-1 rounded-lg border border-emerald-400/20">
+                  Página 1
+                </span>
+                <button className="p-1.5 rounded-lg border border-white-05 text-slate-500 hover:text-white hover:bg-white/5 transition-all">
+                  <ChevronRight size={13} />
+                </button>
+              </div>
+            </div>
+          </>
         )}
       </div>
     </div>
   );
 };
-
-const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: string; color: string }> = ({
-  icon,
-  title,
-  value,
-  color,
-}) => (
-  <div className="vd-card flex flex-col justify-between py-3" style={{ padding: '16px 20px' }}>
-    <div className="flex justify-between items-center mb-1">
-      <span className="text-[10px] text-muted flex items-center gap-2">
-        <span
-          className="w-6 h-6 rounded-lg flex items-center justify-center"
-          style={{ backgroundColor: `${color}18`, color }}
-        >
-          {icon}
-        </span>
-        {title}
-      </span>
-    </div>
-    <h4 className="text-2xl font-bold">{value}</h4>
-  </div>
-);
 
 export default OrganizationPayments;

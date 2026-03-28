@@ -5,7 +5,6 @@ import '../../../../core/theme/app_theme.dart';
 class OnboardingSelectionCard extends StatefulWidget {
   final String title;
   final String? subtitle;
-  final String? emoji;
   final IconData? icon;
   final bool isSelected;
   final VoidCallback onTap;
@@ -14,7 +13,6 @@ class OnboardingSelectionCard extends StatefulWidget {
     super.key,
     required this.title,
     this.subtitle,
-    this.emoji,
     this.icon,
     required this.isSelected,
     required this.onTap,
@@ -80,45 +78,38 @@ class _OnboardingSelectionCardState extends State<OnboardingSelectionCard>
           child: GestureDetector(
             onTap: widget.onTap,
             child: Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               decoration: BoxDecoration(
                 color: widget.isSelected
-                    ? AppTheme.neon.withValues(alpha: 0.15)
-                    : AppTheme.bgElevated.withValues(alpha: 0.3),
+                    ? AppTheme.neon.withValues(alpha: 0.1)
+                    : AppTheme.bgCard,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: widget.isSelected
                       ? AppTheme.neon
-                      : AppTheme.border.withValues(alpha: 0.5),
-                  width: widget.isSelected ? 2 : 1.5,
+                      : AppTheme.border.withValues(alpha: 0.4),
+                  width: widget.isSelected ? 1.5 : 1,
                 ),
                 boxShadow: widget.isSelected
                     ? [
                         BoxShadow(
-                          color: AppTheme.neon.withValues(alpha: 0.3),
+                          color: AppTheme.neon.withValues(alpha: 0.08),
                           blurRadius: 20,
-                          spreadRadius: 2,
+                          spreadRadius: 0,
+                          offset: const Offset(0, 8),
                         ),
                       ]
                     : null,
               ),
               child: Row(
                 children: [
-                  // Icon container - supports both emoji (deprecated) and icon
                   if (widget.icon != null) ...[
                     _AnimatedIconWidget(
                       icon: widget.icon!,
                       isSelected: widget.isSelected,
                       pulseValue: _pulseAnimation.value,
                     ),
-                    const SizedBox(width: 20),
-                  ] else if (widget.emoji != null) ...[
-                    _AnimatedEmoji(
-                      emoji: widget.emoji!,
-                      isSelected: widget.isSelected,
-                      pulseValue: _pulseAnimation.value,
-                    ),
-                    const SizedBox(width: 20),
+                    const SizedBox(width: 16),
                   ],
                   Expanded(
                     child: Column(
@@ -127,19 +118,20 @@ class _OnboardingSelectionCardState extends State<OnboardingSelectionCard>
                         Text(
                           widget.title,
                           style: TextStyle(
-                            fontSize: 18,
+                            fontSize: 16,
                             fontWeight: FontWeight.w700,
                             color: widget.isSelected
                                 ? AppTheme.neon
                                 : AppTheme.textPri,
+                            letterSpacing: -0.3,
                           ),
                         ),
                         if (widget.subtitle != null) ...[
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 2),
                           Text(
                             widget.subtitle!,
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: 12,
                               color: widget.isSelected
                                   ? AppTheme.neon.withValues(alpha: 0.7)
                                   : AppTheme.textSec,
@@ -152,10 +144,10 @@ class _OnboardingSelectionCardState extends State<OnboardingSelectionCard>
                   if (widget.isSelected)
                     _AnimatedCheckIcon(pulseValue: _pulseAnimation.value)
                   else
-                    const Icon(
+                    Icon(
                       Icons.circle_outlined,
-                      color: AppTheme.border,
-                      size: 24,
+                      color: AppTheme.border.withValues(alpha: 0.8),
+                      size: 20,
                     ),
                 ],
               ),
@@ -182,64 +174,18 @@ class _AnimatedIconWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      width: isSelected ? 48 : 40,
-      height: isSelected ? 48 : 40,
+      width: 40,
+      height: 40,
       decoration: BoxDecoration(
         color: isSelected
-            ? AppTheme.neon.withValues(alpha: 0.2)
-            : AppTheme.bgElevated.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: isSelected
-            ? [
-                BoxShadow(
-                  color: AppTheme.neon.withValues(alpha: 0.3 * pulseValue),
-                  blurRadius: 10 + (10 * pulseValue),
-                ),
-              ]
-            : null,
+            ? AppTheme.neon.withValues(alpha: 0.15)
+            : AppTheme.bgElevated.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Icon(
         icon,
-        size: isSelected ? 24 : 20,
-        color: isSelected ? AppTheme.neon : AppTheme.textSec,
-      ),
-    );
-  }
-}
-
-class _AnimatedEmoji extends StatelessWidget {
-  final String emoji;
-  final bool isSelected;
-  final double pulseValue;
-
-  const _AnimatedEmoji({
-    required this.emoji,
-    required this.isSelected,
-    required this.pulseValue,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      width: isSelected ? 48 : 40,
-      height: isSelected ? 48 : 40,
-      decoration: BoxDecoration(
-        color: isSelected
-            ? AppTheme.neon.withValues(alpha: 0.2)
-            : AppTheme.bgElevated.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: isSelected
-            ? [
-                BoxShadow(
-                  color: AppTheme.neon.withValues(alpha: 0.3 * pulseValue),
-                  blurRadius: 10 + (10 * pulseValue),
-                ),
-              ]
-            : null,
-      ),
-      child: Center(
-        child: Text(emoji, style: TextStyle(fontSize: isSelected ? 24 : 20)),
+        size: 18,
+        color: isSelected ? AppTheme.neon : AppTheme.textSec.withValues(alpha: 0.6),
       ),
     );
   }
@@ -253,20 +199,19 @@ class _AnimatedCheckIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 28,
-      height: 28,
+      width: 24,
+      height: 24,
       decoration: BoxDecoration(
         color: AppTheme.neon,
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: AppTheme.neon.withValues(alpha: 0.4 + (0.3 * pulseValue)),
-            blurRadius: 8 + (8 * pulseValue),
-            spreadRadius: 1 + pulseValue,
+            color: AppTheme.neon.withValues(alpha: 0.3 + (0.3 * pulseValue)),
+            blurRadius: 6 + (6 * pulseValue),
           ),
         ],
       ),
-      child: const Icon(Icons.check, color: Colors.black, size: 18),
+      child: const Icon(Icons.check, color: Colors.black, size: 16),
     );
   }
-}
+}
