@@ -242,12 +242,15 @@ const OrganizationSettings: React.FC<{ session: any; profile: any }> = ({
         headers: { Authorization: `Bearer ${session?.access_token}` },
       })
       .then(({ data }) => {
-        setOrganization(data);
-        setFormData((prev) => ({
-          ...prev,
-          name: data.name || "",
-          logoUrl: data.logoUrl || "",
-        }));
+        if (data.success && data.data) {
+          const org = data.data;
+          setOrganization(org);
+          setFormData((prev) => ({
+            ...prev,
+            name: org.name || "",
+            logoUrl: org.logoUrl || "",
+          }));
+        }
       })
       .catch((e) => console.error(e));
   }, [session, organizationId]);

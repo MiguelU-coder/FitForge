@@ -14,7 +14,9 @@ import {
   Check,
   Eye,
   EyeOff,
+  Target,
 } from "lucide-react";
+import { useEffect } from "react";
 
 const API_URL =
   (import.meta as any).env.VITE_API_URL || "http://localhost:3000/api/v1";
@@ -155,8 +157,26 @@ const AddMember: React.FC<{ session: any; profile: any }> = ({
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [createdMemberData, setCreatedMemberData] = useState<any>(null);
+  const [membershipPlans, setMembershipPlans] = useState<any[]>([]);
 
   const organizationId = profile?.organizations?.[0]?.id;
+
+  const fetchPlans = async () => {
+    try {
+      const { data } = await axios.get(
+        `${API_URL}/organizations/${organizationId}/membership-plans`,
+        { headers: { Authorization: `Bearer ${session?.access_token}` } }
+      );
+      setMembershipPlans(data.data || []);
+    } catch (err) {
+      console.error("Error fetching plans:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (organizationId) fetchPlans();
+  }, [organizationId]);
 
   const [formData, setFormData] = useState({
     displayName: "",
@@ -166,31 +186,35 @@ const AddMember: React.FC<{ session: any; profile: any }> = ({
     phoneNumber: "",
     dateOfBirth: "",
     role: "CLIENT",
+    membershipPlanId: "",
   });
 
   const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setFormData((prev) => ({ ...prev, [key]: e.target.value }));
 
-  const focusBorder = (e: React.FocusEvent<HTMLInputElement>) =>
+  const focusBorder = (e: React.FocusEvent<any>) =>
     (e.target.style.borderColor = "rgba(16,185,129,0.4)");
-  const blurBorder = (e: React.FocusEvent<HTMLInputElement>) =>
+  const blurBorder = (e: React.FocusEvent<any>) =>
     (e.target.style.borderColor = "rgba(255,255,255,0.07)");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    if (!formData.displayName || !formData.email || !formData.password) {
-      setError("Por favor completa todos los campos requeridos");
+    if (!formData.displayName || !formData.email) {
+      setError("Por favor completa los campos de nombre y email");
       return;
     }
-    if (formData.password !== formData.confirmPassword) {
-      setError("Las contraseñas no coinciden");
-      return;
-    }
-    if (formData.password.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres");
-      return;
+
+    if (formData.password || formData.confirmPassword) {
+      if (formData.password !== formData.confirmPassword) {
+        setError("Las contraseñas no coinciden");
+        return;
+      }
+      if (formData.password.length < 6) {
+        setError("La contraseña debe tener al menos 6 caracteres");
+        return;
+      }
     }
 
     setLoading(true);
@@ -204,12 +228,14 @@ const AddMember: React.FC<{ session: any; profile: any }> = ({
           phoneNumber: formData.phoneNumber || undefined,
           dateOfBirth: formData.dateOfBirth || undefined,
           role: formData.role,
+          membershipPlanId: formData.membershipPlanId || undefined,
         },
         { headers: { Authorization: `Bearer ${session?.access_token}` } },
       );
       if (response.data.success) {
+        setCreatedMemberData(response.data.data);
         setSuccess(true);
-        setTimeout(() => navigate("/members"), 1500);
+        // Do not auto-navigate immediately so admin can see the password
       }
     } catch (err: any) {
       setError(err.response?.data?.message || "Error al crear el miembro");
@@ -221,43 +247,60 @@ const AddMember: React.FC<{ session: any; profile: any }> = ({
   /* ── Success screen ── */
   if (success) {
     return (
-      <div
-        className="dashboard-content animate-fade-in"
-        style={{ padding: "0.5rem" }}
-      >
-        <div
-          className="vd-card"
-          style={{ padding: "80px 40px", textAlign: "center" }}
-        >
-          <div
-            style={{
-              width: "64px",
-              height: "64px",
-              borderRadius: "50%",
-              background: "rgba(16,185,129,0.1)",
-              border: "1px solid rgba(16,185,129,0.25)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 20px",
-              boxShadow: "0 0 32px rgba(16,185,129,0.15)",
-            }}
-          >
+      <div className="dashboard-content animate-fade-in" style={{ padding: "0.5rem" }}>
+        <div className="vd-card" style={{ padding: "60px 40px", textAlign: "center", maxWidth: "500px", margin: "40px auto" }}>
+          <div style={{
+            width: "64px", height: "64px", borderRadius: "50%", background: "rgba(16,185,129,0.1)",
+            border: "1px solid rgba(16,185,129,0.25)", display: "flex", alignItems: "center",
+            justifyContent: "center", margin: "0 auto 20px", boxShadow: "0 0 32px rgba(16,185,129,0.15)",
+          }}>
             <Check size={28} style={{ color: "#10b981" }} />
           </div>
-          <h2
-            style={{
-              fontSize: "18px",
-              fontWeight: 800,
-              color: "#e2e8f0",
-              marginBottom: "8px",
-            }}
-          >
-            ¡Miembro Creado!
-          </h2>
-          <p style={{ fontSize: "12px", color: "#475569" }}>
-            Redirigiendo a la lista de miembros…
+          <h2 style={{ fontSize: "18px", fontWeight: 800, color: "#e2e8f0", marginBottom: "8px" }}>¡Miembro Creado!</h2>
+          <p style={{ fontSize: "12px", color: "#64748b", marginBottom: "24px" }}>
+            El miembro ha sido registrado exitosamente y sincronizado con el sistema de autenticación.
           </p>
+
+          <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "12px", padding: "20px", marginBottom: "24px", textAlign: "left" }}>
+            <p style={{ fontSize: "10px", color: "#475569", textTransform: "uppercase", fontWeight: 700, marginBottom: "12px" }}>Credenciales de Acceso</p>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+              <span style={{ fontSize: "11px", color: "#64748b" }}>Email:</span>
+              <span style={{ fontSize: "11px", color: "#e2e8f0", fontWeight: 600 }}>{createdMemberData?.email}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ fontSize: "11px", color: "#64748b" }}>Contraseña:</span>
+              <span style={{ fontSize: "11px", color: "#8b5cf6", fontWeight: 800, letterSpacing: "1px" }}>{createdMemberData?.password}</span>
+            </div>
+            <p style={{ fontSize: "10px", color: "#475569", marginTop: "12px", fontStyle: "italic" }}>
+              ⚠️ Copia la contraseña ahora. Por seguridad, no se volverá a mostrar.
+            </p>
+          </div>
+
+          <button onClick={() => navigate("/members")} className="btn-primary w-full py-3 text-sm bg-purple-600 rounded-lg">
+            Volver a la lista
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Missing Organization screen ── */
+  if (!loading && !organizationId) {
+    return (
+      <div className="dashboard-content animate-fade-in" style={{ padding: "0.5rem" }}>
+        <div className="vd-card text-center py-20">
+          <Shield size={48} className="mx-auto mb-4 text-slate-500 opacity-50" />
+          <h2 className="text-lg font-bold mb-2 text-slate-200">Organización no encontrada</h2>
+          <p className="text-sm text-slate-400 mb-6 max-w-md mx-auto">
+            Tu perfil no tiene una organización asociada. 
+            Si crees que esto es un error, contacta al administrador global.
+          </p>
+          <button
+            onClick={() => navigate("/")}
+            className="btn-primary py-2 px-6 text-sm bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-all"
+          >
+            Volver al Inicio
+          </button>
         </div>
       </div>
     );
@@ -434,6 +477,34 @@ const AddMember: React.FC<{ session: any; profile: any }> = ({
                       onFocus={focusBorder}
                       onBlur={blurBorder}
                     />
+                  </Field>
+
+                  <Field label="Plan de Membresía" icon={<Target size={13} />}>
+                    <select
+                      value={formData.membershipPlanId}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          membershipPlanId: e.target.value,
+                        })
+                      }
+                      style={{
+                        ...baseInput,
+                        paddingLeft: "34px",
+                        paddingRight: "12px",
+                        appearance: "none",
+                        cursor: "pointer",
+                      }}
+                      onFocus={focusBorder}
+                      onBlur={blurBorder}
+                    >
+                      <option value="">Seleccionar plan...</option>
+                      {membershipPlans.map((plan) => (
+                        <option key={plan.id} value={plan.id}>
+                          {plan.name} ({plan.currency} {parseFloat(plan.price).toFixed(2)})
+                        </option>
+                      ))}
+                    </select>
                   </Field>
                 </div>
               </div>

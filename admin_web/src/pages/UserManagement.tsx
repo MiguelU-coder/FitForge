@@ -32,10 +32,10 @@ const UserManagement: React.FC<{ session: any }> = ({ session }) => {
       setStats(statsRes.data);
     } catch (err) {
       setStats({
-        total: 250,
-        newUsers: 15,
-        activeUsers: 200,
-        retention: '80'
+        total: 0,
+        newUsers: 0,
+        activeUsers: 0,
+        retention: '0'
       });
     }
   };
@@ -84,25 +84,25 @@ const UserManagement: React.FC<{ session: any }> = ({ session }) => {
         <StatCard 
           icon={<Users size={18} />} 
           title="Total Users" 
-          value={stats?.total?.toString() || '250'} 
+          value={stats?.total?.toString() || '0'} 
           colorClass="purple"
         />
         <StatCard 
           icon={<UserPlus size={18} />} 
           title="New Users" 
-          value={stats?.newUsers?.toString() || '15'} 
+          value={stats?.newUsers?.toString() || '0'} 
           colorClass="amber"
         />
         <StatCard 
           icon={<Heart size={18} />} 
-          title="Top Users" 
-          value="200" 
+          title="Active Users" 
+          value={stats?.activeUsers?.toString() || '0'} 
           colorClass="emerald"
         />
         <StatCard 
           icon={<div className="flex gap-0.5"><div className="w-1 h-1 bg-white rounded-full"></div><div className="w-1 h-1 bg-white rounded-full"></div><div className="w-1 h-1 bg-white rounded-full"></div></div>} 
-          title="Other Users" 
-          value="35" 
+          title="Retention" 
+          value={stats ? `${stats.retention}%` : '0%'} 
           colorClass="blue"
         />
       </div>

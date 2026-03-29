@@ -15,16 +15,26 @@ import { PrismaService } from '../../database/prisma.service';
 import * as argon2 from 'argon2';
 import { UserRole } from '@prisma/client';
 
+import { OrganizationsService } from './organizations.service';
+
 @Controller('organizations')
 @UseGuards(JwtAuthGuard)
 export class OrganizationMembersController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly organizationsService: OrganizationsService,
+  ) {}
 
   @Get(':id/members')
   async getMembers(
     @Param('id') organizationId: string,
     @Query('search') search?: string,
     @Query('role') role?: string,
+    @Query('status') status?: string,
+    @Query('includeStats') includeStats?: string,
+    @Query('includeSubscription') includeSubscription?: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
     @Request() req?: any,
   ) {
     const where: any = { organizationId };
@@ -33,14 +43,22 @@ export class OrganizationMembersController {
       where.role = role;
     }
 
+    if (status && ['active', 'inactive', 'suspended'].includes(status)) {
+      where.user = { ...where.user, subscriptionStatus: status };
+    }
+
     if (search) {
       where.user = {
+        ...where.user,
         OR: [
           { displayName: { ilike: `%${search}%` } },
           { email: { ilike: `%${search}%` } },
         ],
       };
     }
+
+    const take = limit ? parseInt(limit) : 100;
+    const skip = offset ? parseInt(offset) : 0;
 
     const members = await this.prisma.userOrganization.findMany({
       where,
@@ -54,35 +72,59 @@ export class OrganizationMembersController {
             phoneNumber: true,
             createdAt: true,
             subscriptionStatus: true,
+            subscriptionPlanId: true,
+            subscriptionCurrentPeriodEnd: true,
           },
         },
       },
       orderBy: { joinedAt: 'desc' },
+      take,
+      skip,
     });
 
-    // Get member stats
-    const totalMembers = await this.prisma.userOrganization.count({
-      where: { organizationId },
-    });
+    let stats = {};
+    if (includeStats === 'true') {
+      const totalMembers = await this.prisma.userOrganization.count({
+        where: { organizationId },
+      });
 
-    const activeMembers = await this.prisma.userOrganization.count({
-      where: { organizationId, user: { subscriptionStatus: 'active' } },
-    });
+      const activeMembers = await this.prisma.userOrganization.count({
+        where: { organizationId, user: { subscriptionStatus: 'active' } },
+      });
 
-    const newThisMonth = await this.prisma.userOrganization.count({
-      where: {
-        organizationId,
-        joinedAt: {
-          gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+      const inactiveMembers = await this.prisma.userOrganization.count({
+        where: { organizationId, user: { subscriptionStatus: { not: 'active' } } },
+      });
+
+      const newThisMonth = await this.prisma.userOrganization.count({
+        where: {
+          organizationId,
+          joinedAt: {
+            gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+          },
         },
-      },
-    });
+      });
 
-    const byRole = await this.prisma.userOrganization.groupBy({
-      by: ['role'],
-      where: { organizationId },
-      _count: { role: true },
-    });
+      const byRole = await this.prisma.userOrganization.groupBy({
+        by: ['role'],
+        where: { organizationId },
+        _count: { role: true },
+      });
+
+      stats = {
+        total: totalMembers,
+        active: activeMembers,
+        inactive: inactiveMembers,
+        newThisMonth,
+        byRole: byRole.reduce(
+          (acc, item) => {
+            acc[item.role] = item._count.role;
+            return acc;
+          },
+          {} as Record<string, number>,
+        ),
+      };
+    }
 
     return {
       success: true,
@@ -96,19 +138,13 @@ export class OrganizationMembersController {
           role: m.role,
           joinedAt: m.joinedAt,
           status: m.user.subscriptionStatus,
+          subscription: includeSubscription === 'true' ? {
+            planId: m.user.subscriptionPlanId,
+            status: m.user.subscriptionStatus,
+            currentPeriodEnd: m.user.subscriptionCurrentPeriodEnd,
+          } : undefined,
         })),
-        stats: {
-          total: totalMembers,
-          active: activeMembers,
-          newThisMonth,
-          byRole: byRole.reduce(
-            (acc, item) => {
-              acc[item.role] = item._count.role;
-              return acc;
-            },
-            {} as Record<string, number>,
-          ),
-        },
+        stats,
       },
     };
   }
@@ -222,100 +258,47 @@ export class OrganizationMembersController {
     body: {
       email: string;
       displayName: string;
-      password: string;
+      password?: string;
       role?: UserRole;
       phoneNumber?: string;
       dateOfBirth?: string;
     },
     @Request() req: any,
   ) {
-    // Check if email already exists
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email: body.email.toLowerCase() },
-    });
+    const result = await this.organizationsService.registerMember(organizationId, body);
 
-    if (existingUser) {
-      // Check if already in this organization
-      const existingMembership = await this.prisma.userOrganization.findUnique(
-        {
-          where: {
-            userId_organizationId: {
-              userId: existingUser.id,
-              organizationId,
-            },
-          },
-        },
-      );
-
-      if (existingMembership) {
-        return {
-          success: false,
-          message: 'User already exists in this organization',
-        };
-      }
-
-      // Add to organization
-      const membership = await this.prisma.userOrganization.create({
-        data: {
-          userId: existingUser.id,
-          organizationId,
-          role: body.role || 'CLIENT',
-        },
+    // Send welcome email with credentials (fire-and-forget, don't block response)
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    this.getOrganizationName(organizationId).then((orgName) => {
+      this.organizationsService.sendWelcomeEmailToMember({
+        email: result.data.email,
+        password: result.data.password,
+        displayName: result.data.displayName,
+        organizationName: orgName,
+        loginUrl: `${frontendUrl}/login`,
+        role: result.data.role,
+      }).catch((err) => {
+        console.error('Failed to send welcome email:', err);
       });
-
-      return {
-        success: true,
-        data: {
-          id: existingUser.id,
-          displayName: existingUser.displayName,
-          email: existingUser.email,
-          role: membership.role,
-          joinedAt: membership.joinedAt,
-          isNewUser: false,
-        },
-      };
-    }
-
-    // Create new user
-    const hashedPassword = await argon2.hash(body.password, {
-      type: argon2.argon2id,
-      memoryCost: 65536,
-      timeCost: 3,
-      parallelism: 1,
-    });
-
-    const newUser = await this.prisma.user.create({
-      data: {
-        email: body.email.toLowerCase(),
-        displayName: body.displayName,
-        passwordHash: hashedPassword,
-        phoneNumber: body.phoneNumber,
-        dateOfBirth: body.dateOfBirth ? new Date(body.dateOfBirth) : null,
-        isActive: true,
-        subscriptionStatus: 'active',
-      },
-    });
-
-    // Add to organization
-    await this.prisma.userOrganization.create({
-      data: {
-        userId: newUser.id,
-        organizationId,
-        role: body.role || 'CLIENT',
-      },
+    }).catch((err) => {
+      console.error('Failed to get organization name for email:', err);
     });
 
     return {
-      success: true,
+      ...result,
       data: {
-        id: newUser.id,
-        displayName: newUser.displayName,
-        email: newUser.email,
-        role: body.role || 'CLIENT',
-        joinedAt: new Date(),
-        isNewUser: true,
+        ...result.data,
+        password: undefined, // Don't return password in response
       },
     };
+  }
+
+  private async getOrganizationName(organizationId: string): Promise<string> {
+    const org = await this.prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { name: true },
+    });
+    return org?.name || 'your organization';
   }
 
   @Patch(':id/members/:memberId')
@@ -430,5 +413,54 @@ export class OrganizationMembersController {
     });
 
     return { success: true };
+  }
+
+  @Post('members/:memberId/routines')
+  async assignRoutineToMember(
+    @Param('memberId') memberId: string,
+    @Body()
+    body: {
+      routineId: string;
+      organizationId: string;
+    },
+    @Request() req: any,
+  ) {
+    const userId = req.user?.id;
+    const { routineId, organizationId } = body;
+
+    const existing = await this.prisma.userRoutineAssignment.findFirst({
+      where: {
+        userId: memberId,
+        programId: routineId,
+        organizationId,
+      },
+    });
+
+    if (existing) {
+      if (!existing.isActive) {
+        await this.prisma.userRoutineAssignment.update({
+          where: { id: existing.id },
+          data: { isActive: true },
+        });
+      }
+      return {
+        success: true,
+        message: 'Routine already assigned, reactivated',
+      };
+    }
+
+    const assignment = await this.prisma.userRoutineAssignment.create({
+      data: {
+        organizationId,
+        userId: memberId,
+        programId: routineId,
+        assignedBy: userId,
+      },
+    });
+
+    return {
+      success: true,
+      data: assignment,
+    };
   }
 }

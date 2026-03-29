@@ -12,16 +12,7 @@ import {
 
 const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:3000/api/v1';
 
-const MOCK_USERS = [
-  { id: '1', displayName: 'John Carter', email: 'john@google.com', phone: '(414) 907-1274', location: 'United States', company: 'Google', isActive: true },
-  { id: '2', displayName: 'Sophie Moore', email: 'sophie@webflow.com', phone: '(240) 480-4277', location: 'United Kingdom', company: 'Webflow', isActive: false },
-  { id: '3', displayName: 'Matt Cannon', email: 'matt@facebook.com', phone: '(318) 698-9889', location: 'Australia', company: 'Facebook', isActive: false },
-  { id: '4', displayName: 'Graham Hills', email: 'graham@twitter.com', phone: '(540) 627-3890', location: 'India', company: 'Twitter', isActive: true },
-  { id: '5', displayName: 'Sandy Houston', email: 'sandy@youtube.com', phone: '(440) 410-3848', location: 'Canada', company: 'YouTube', isActive: false },
-  { id: '6', displayName: 'Andy Smith', email: 'andy@reddit.com', phone: '(504) 458-3268', location: 'United States', company: 'Reddit', isActive: true },
-  { id: '7', displayName: 'Lilly Woods', email: 'lilly@spotify.com', phone: '(361) 692-1819', location: 'Australia', company: 'Spotify', isActive: false },
-  { id: '8', displayName: 'Patrick Meyer', email: 'patrick@pinterest.com', phone: '(760) 581-5670', location: 'United Kingdom', company: 'Pinterest', isActive: true },
-];
+
 
 interface UserTableProps {
   session: any;
@@ -29,7 +20,7 @@ interface UserTableProps {
 
 const UserTable: React.FC<UserTableProps> = ({ session }) => {
   const navigate = useNavigate();
-  const [users, setUsers] = useState(MOCK_USERS);
+  const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -45,7 +36,7 @@ const UserTable: React.FC<UserTableProps> = ({ session }) => {
             location: u.location || 'Unknown',
             company: u.organizations?.[0]?.organization?.name || 'Individual'
           }));
-          setUsers([...apiUsers, ...MOCK_USERS].slice(0, 8));
+          setUsers(apiUsers);
         }
       } catch (err) {
         console.warn('Backend offline, using mock data');

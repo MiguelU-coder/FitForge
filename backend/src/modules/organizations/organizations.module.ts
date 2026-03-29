@@ -6,6 +6,8 @@ import { OrganizationDashboardController } from './organizations-dashboard.contr
 import { OrganizationPaymentsController } from './organizations-payments.controller';
 import { OrganizationMembersController } from './organizations-members.controller';
 import { OrganizationClassesController } from './organizations-classes.controller';
+import { OrganizationRoutinesController } from './organizations-routines.controller';
+import { OrganizationsMembershipPlansController } from './organizations-membership-plans.controller';
 import { StripeModule } from '../stripe/stripe.module';
 import { EmailModule } from '../email/email.module';
 
@@ -17,6 +19,8 @@ import { EmailModule } from '../email/email.module';
     OrganizationPaymentsController,
     OrganizationMembersController,
     OrganizationClassesController,
+    OrganizationRoutinesController,
+    OrganizationsMembershipPlansController,
   ],
   providers: [OrganizationsService],
   exports: [OrganizationsService],

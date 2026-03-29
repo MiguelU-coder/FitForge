@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from './lib/supabase'
 import axios from 'axios'
 import Login from './pages/Login'
@@ -23,6 +23,8 @@ import SupportHub from './pages/SupportHub';
 import PlanConfiguration from './pages/PlanConfiguration';
 import AddOrganization from './pages/AddOrganization';
 import EditOrganization from './pages/EditOrganization';
+import GlobalSettings from './pages/GlobalSettings';
+import GymPlans from './pages/GymPlans';
 import DashboardLayout from './components/layout/DashboardLayout'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
@@ -31,6 +33,7 @@ function App() {
   const [session, setSession] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const profileRef = useRef<any>(null)
 
   const fetchProfile = async (session: any) => {
     try {
@@ -40,6 +43,7 @@ function App() {
         }
       });
       setProfile(data.data);
+      profileRef.current = data.data;
     } catch (err) {
       console.error('Error fetching profile:', err);
     } finally {
@@ -48,27 +52,29 @@ function App() {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      if (session) {
-        fetchProfile(session);
-      } else {
-        setLoading(false)
-      }
-    })
+    let mounted = true;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!mounted) return;
+      
+      setSession(session);
+      
       if (session) {
-        fetchProfile(session);
+        // Only set loading to true if we don't have a profile yet to avoid flickering on subsequent events
+        if (!profileRef.current) setLoading(true);
+        await fetchProfile(session);
       } else {
-        setProfile(null)
-        setLoading(false)
+        setProfile(null);
+        profileRef.current = null;
+        setLoading(false);
       }
-    })
+    });
 
-    return () => subscription.unsubscribe()
-  }, [])
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   if (loading) return (
     <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#020617' }}>
@@ -147,6 +153,18 @@ function App() {
             session && !profile?.isGlobalAdmin ? (
               <DashboardLayout user={{ ...session.user, ...profile }}>
                 <OrganizationSettings session={session} profile={profile} />
+              </DashboardLayout>
+            ) : (
+              <Navigate to="/" />
+            )
+          }
+        />
+        <Route
+          path="/gym-plans"
+          element={
+            session && !profile?.isGlobalAdmin ? (
+              <DashboardLayout user={{ ...session.user, ...profile }}>
+                <GymPlans session={session} profile={profile} />
               </DashboardLayout>
             ) : (
               <Navigate to="/" />
@@ -307,6 +325,23 @@ function App() {
               </DashboardLayout>
             ) : (
               <Navigate to="/" />
+            )
+          } 
+        />
+        <Route 
+          path="/settings" 
+          element={
+            session && profile?.isGlobalAdmin ? (
+              <DashboardLayout user={{ ...session.user, ...profile }}>
+                <GlobalSettings session={session} />
+              </DashboardLayout>
+            ) : (
+              <div style={{ padding: 50, background: 'cyan', color: 'black' }}>
+                <h1>NOT AUTHORIZED</h1>
+                <p>session: {String(!!session)}</p>
+                <p>profile: {String(!!profile)}</p>
+                <p>isGlobalAdmin: {String(profile?.isGlobalAdmin)}</p>
+              </div>
             )
           } 
         />

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import axios from "axios";
 import {
   ArrowLeft,
   Mail,
@@ -15,13 +15,203 @@ import {
   Edit,
   Shield,
   Target,
-} from 'lucide-react';
+  Clock,
+  Send,
+  Check,
+  X,
+  ChevronRight,
+} from "lucide-react";
 
-const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:3000/api/v1';
+const API_URL =
+  (import.meta as any).env.VITE_API_URL || "http://localhost:3000/api/v1";
 
-const MemberDetail: React.FC<{ session: any; profile: any }> = ({ session, profile }) => {
+/* ── Role helpers ── */
+const roleAccent = (role: string) => {
+  if (role === "ORG_ADMIN")
+    return {
+      color: "#8b5cf6",
+      bg: "rgba(139,92,246,0.1)",
+      border: "rgba(139,92,246,0.25)",
+      label: "Administrador",
+    };
+  if (role === "TRAINER")
+    return {
+      color: "#3b82f6",
+      bg: "rgba(59,130,246,0.1)",
+      border: "rgba(59,130,246,0.25)",
+      label: "Entrenador",
+    };
+  return {
+    color: "#10b981",
+    bg: "rgba(16,185,129,0.08)",
+    border: "rgba(16,185,129,0.2)",
+    label: "Cliente",
+  };
+};
+
+const statusAccent = (status: string) =>
+  status === "active"
+    ? {
+        color: "#10b981",
+        bg: "rgba(16,185,129,0.08)",
+        border: "rgba(16,185,129,0.2)",
+        label: "Activo",
+      }
+    : {
+        color: "#f43f5e",
+        bg: "rgba(244,63,94,0.08)",
+        border: "rgba(244,63,94,0.2)",
+        label: "Inactivo",
+      };
+
+const paymentAccent = (status: string) => {
+  if (status === "PAID")
+    return {
+      color: "#10b981",
+      bg: "rgba(16,185,129,0.08)",
+      border: "rgba(16,185,129,0.2)",
+      label: "Pagado",
+    };
+  if (status === "PENDING")
+    return {
+      color: "#f59e0b",
+      bg: "rgba(245,158,11,0.08)",
+      border: "rgba(245,158,11,0.2)",
+      label: "Pendiente",
+    };
+  return {
+    color: "#f43f5e",
+    bg: "rgba(244,63,94,0.08)",
+    border: "rgba(244,63,94,0.2)",
+    label: "Vencido",
+  };
+};
+
+/* ── Section title ── */
+const SectionTitle: React.FC<{
+  icon: React.ReactNode;
+  title: string;
+  color?: string;
+  action?: React.ReactNode;
+}> = ({ icon, title, color = "#8b5cf6", action }) => (
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "10px",
+      marginBottom: "16px",
+      paddingBottom: "12px",
+      borderBottom: "1px solid rgba(255,255,255,0.05)",
+    }}
+  >
+    <span
+      style={{
+        width: "26px",
+        height: "26px",
+        minWidth: "26px",
+        borderRadius: "7px",
+        background: `${color}18`,
+        border: `1px solid ${color}30`,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color,
+      }}
+    >
+      {icon}
+    </span>
+    <h3
+      style={{ fontSize: "13px", fontWeight: 700, color: "#e2e8f0", flex: 1 }}
+    >
+      {title}
+    </h3>
+    {action}
+  </div>
+);
+
+/* ── Info row ── */
+const InfoRow: React.FC<{ icon: React.ReactNode; value: string }> = ({
+  icon,
+  value,
+}) => (
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "10px",
+      padding: "8px 0",
+      borderBottom: "1px solid rgba(255,255,255,0.04)",
+    }}
+  >
+    <span style={{ color: "#334155", display: "flex", flexShrink: 0 }}>
+      {icon}
+    </span>
+    <span style={{ fontSize: "12px", color: "#94a3b8" }}>{value}</span>
+  </div>
+);
+
+/* ── Quick action button ── */
+const QuickAction: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  color: string;
+  onClick: () => void;
+}> = ({ icon, label, color, onClick }) => (
+  <button
+    onClick={onClick}
+    style={{
+      width: "100%",
+      display: "flex",
+      alignItems: "center",
+      gap: "10px",
+      padding: "11px 14px",
+      borderRadius: "10px",
+      background: "rgba(255,255,255,0.02)",
+      border: "1px solid rgba(255,255,255,0.06)",
+      cursor: "pointer",
+      transition: "all 0.15s",
+      textAlign: "left",
+      marginBottom: "8px",
+    }}
+    onMouseEnter={(e) => {
+      e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+      e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.background = "rgba(255,255,255,0.02)";
+      e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)";
+    }}
+  >
+    <span
+      style={{
+        width: "28px",
+        height: "28px",
+        minWidth: "28px",
+        borderRadius: "8px",
+        background: `${color}12`,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color,
+      }}
+    >
+      {icon}
+    </span>
+    <span style={{ fontSize: "12px", fontWeight: 600, color: "#cbd5e1" }}>
+      {label}
+    </span>
+    <ChevronRight size={13} style={{ color: "#334155", marginLeft: "auto" }} />
+  </button>
+);
+
+/* ─────────────────────────────── */
+const MemberDetail: React.FC<{ session: any; profile: any }> = ({
+  session,
+  profile,
+}) => {
   const { memberId } = useParams();
   const navigate = useNavigate();
+
   const [loading, setLoading] = useState(true);
   const [member, setMember] = useState<any>(null);
   const [assignedRoutines, setAssignedRoutines] = useState<any[]>([]);
@@ -29,47 +219,38 @@ const MemberDetail: React.FC<{ session: any; profile: any }> = ({ session, profi
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [programs, setPrograms] = useState<any[]>([]);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [linkSent, setLinkSent] = useState<string | null>(null);
 
   const organizationId = profile?.organizations?.[0]?.id;
 
   useEffect(() => {
     const fetchData = async () => {
       if (!organizationId || !memberId) return;
-
       try {
-        // Fetch member details
-        const memberRes = await axios.get(
-          `${API_URL}/organizations/${organizationId}/members/${memberId}`,
-          { headers: { Authorization: `Bearer ${session?.access_token}` } }
-        );
-
+        const [memberRes, programsRes] = await Promise.all([
+          axios.get(
+            `${API_URL}/organizations/${organizationId}/members/${memberId}`,
+            { headers: { Authorization: `Bearer ${session?.access_token}` } },
+          ),
+          axios.get(`${API_URL}/organizations/${organizationId}/routines`, {
+            headers: { Authorization: `Bearer ${session?.access_token}` },
+          }),
+        ]);
         if (memberRes.data.success) {
-          const data = memberRes.data.data;
-          setMember(data.member);
-          setAssignedRoutines(data.assignedRoutines || []);
-          setPayments(data.payments || []);
-          setRecentActivity(data.recentActivity || []);
+          const d = memberRes.data.data;
+          setMember(d.member);
+          setAssignedRoutines(d.assignedRoutines || []);
+          setPayments(d.payments || []);
+          setRecentActivity(d.recentActivity || []);
         }
-
-        // Fetch available programs
-        const programsRes = await axios.get(
-          `${API_URL}/organizations/${organizationId}/routines`,
-          { headers: { Authorization: `Bearer ${session?.access_token}` } }
-        );
-
-        if (programsRes.data.success) {
-          setPrograms(programsRes.data.data || []);
-        }
+        if (programsRes.data.success) setPrograms(programsRes.data.data || []);
       } catch (err) {
-        console.error('Error fetching member:', err);
+        console.error("Error fetching member:", err);
       } finally {
         setLoading(false);
       }
     };
-
-    if (session?.access_token) {
-      fetchData();
-    }
+    if (session?.access_token) fetchData();
   }, [session, organizationId, memberId]);
 
   const handleAssignRoutine = async (programId: string) => {
@@ -77,195 +258,509 @@ const MemberDetail: React.FC<{ session: any; profile: any }> = ({ session, profi
       await axios.post(
         `${API_URL}/organizations/${organizationId}/members/${memberId}/assign-routine`,
         { programId },
-        { headers: { Authorization: `Bearer ${session?.access_token}` } }
+        { headers: { Authorization: `Bearer ${session?.access_token}` } },
       );
-
-      // Refresh data
-      const memberRes = await axios.get(
+      const res = await axios.get(
         `${API_URL}/organizations/${organizationId}/members/${memberId}`,
-        { headers: { Authorization: `Bearer ${session?.access_token}` } }
+        { headers: { Authorization: `Bearer ${session?.access_token}` } },
       );
-
-      if (memberRes.data.success) {
-        setAssignedRoutines(memberRes.data.data.assignedRoutines || []);
-      }
+      if (res.data.success)
+        setAssignedRoutines(res.data.data.assignedRoutines || []);
       setShowAssignModal(false);
     } catch (err) {
-      console.error('Error assigning routine:', err);
+      console.error(err);
     }
   };
 
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case 'ORG_ADMIN':
-        return { bg: 'rgba(139, 92, 246, 0.15)', color: '#a855f7' };
-      case 'TRAINER':
-        return { bg: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6' };
-      default:
-        return { bg: 'rgba(16, 185, 129, 0.15)', color: '#10b981' };
+  const handleSendPaymentLink = async (paymentId: string) => {
+    try {
+      await axios.post(
+        `${API_URL}/organizations/${organizationId}/payments/${paymentId}/send-link`,
+        {},
+        { headers: { Authorization: `Bearer ${session?.access_token}` } },
+      );
+      setLinkSent(paymentId);
+      setTimeout(() => setLinkSent(null), 2500);
+    } catch {
+      /* noop */
     }
   };
 
-  const roleLabels: Record<string, string> = {
-    ORG_ADMIN: 'Administrador',
-    TRAINER: 'Entrenador',
-    CLIENT: 'Cliente',
+  const daysRemaining = (dueDate: string) => {
+    const diff = new Date(dueDate).getTime() - Date.now();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
   };
 
+  /* ── Loading ── */
   if (loading) {
     return (
-      <div className="dashboard-content animate-fade-in flex items-center justify-center" style={{ height: '60vh' }}>
-        <Loader2 size={32} className="animate-spin text-purple-500" />
+      <div
+        className="dashboard-content animate-fade-in"
+        style={{
+          padding: "0.5rem",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "50vh",
+        }}
+      >
+        <div style={{ textAlign: "center" }}>
+          <Loader2
+            size={26}
+            className="animate-spin mx-auto mb-3"
+            style={{ color: "#8b5cf6" }}
+          />
+          <p style={{ fontSize: "12px", color: "#475569" }}>
+            Cargando miembro…
+          </p>
+        </div>
       </div>
     );
   }
 
+  /* ── Not found ── */
   if (!member) {
     return (
-      <div className="dashboard-content animate-fade-in" style={{ padding: '0.5rem' }}>
-        <div className="vd-card text-center py-20">
-          <User size={40} className="mx-auto mb-3 text-slate-500 opacity-50" />
-          <p className="text-sm text-slate-300 font-semibold mb-1">Miembro no encontrado</p>
-          <button
-            onClick={() => navigate('/members')}
-            className="text-xs text-purple-400 hover:underline"
+      <div
+        className="dashboard-content animate-fade-in"
+        style={{ padding: "0.5rem" }}
+      >
+        <div
+          className="vd-card"
+          style={{ padding: "60px 40px", textAlign: "center" }}
+        >
+          <div
+            style={{
+              width: "56px",
+              height: "56px",
+              borderRadius: "16px",
+              background: "rgba(255,255,255,0.03)",
+              border: "1px solid rgba(255,255,255,0.06)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 16px",
+            }}
           >
-            Volver a miembros
+            <User size={24} style={{ color: "#334155" }} />
+          </div>
+          <p
+            style={{
+              fontSize: "14px",
+              fontWeight: 600,
+              color: "#94a3b8",
+              marginBottom: "12px",
+            }}
+          >
+            Miembro no encontrado
+          </p>
+          <button
+            onClick={() => navigate("/members")}
+            style={{
+              fontSize: "12px",
+              color: "#8b5cf6",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
+            ← Volver a miembros
           </button>
         </div>
       </div>
     );
   }
 
-  const roleStyle = getRoleBadgeColor(member.role);
+  const ra = roleAccent(member.role);
+  const sa = statusAccent(member.status);
+  const pendingPayment = payments.find((p) => p.status === "PENDING");
 
   return (
-    <div className="dashboard-content animate-fade-in" style={{ padding: '0.5rem' }}>
-      {/* Header */}
+    <div
+      className="dashboard-content animate-fade-in"
+      style={{ padding: "0.5rem" }}
+    >
+      {/* ── HEADER ── */}
       <header className="flex items-center gap-4 mb-6">
         <button
-          onClick={() => navigate('/members')}
-          className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+          onClick={() => navigate("/members")}
+          style={{
+            width: "34px",
+            height: "34px",
+            minWidth: "34px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: "9px",
+            border: "1px solid rgba(255,255,255,0.07)",
+            background: "rgba(255,255,255,0.03)",
+            color: "#64748b",
+            cursor: "pointer",
+            transition: "all 0.15s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+            e.currentTarget.style.color = "#e2e8f0";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+            e.currentTarget.style.color = "#64748b";
+          }}
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft size={16} />
         </button>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold"
-              style={roleStyle}
+
+        {/* Avatar + name */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "14px",
+            flex: 1,
+          }}
+        >
+          <div
+            style={{
+              width: "48px",
+              height: "48px",
+              minWidth: "48px",
+              borderRadius: "13px",
+              background: ra.bg,
+              border: `1px solid ${ra.border}`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "18px",
+              fontWeight: 800,
+              color: ra.color,
+            }}
+          >
+            {member.displayName?.[0]?.toUpperCase() || "U"}
+          </div>
+          <div>
+            <h1
+              style={{
+                fontSize: "20px",
+                fontWeight: 800,
+                color: "#e2e8f0",
+                marginBottom: "6px",
+              }}
             >
-              {member.displayName?.[0]?.toUpperCase() || 'U'}
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">{member.displayName}</h1>
-              <div className="flex items-center gap-3 mt-1">
+              {member.displayName}
+            </h1>
+            <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+              {/* Role chip */}
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  padding: "3px 9px",
+                  borderRadius: "20px",
+                  fontSize: "10px",
+                  fontWeight: 700,
+                  color: ra.color,
+                  background: ra.bg,
+                  border: `1px solid ${ra.border}`,
+                }}
+              >
                 <span
-                  className="text-[10px] px-2 py-0.5 rounded font-bold"
-                  style={roleStyle}
-                >
-                  {roleLabels[member.role] || member.role}
-                </span>
-                <span
-                  className="text-[10px] px-2 py-0.5 rounded font-bold"
                   style={{
-                    background:
-                      member.status === 'active'
-                        ? 'rgba(16, 185, 129, 0.15)'
-                        : 'rgba(239, 68, 68, 0.15)',
-                    color: member.status === 'active' ? '#10b981' : '#ef4444',
+                    width: "5px",
+                    height: "5px",
+                    borderRadius: "50%",
+                    background: ra.color,
+                    boxShadow: `0 0 4px ${ra.color}`,
                   }}
-                >
-                  {member.status}
-                </span>
-              </div>
+                />
+                {ra.label}
+              </span>
+              {/* Status chip */}
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  padding: "3px 9px",
+                  borderRadius: "20px",
+                  fontSize: "10px",
+                  fontWeight: 700,
+                  color: sa.color,
+                  background: sa.bg,
+                  border: `1px solid ${sa.border}`,
+                }}
+              >
+                <span
+                  style={{
+                    width: "5px",
+                    height: "5px",
+                    borderRadius: "50%",
+                    background: sa.color,
+                    boxShadow: `0 0 4px ${sa.color}`,
+                  }}
+                />
+                {sa.label}
+              </span>
             </div>
           </div>
         </div>
+
+        {/* Edit button */}
         <button
           onClick={() => navigate(`/members/${memberId}/edit`)}
-          className="icon-btn text-xs border border-white-05 px-4 flex items-center gap-2"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            padding: "8px 16px",
+            borderRadius: "9px",
+            fontSize: "12px",
+            fontWeight: 700,
+            color: "#94a3b8",
+            background: "rgba(255,255,255,0.03)",
+            border: "1px solid rgba(255,255,255,0.07)",
+            cursor: "pointer",
+            transition: "all 0.15s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = "#e2e8f0";
+            e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = "#94a3b8";
+            e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)";
+          }}
         >
-          <Edit size={14} /> Editar
+          <Edit size={13} /> Editar
         </button>
       </header>
 
-      <div className="grid grid-cols-dashboard gap-6">
-        {/* Left Column */}
-        <div className="flex flex-col gap-4">
+      {/* ── PENDING PAYMENT ALERT ── */}
+      {pendingPayment && (
+        <div
+          style={{
+            padding: "14px 18px",
+            borderRadius: "12px",
+            background: "rgba(245,158,11,0.05)",
+            border: "1px solid rgba(245,158,11,0.2)",
+            display: "flex",
+            alignItems: "center",
+            gap: "14px",
+            marginBottom: "20px",
+          }}
+        >
+          <span
+            style={{
+              width: "36px",
+              height: "36px",
+              minWidth: "36px",
+              borderRadius: "10px",
+              background: "rgba(245,158,11,0.12)",
+              border: "1px solid rgba(245,158,11,0.25)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#f59e0b",
+            }}
+          >
+            <Clock size={16} />
+          </span>
+          <div style={{ flex: 1 }}>
+            <p
+              style={{
+                fontSize: "12px",
+                fontWeight: 700,
+                color: "#f59e0b",
+                marginBottom: "2px",
+              }}
+            >
+              Pago Pendiente
+            </p>
+            <p style={{ fontSize: "11px", color: "#64748b" }}>
+              Tiene una suscripción pendiente.
+              {pendingPayment.dueDate && (
+                <span style={{ fontWeight: 700, color: "#94a3b8" }}>
+                  {" "}
+                  Vence en {daysRemaining(pendingPayment.dueDate)} días.
+                </span>
+              )}
+            </p>
+          </div>
+          <button
+            onClick={() => handleSendPaymentLink(pendingPayment.id)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "8px 14px",
+              borderRadius: "9px",
+              fontSize: "11px",
+              fontWeight: 700,
+              color: "#fff",
+              border: "none",
+              cursor: "pointer",
+              background:
+                linkSent === pendingPayment.id
+                  ? "linear-gradient(135deg,#10b981,#059669)"
+                  : "linear-gradient(135deg,#f59e0b,#d97706)",
+              boxShadow: "0 4px 12px rgba(245,158,11,0.25)",
+              transition: "all 0.2s",
+              whiteSpace: "nowrap",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.filter = "brightness(1.1)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.filter = "brightness(1)";
+            }}
+          >
+            {linkSent === pendingPayment.id ? (
+              <Check size={12} />
+            ) : (
+              <Send size={12} />
+            )}
+            {linkSent === pendingPayment.id ? "¡Enviado!" : "Enviar Link"}
+          </button>
+        </div>
+      )}
+
+      {/* ── MAIN GRID ── */}
+      <div className="grid grid-cols-dashboard gap-5">
+        {/* LEFT COLUMN */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           {/* Contact Info */}
-          <div className="vd-card">
-            <h3 className="text-sm font-bold mb-4 flex items-center gap-2">
-              <User size={16} className="text-purple-400" />
-              Información de Contacto
-            </h3>
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <Mail size={14} className="text-slate-500" />
-                <span className="text-sm">{member.email}</span>
-              </div>
+          <div className="vd-card" style={{ padding: "20px 22px" }}>
+            <SectionTitle
+              icon={<User size={13} />}
+              title="Información de Contacto"
+              color="#8b5cf6"
+            />
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <InfoRow icon={<Mail size={13} />} value={member.email} />
               {member.phoneNumber && (
-                <div className="flex items-center gap-3">
-                  <Phone size={14} className="text-slate-500" />
-                  <span className="text-sm">{member.phoneNumber}</span>
-                </div>
+                <InfoRow
+                  icon={<Phone size={13} />}
+                  value={member.phoneNumber}
+                />
               )}
               {member.dateOfBirth && (
-                <div className="flex items-center gap-3">
-                  <Calendar size={14} className="text-slate-500" />
-                  <span className="text-sm">
-                    {new Date(member.dateOfBirth).toLocaleDateString('es-ES', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })}
-                  </span>
-                </div>
+                <InfoRow
+                  icon={<Calendar size={13} />}
+                  value={new Date(member.dateOfBirth).toLocaleDateString(
+                    "es-ES",
+                    { year: "numeric", month: "long", day: "numeric" },
+                  )}
+                />
               )}
-              <div className="flex items-center gap-3">
-                <Shield size={14} className="text-slate-500" />
-                <span className="text-sm">Miembro desde {new Date(member.joinedAt).toLocaleDateString('es-ES')}</span>
-              </div>
+              <InfoRow
+                icon={<Shield size={13} />}
+                value={`Miembro desde ${new Date(member.joinedAt).toLocaleDateString("es-ES")}`}
+              />
             </div>
           </div>
 
           {/* Assigned Routines */}
-          <div className="vd-card">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-sm font-bold flex items-center gap-2">
-                <Dumbbell size={16} className="text-purple-400" />
-                Rutinas Asignadas
-              </h3>
-              <button
-                onClick={() => setShowAssignModal(true)}
-                className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1"
-              >
-                <Plus size={12} /> Asignar
-              </button>
-            </div>
+          <div className="vd-card" style={{ padding: "20px 22px" }}>
+            <SectionTitle
+              icon={<Dumbbell size={13} />}
+              title="Rutinas Asignadas"
+              color="#3b82f6"
+              action={
+                <button
+                  onClick={() => setShowAssignModal(true)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    color: "#3b82f6",
+                    background: "rgba(59,130,246,0.08)",
+                    border: "1px solid rgba(59,130,246,0.2)",
+                    borderRadius: "20px",
+                    padding: "4px 10px",
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(59,130,246,0.14)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(59,130,246,0.08)";
+                  }}
+                >
+                  <Plus size={11} /> Asignar
+                </button>
+              }
+            />
             {assignedRoutines.length === 0 ? (
-              <p className="text-xs text-slate-500 text-center py-4">
-                Sin rutinas asignadas
-              </p>
+              <div style={{ padding: "24px 0", textAlign: "center" }}>
+                <Dumbbell
+                  size={20}
+                  style={{ color: "#334155", margin: "0 auto 8px" }}
+                />
+                <p style={{ fontSize: "11px", color: "#475569" }}>
+                  Sin rutinas asignadas
+                </p>
+              </div>
             ) : (
-              <div className="space-y-2">
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+              >
                 {assignedRoutines.map((r: any) => (
                   <div
                     key={r.id}
-                    className="p-3 rounded-lg bg-slate-900/30 flex items-center justify-between"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "10px 14px",
+                      borderRadius: "9px",
+                      background: "rgba(255,255,255,0.02)",
+                      border: "1px solid rgba(255,255,255,0.06)",
+                    }}
                   >
                     <div>
-                      <p className="text-sm font-semibold">{r.program?.name}</p>
-                      <p className="text-[10px] text-slate-500">
-                        Asignado: {new Date(r.assignedAt).toLocaleDateString('es-ES')}
+                      <p
+                        style={{
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          color: "#e2e8f0",
+                          marginBottom: "2px",
+                        }}
+                      >
+                        {r.program?.name}
+                      </p>
+                      <p style={{ fontSize: "9px", color: "#334155" }}>
+                        Asignado:{" "}
+                        {new Date(r.assignedAt).toLocaleDateString("es-ES")}
                       </p>
                     </div>
                     <span
-                      className={`text-[10px] px-2 py-0.5 rounded ${
-                        r.isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-500/20 text-slate-400'
-                      }`}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        padding: "3px 9px",
+                        borderRadius: "20px",
+                        fontSize: "9px",
+                        fontWeight: 700,
+                        color: r.isActive ? "#10b981" : "#475569",
+                        background: r.isActive
+                          ? "rgba(16,185,129,0.08)"
+                          : "rgba(100,116,139,0.06)",
+                        border: `1px solid ${r.isActive ? "rgba(16,185,129,0.2)" : "rgba(100,116,139,0.15)"}`,
+                      }}
                     >
-                      {r.isActive ? 'Activo' : 'Inactivo'}
+                      <span
+                        style={{
+                          width: "4px",
+                          height: "4px",
+                          borderRadius: "50%",
+                          background: r.isActive ? "#10b981" : "#475569",
+                        }}
+                      />
+                      {r.isActive ? "Activo" : "Inactivo"}
                     </span>
                   </div>
                 ))}
@@ -274,20 +769,56 @@ const MemberDetail: React.FC<{ session: any; profile: any }> = ({ session, profi
           </div>
 
           {/* Recent Activity */}
-          <div className="vd-card">
-            <h3 className="text-sm font-bold mb-4 flex items-center gap-2">
-              <Activity size={16} className="text-purple-400" />
-              Actividad Reciente
-            </h3>
+          <div className="vd-card" style={{ padding: "20px 22px" }}>
+            <SectionTitle
+              icon={<Activity size={13} />}
+              title="Actividad Reciente"
+              color="#f59e0b"
+            />
             {recentActivity.length === 0 ? (
-              <p className="text-xs text-slate-500 text-center py-4">Sin actividad</p>
+              <div style={{ padding: "20px 0", textAlign: "center" }}>
+                <p style={{ fontSize: "11px", color: "#475569" }}>
+                  Sin actividad reciente
+                </p>
+              </div>
             ) : (
-              <div className="space-y-2">
-                {recentActivity.slice(0, 5).map((a: any) => (
-                  <div key={a.id} className="flex items-center justify-between text-xs">
-                    <span className="text-slate-300">{a.eventType}</span>
-                    <span className="text-slate-500">
-                      {new Date(a.createdAt).toLocaleDateString('es-ES')}
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "0px" }}
+              >
+                {recentActivity.slice(0, 5).map((a: any, i) => (
+                  <div
+                    key={a.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "9px 0",
+                      borderBottom:
+                        i < 4 ? "1px solid rgba(255,255,255,0.04)" : "none",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "11px",
+                        color: "#64748b",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "7px",
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: "5px",
+                          height: "5px",
+                          borderRadius: "50%",
+                          background: "#f59e0b",
+                          flexShrink: 0,
+                        }}
+                      />
+                      {a.eventType}
+                    </span>
+                    <span style={{ fontSize: "10px", color: "#334155" }}>
+                      {new Date(a.createdAt).toLocaleDateString("es-ES")}
                     </span>
                   </div>
                 ))}
@@ -296,118 +827,381 @@ const MemberDetail: React.FC<{ session: any; profile: any }> = ({ session, profi
           </div>
         </div>
 
-        {/* Right Column */}
-        <div className="flex flex-col gap-4">
+        {/* RIGHT COLUMN */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           {/* Payment History */}
-          <div className="vd-card">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-sm font-bold flex items-center gap-2">
-                <CreditCard size={16} className="text-purple-400" />
+          <div className="vd-card" style={{ padding: 0, overflow: "hidden" }}>
+            <div
+              style={{
+                padding: "14px 20px",
+                borderBottom: "1px solid rgba(255,255,255,0.05)",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+              }}
+            >
+              <span
+                style={{
+                  width: "26px",
+                  height: "26px",
+                  minWidth: "26px",
+                  borderRadius: "7px",
+                  background: "rgba(16,185,129,0.1)",
+                  border: "1px solid rgba(16,185,129,0.2)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#10b981",
+                }}
+              >
+                <CreditCard size={13} />
+              </span>
+              <h3
+                style={{
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  color: "#e2e8f0",
+                  flex: 1,
+                }}
+              >
                 Historial de Pagos
               </h3>
               <button
                 onClick={() => navigate(`/payments?member=${memberId}`)}
-                className="text-xs text-purple-400 hover:text-purple-300"
+                style={{
+                  fontSize: "10px",
+                  fontWeight: 700,
+                  color: "#10b981",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                }}
               >
-                Ver todos
+                Ver todos →
               </button>
             </div>
+
             {payments.length === 0 ? (
-              <p className="text-xs text-slate-500 text-center py-4">Sin pagos registrados</p>
+              <div style={{ padding: "32px 0", textAlign: "center" }}>
+                <p style={{ fontSize: "11px", color: "#475569" }}>
+                  Sin pagos registrados
+                </p>
+              </div>
             ) : (
-              <div className="space-y-2">
-                {payments.slice(0, 5).map((p: any) => (
-                  <div
-                    key={p.id}
-                    className="flex items-center justify-between p-2 rounded bg-slate-900/30"
-                  >
-                    <div>
-                      <p className="text-sm font-bold">${p.amount}</p>
-                      <p className="text-[10px] text-slate-500">
-                        {new Date(p.createdAt).toLocaleDateString('es-ES')}
-                      </p>
-                    </div>
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded ${
-                        p.status === 'PAID'
-                          ? 'bg-emerald-500/20 text-emerald-400'
-                          : p.status === 'PENDING'
-                            ? 'bg-amber-500/20 text-amber-400'
-                            : 'bg-slate-500/20 text-slate-400'
-                      }`}
+              <div>
+                {payments.slice(0, 5).map((p: any, i) => {
+                  const pa = paymentAccent(p.status);
+                  return (
+                    <div
+                      key={p.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "12px 20px",
+                        borderBottom:
+                          i < Math.min(payments.length, 5) - 1
+                            ? "1px solid rgba(255,255,255,0.04)"
+                            : "none",
+                      }}
                     >
-                      {p.status}
-                    </span>
-                  </div>
-                ))}
+                      <div>
+                        <p
+                          style={{
+                            fontSize: "14px",
+                            fontWeight: 800,
+                            color: "#e2e8f0",
+                            marginBottom: "2px",
+                          }}
+                        >
+                          ${p.amount.toLocaleString()}
+                        </p>
+                        <p style={{ fontSize: "9px", color: "#334155" }}>
+                          {new Date(p.createdAt).toLocaleDateString("es-ES")}
+                        </p>
+                      </div>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "5px",
+                          padding: "4px 10px",
+                          borderRadius: "20px",
+                          fontSize: "10px",
+                          fontWeight: 700,
+                          color: pa.color,
+                          background: pa.bg,
+                          border: `1px solid ${pa.border}`,
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: "5px",
+                            height: "5px",
+                            borderRadius: "50%",
+                            background: pa.color,
+                            boxShadow: `0 0 4px ${pa.color}`,
+                          }}
+                        />
+                        {pa.label}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
 
           {/* Quick Actions */}
-          <div className="vd-card">
-            <h3 className="text-sm font-bold mb-4">Acciones Rápidas</h3>
-            <div className="space-y-2">
-              <button
-                onClick={() => navigate(`/payments/new?member=${memberId}`)}
-                className="w-full py-2 px-3 text-xs bg-slate-800/50 border border-white-05 rounded-lg hover:bg-slate-700/50 transition-colors text-left flex items-center gap-2"
-              >
-                <CreditCard size={14} className="text-purple-400" /> Registrar Pago
-              </button>
-              <button
-                onClick={() => setShowAssignModal(true)}
-                className="w-full py-2 px-3 text-xs bg-slate-800/50 border border-white-05 rounded-lg hover:bg-slate-700/50 transition-colors text-left flex items-center gap-2"
-              >
-                <Target size={14} className="text-purple-400" /> Asignar Rutina
-              </button>
-              <button
-                onClick={() => navigate(`/members/${memberId}/progress`)}
-                className="w-full py-2 px-3 text-xs bg-slate-800/50 border border-white-05 rounded-lg hover:bg-slate-700/50 transition-colors text-left flex items-center gap-2"
-              >
-                <Activity size={14} className="text-purple-400" /> Ver Progreso
-              </button>
-            </div>
+          <div className="vd-card" style={{ padding: "20px 22px" }}>
+            <SectionTitle
+              icon={<Target size={13} />}
+              title="Acciones Rápidas"
+              color="#f43f5e"
+            />
+            <QuickAction
+              icon={<CreditCard size={14} />}
+              label="Registrar Pago"
+              color="#10b981"
+              onClick={() => navigate(`/payments/new?member=${memberId}`)}
+            />
+            <QuickAction
+              icon={<Target size={14} />}
+              label="Asignar Rutina"
+              color="#3b82f6"
+              onClick={() => setShowAssignModal(true)}
+            />
+            <QuickAction
+              icon={<Activity size={14} />}
+              label="Ver Progreso"
+              color="#8b5cf6"
+              onClick={() => navigate(`/members/${memberId}/progress`)}
+            />
           </div>
         </div>
       </div>
 
-      {/* Assign Routine Modal */}
+      {/* ══════════════════════════════
+          ASSIGN ROUTINE MODAL
+      ══════════════════════════════ */}
       {showAssignModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="vd-card max-w-md w-full mx-4">
-            <h3 className="text-lg font-bold mb-4">Asignar Rutina</h3>
-            {programs.length === 0 ? (
-              <div className="text-center py-8">
-                <Dumbbell size={32} className="mx-auto mb-2 text-slate-500" />
-                <p className="text-sm text-slate-400">No hay rutinas disponibles</p>
-                <button
-                  onClick={() => navigate('/routines/create')}
-                  className="mt-4 text-xs text-purple-400 hover:underline"
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 50,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+            background: "rgba(2,6,23,0.85)",
+            backdropFilter: "blur(8px)",
+          }}
+          className="animate-fade-in"
+          onClick={() => setShowAssignModal(false)}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: "440px",
+              background:
+                "linear-gradient(160deg, rgba(15,23,42,0.98) 0%, rgba(9,14,30,0.98) 100%)",
+              border: "1px solid rgba(59,130,246,0.2)",
+              borderRadius: "18px",
+              overflow: "hidden",
+              boxShadow: "0 32px 80px rgba(0,0,0,0.6)",
+              position: "relative",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Glow */}
+            <div
+              style={{
+                position: "absolute",
+                top: "-60px",
+                right: "-60px",
+                width: "180px",
+                height: "180px",
+                background:
+                  "radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%)",
+                pointerEvents: "none",
+              }}
+            />
+
+            {/* Header */}
+            <div
+              style={{
+                padding: "20px 22px 16px",
+                borderBottom: "1px solid rgba(255,255,255,0.06)",
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+              }}
+            >
+              <span
+                style={{
+                  width: "32px",
+                  height: "32px",
+                  minWidth: "32px",
+                  borderRadius: "9px",
+                  background: "rgba(59,130,246,0.1)",
+                  border: "1px solid rgba(59,130,246,0.25)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#3b82f6",
+                }}
+              >
+                <Dumbbell size={15} />
+              </span>
+              <div style={{ flex: 1 }}>
+                <h3
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: 800,
+                    color: "#e2e8f0",
+                  }}
                 >
-                  Crear una rutina
-                </button>
+                  Asignar Rutina
+                </h3>
+                <p style={{ fontSize: "10px", color: "#475569" }}>
+                  Selecciona una rutina para {member.displayName}
+                </p>
               </div>
-            ) : (
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {programs.map((p: any) => (
-                  <button
-                    key={p.id}
-                    onClick={() => handleAssignRoutine(p.id)}
-                    className="w-full p-3 rounded-lg bg-slate-900/30 hover:bg-slate-900/50 text-left transition-colors"
-                  >
-                    <p className="text-sm font-semibold">{p.name}</p>
-                    <p className="text-[10px] text-slate-500">{p.workoutsCount || 0} entrenamientos</p>
-                  </button>
-                ))}
-              </div>
-            )}
-            <div className="flex justify-end mt-4">
               <button
                 onClick={() => setShowAssignModal(false)}
-                className="px-4 py-2 text-xs text-slate-400 hover:text-white transition-colors"
+                style={{
+                  width: "28px",
+                  height: "28px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "8px",
+                  border: "1px solid rgba(255,255,255,0.07)",
+                  background: "rgba(255,255,255,0.03)",
+                  color: "#475569",
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "#e2e8f0";
+                  e.currentTarget.style.background = "rgba(255,255,255,0.07)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "#475569";
+                  e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+                }}
               >
-                Cancelar
+                <X size={14} />
               </button>
+            </div>
+
+            {/* Body */}
+            <div
+              style={{
+                padding: "16px 22px 20px",
+                maxHeight: "340px",
+                overflowY: "auto",
+              }}
+            >
+              {programs.length === 0 ? (
+                <div style={{ padding: "32px 0", textAlign: "center" }}>
+                  <div
+                    style={{
+                      width: "48px",
+                      height: "48px",
+                      borderRadius: "14px",
+                      background: "rgba(255,255,255,0.03)",
+                      border: "1px solid rgba(255,255,255,0.06)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      margin: "0 auto 14px",
+                    }}
+                  >
+                    <Dumbbell size={22} style={{ color: "#334155" }} />
+                  </div>
+                  <p
+                    style={{
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      color: "#94a3b8",
+                      marginBottom: "10px",
+                    }}
+                  >
+                    No hay rutinas disponibles
+                  </p>
+                  <button
+                    onClick={() => navigate("/routines/create")}
+                    style={{
+                      fontSize: "12px",
+                      color: "#3b82f6",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Crear una rutina →
+                  </button>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px",
+                  }}
+                >
+                  {programs.map((p: any) => (
+                    <button
+                      key={p.id}
+                      onClick={() => handleAssignRoutine(p.id)}
+                      style={{
+                        width: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "12px 14px",
+                        borderRadius: "10px",
+                        background: "rgba(255,255,255,0.02)",
+                        border: "1px solid rgba(255,255,255,0.06)",
+                        cursor: "pointer",
+                        textAlign: "left",
+                        transition: "all 0.15s",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background =
+                          "rgba(59,130,246,0.06)";
+                        e.currentTarget.style.borderColor =
+                          "rgba(59,130,246,0.2)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background =
+                          "rgba(255,255,255,0.02)";
+                        e.currentTarget.style.borderColor =
+                          "rgba(255,255,255,0.06)";
+                      }}
+                    >
+                      <div>
+                        <p
+                          style={{
+                            fontSize: "12px",
+                            fontWeight: 700,
+                            color: "#e2e8f0",
+                            marginBottom: "2px",
+                          }}
+                        >
+                          {p.name}
+                        </p>
+                        <p style={{ fontSize: "10px", color: "#475569" }}>
+                          {p.workoutsCount || 0} entrenamientos
+                        </p>
+                      </div>
+                      <ChevronRight size={14} style={{ color: "#334155" }} />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

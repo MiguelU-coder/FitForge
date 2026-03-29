@@ -119,6 +119,28 @@ const OrganizationMembers: React.FC<{ session: any; profile: any }> = ({
   const trainers =
     stats.byRole?.TRAINER ?? members.filter((m) => m.role === "TRAINER").length;
 
+  /* ── Missing Organization screen ── */
+  if (!loading && !organizationId) {
+    return (
+      <div className="dashboard-content animate-fade-in" style={{ padding: "0.5rem" }}>
+        <div className="vd-card text-center py-20">
+          <Shield size={48} className="mx-auto mb-4 text-slate-500 opacity-50" />
+          <h2 className="text-lg font-bold mb-2 text-slate-200">Organización no encontrada</h2>
+          <p className="text-sm text-slate-400 mb-6 max-w-md mx-auto">
+            Tu perfil no tiene una organización asociada. 
+            Si crees que esto es un error, contacta al administrador global.
+          </p>
+          <button
+            onClick={() => navigate("/")}
+            className="btn-primary py-2 px-6 text-sm bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-all"
+          >
+            Volver al Inicio
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className="dashboard-content animate-fade-in"

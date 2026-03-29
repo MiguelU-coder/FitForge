@@ -29,9 +29,21 @@ const PlanConfiguration: React.FC<{ session?: any }> = ({ session }) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editingPlan, setEditingPlan] = useState<BillingPlan | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [newPlan, setNewPlan] = useState({
+    name: "",
+    price: 29.99,
+    interval: "month",
+    features: {
+      members: 500,
+      ai_routines: 10,
+      support: "Email",
+    }
+  });
 
   const fetchPlans = async () => {
     try {
+      setLoading(true);
       const { data } = await axios.get(`${API_URL}/billing/plans`, {
         headers: { Authorization: `Bearer ${session?.access_token}` },
       });
@@ -44,7 +56,7 @@ const PlanConfiguration: React.FC<{ session?: any }> = ({ session }) => {
   };
 
   useEffect(() => {
-    fetchPlans();
+    if (session?.access_token) fetchPlans();
   }, [session]);
 
   const handleUpdate = async () => {
@@ -63,295 +75,111 @@ const PlanConfiguration: React.FC<{ session?: any }> = ({ session }) => {
       await fetchPlans();
       setEditingPlan(null);
     } catch (err) {
-      console.error("Error updating plan:", err);
       alert("Failed to update plan.");
     } finally {
       setSaving(false);
     }
   };
 
-  /* accent color per plan name */
+  const handleCreate = async () => {
+    if (!newPlan.name.trim()) return;
+    setSaving(true);
+    try {
+      await axios.post(
+        `${API_URL}/billing/plans`,
+        newPlan,
+        { headers: { Authorization: `Bearer ${session?.access_token}` } },
+      );
+      await fetchPlans();
+      setIsCreating(false);
+      setNewPlan({
+        name: "",
+        price: 29.99,
+        interval: "month",
+        features: { members: 500, ai_routines: 10, support: "Email" }
+      });
+    } catch (err) {
+      alert("Failed to create plan.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const planAccent = (name: string) => {
     const n = name?.toLowerCase() || "";
-    if (n.includes("enterprise"))
-      return {
-        color: "#3b82f6",
-        bg: "rgba(59,130,246,0.08)",
-        border: "rgba(59,130,246,0.2)",
-      };
-    if (n.includes("gold"))
-      return {
-        color: "#f59e0b",
-        bg: "rgba(245,158,11,0.08)",
-        border: "rgba(245,158,11,0.2)",
-      };
-    return {
-      color: "#94a3b8",
-      bg: "rgba(148,163,184,0.06)",
-      border: "rgba(148,163,184,0.15)",
-    };
+    if (n.includes("enterprise") || n.includes("platinum"))
+      return { color: "#8b5cf6", bg: "rgba(139,92,246,0.08)", border: "rgba(139,92,246,0.2)" };
+    if (n.includes("gold") || n.includes("pro"))
+      return { color: "#f59e0b", bg: "rgba(245,158,11,0.08)", border: "rgba(245,158,11,0.2)" };
+    return { color: "#3b82f6", bg: "rgba(59,130,246,0.08)", border: "rgba(59,130,246,0.2)" };
   };
 
   return (
-    <div
-      className="dashboard-content animate-fade-in"
-      style={{ padding: "0.5rem" }}
-    >
-      {/* ── HEADER ── */}
+    <div className="dashboard-content animate-fade-in" style={{ padding: "0.5rem" }}>
       <header className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate("/membership")}
-            className="w-9 h-9 rounded-xl border border-white-05 flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/5 transition-all"
-          >
+          <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-xl border border-white-05 flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/5 transition-all">
             <ChevronLeft size={16} />
           </button>
           <div>
             <h1 className="text-2xl font-bold mb-1">Plan Architecture</h1>
-            <p className="text-xs text-muted">
-              Manage global subscription tiers and commercial constraints.
-            </p>
+            <p className="text-xs text-muted">Manage global subscription tiers and commercial constraints.</p>
           </div>
         </div>
         <button
-          className="btn-primary text-xs bg-purple-600 rounded-md flex items-center gap-1.5 opacity-40 cursor-not-allowed"
-          style={{
-            padding: "8px 16px",
-            border: "none",
-            color: "#fff",
-            fontWeight: 700,
-          }}
+          onClick={() => setIsCreating(true)}
+          className="btn-primary text-xs bg-purple-600 rounded-md flex items-center gap-1.5 hover:brightness-110 active:scale-95 transition-all"
+          style={{ padding: "8px 16px", border: "none", color: "#fff", fontWeight: 700 }}
         >
           <Plus size={14} /> Create Tier
         </button>
       </header>
 
-      {/* ── PLAN CARDS ── */}
       {loading ? (
-        <div
-          className="vd-card flex items-center justify-center"
-          style={{ padding: "80px 0" }}
-        >
+        <div className="vd-card flex items-center justify-center" style={{ padding: "80px 0" }}>
           <Loader2 size={28} className="animate-spin text-purple-500" />
         </div>
       ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-            gap: "16px",
-          }}
-        >
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "16px" }}>
           {plans.map((plan) => {
             const ac = planAccent(plan.name);
             return (
-              <div
-                key={plan.id}
-                className="vd-card"
-                style={{
-                  padding: 0,
-                  overflow: "hidden",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                {/* colored top bar */}
-                <div
-                  style={{ height: "3px", background: ac.color, opacity: 0.8 }}
-                />
-
-                <div
-                  style={{
-                    padding: "22px 24px",
-                    flex: 1,
-                    display: "flex",
-                    flexDirection: "column",
-                  }}
-                >
-                  {/* Plan header */}
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
-                      marginBottom: "20px",
-                    }}
-                  >
+              <div key={plan.id} className="vd-card p-0 overflow-hidden flex flex-col">
+                <div style={{ height: "3px", background: ac.color, opacity: 0.8 }} />
+                <div className="p-6 flex-1 flex flex-col">
+                  <div className="flex justify-between items-start mb-5">
                     <div>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          marginBottom: "4px",
-                        }}
-                      >
-                        <h3
-                          style={{
-                            fontSize: "15px",
-                            fontWeight: 800,
-                            color: "#e2e8f0",
-                            letterSpacing: "-0.01em",
-                          }}
-                        >
-                          {plan.name}
-                        </h3>
-                        <span
-                          style={{
-                            fontSize: "9px",
-                            fontWeight: 700,
-                            padding: "2px 7px",
-                            borderRadius: "20px",
-                            color: ac.color,
-                            background: ac.bg,
-                            border: `1px solid ${ac.border}`,
-                            letterSpacing: "0.08em",
-                          }}
-                        >
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-[15px] font-extrabold text-white">{plan.name}</h3>
+                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ color: ac.color, background: ac.bg, border: `1px solid ${ac.border}` }}>
                           {plan.isActive ? "ACTIVE" : "INACTIVE"}
                         </span>
                       </div>
-                      <span
-                        style={{
-                          fontSize: "9px",
-                          color: "#475569",
-                          letterSpacing: "0.1em",
-                          textTransform: "uppercase",
-                          fontWeight: 600,
-                        }}
-                      >
-                        Global Tier
-                      </span>
+                      <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">Global Tier</span>
                     </div>
-                    {/* status dot */}
-                    <div
-                      style={{
-                        width: "8px",
-                        height: "8px",
-                        borderRadius: "50%",
-                        flexShrink: 0,
-                        marginTop: "4px",
-                        background: plan.isActive ? "#10b981" : "#334155",
-                        boxShadow: plan.isActive
-                          ? "0 0 8px rgba(16,185,129,0.5)"
-                          : "none",
-                      }}
-                    />
+                    <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: plan.isActive ? "#10b981" : "#334155", boxShadow: plan.isActive ? "0 0 8px #10b981" : "none" }} />
                   </div>
 
-                  {/* Price */}
-                  <div
-                    style={{
-                      marginBottom: "20px",
-                      paddingBottom: "18px",
-                      borderBottom: "1px solid rgba(255,255,255,0.05)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "baseline",
-                        gap: "4px",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: "32px",
-                          fontWeight: 800,
-                          color: ac.color,
-                          letterSpacing: "-0.03em",
-                        }}
-                      >
-                        ${plan.price}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: "11px",
-                          color: "#475569",
-                          fontWeight: 600,
-                        }}
-                      >
-                        /{plan.interval}
-                      </span>
+                  <div className="mb-5 pb-5 border-b border-white-05">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-black" style={{ color: ac.color }}>${plan.price}</span>
+                      <span className="text-xs text-slate-500 font-bold">/{plan.interval}</span>
                     </div>
                   </div>
 
-                  {/* Features */}
-                  <div
-                    style={{
-                      flex: 1,
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "10px",
-                      marginBottom: "22px",
-                    }}
-                  >
-                    {Object.entries(plan.features || {}).map(
-                      ([key, val]: [string, string | number | boolean], idx) => (
-                        <div
-                          key={idx}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "10px",
-                          }}
-                        >
-                          <span
-                            style={{
-                              width: "16px",
-                              height: "16px",
-                              minWidth: "16px",
-                              borderRadius: "5px",
-                              background: `${ac.color}18`,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              color: ac.color,
-                            }}
-                          >
-                            <Check size={10} />
-                          </span>
-                          <span
-                            style={{
-                              fontSize: "11px",
-                              color: "#64748b",
-                              textTransform: "capitalize",
-                            }}
-                          >
-                            {key}:
-                          </span>
-                          <span
-                            style={{
-                              fontSize: "11px",
-                              fontWeight: 700,
-                              color: "#e2e8f0",
-                              marginLeft: "auto",
-                            }}
-                          >
-                            {val.toString()}
-                          </span>
+                  <div className="flex-1 flex flex-col gap-2.5 mb-6">
+                    {Object.entries(plan.features || {}).map(([key, val]: any, idx) => (
+                      <div key={idx} className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                           <Check size={10} className="text-slate-500" />
+                           <span className="text-[11px] text-slate-400 capitalize">{key.replace(/_/g, " ")}</span>
                         </div>
-                      ),
-                    )}
+                        <span className="text-[11px] font-bold text-slate-200">{val.toString()}</span>
+                      </div>
+                    ))}
                   </div>
 
-                  {/* CTA */}
-                  <button
-                    onClick={() => setEditingPlan({ ...plan })}
-                    className="w-full hover:bg-white/5 transition-all flex items-center justify-center gap-2"
-                    style={{
-                      padding: "10px",
-                      borderRadius: "10px",
-                      border: `1px solid ${ac.border}`,
-                      background: ac.bg,
-                      fontSize: "10px",
-                      fontWeight: 700,
-                      letterSpacing: "0.08em",
-                      textTransform: "uppercase",
-                      color: ac.color,
-                      cursor: "pointer",
-                    }}
-                  >
+                  <button onClick={() => setEditingPlan(plan)} className="w-full py-2.5 rounded-xl border border-white-05 text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-white hover:bg-white/5 transition-all flex items-center justify-center gap-2">
                     <Settings2 size={12} /> Configure Tier
                   </button>
                 </div>
@@ -361,299 +189,79 @@ const PlanConfiguration: React.FC<{ session?: any }> = ({ session }) => {
         </div>
       )}
 
-      {/* ── EDIT MODAL ── */}
-      {editingPlan && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 50,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "16px",
-            background: "rgba(2,6,23,0.85)",
-            backdropFilter: "blur(6px)",
-          }}
-          className="animate-fade-in"
-        >
-          <div
-            className="vd-card"
-            style={{
-              width: "100%",
-              maxWidth: "400px",
-              padding: 0,
-              overflow: "hidden",
-            }}
-          >
-            {/* Modal colored top bar */}
-            <div
-              style={{
-                height: "3px",
-                background: planAccent(editingPlan.name).color,
-                opacity: 0.8,
-              }}
-            />
+      {/* ── CREATE/EDIT MODAL ── */}
+      {(editingPlan || isCreating) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in" onClick={() => { setEditingPlan(null); setIsCreating(false); }}>
+          <div className="vd-card w-full max-w-md overflow-hidden bg-slate-900 border border-white/10" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-white/5 flex justify-between items-center">
+              <div>
+                <h3 className="text-lg font-bold text-white mb-1">{isCreating ? "Create New Tier" : `Edit ${editingPlan?.name}`}</h3>
+                <p className="text-[10px] text-slate-500">Configure core plan properties and pricing.</p>
+              </div>
+              <button onClick={() => { setEditingPlan(null); setIsCreating(false); }} className="text-slate-500 hover:text-white"><X size={20}/></button>
+            </div>
 
-            <div style={{ padding: "24px" }}>
-              {/* Modal header */}
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "24px",
-                }}
-              >
-                <div>
-                  <h3
-                    style={{
-                      fontSize: "15px",
-                      fontWeight: 700,
-                      color: "#e2e8f0",
-                      marginBottom: "3px",
-                    }}
-                  >
-                    Edit {editingPlan.name}
-                  </h3>
-                  <p style={{ fontSize: "10px", color: "#475569" }}>
-                    Modify tier settings and pricing
-                  </p>
-                </div>
-                <button
-                  onClick={() => setEditingPlan(null)}
-                  className="icon-btn p-1.5 text-slate-500 hover:text-white"
-                >
-                  <X size={16} />
-                </button>
+            <div className="p-6 flex flex-col gap-5">
+              <div>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2">Display Name</label>
+                <input
+                  value={isCreating ? newPlan.name : editingPlan?.name}
+                  onChange={e => isCreating ? setNewPlan({...newPlan, name: e.target.value}) : setEditingPlan({...editingPlan!, name: e.target.value})}
+                  className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-purple-500/50"
+                  placeholder="e.g. Platinum Elite"
+                />
               </div>
 
-              {/* Fields */}
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "16px",
-                }}
-              >
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label
-                    style={{
-                      fontSize: "10px",
-                      fontWeight: 700,
-                      color: "#475569",
-                      letterSpacing: "0.1em",
-                      textTransform: "uppercase",
-                      display: "block",
-                      marginBottom: "8px",
-                    }}
-                  >
-                    Display Name
-                  </label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2">Price (USD)</label>
                   <input
-                    type="text"
-                    value={editingPlan.name}
-                    onChange={(e) =>
-                      setEditingPlan({ ...editingPlan, name: e.target.value })
-                    }
-                    style={{
-                      width: "100%",
-                      padding: "10px 14px",
-                      borderRadius: "10px",
-                      background: "rgba(255,255,255,0.03)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      fontSize: "13px",
-                      fontWeight: 600,
-                      color: "#e2e8f0",
-                      outline: "none",
-                      transition: "border-color 0.2s",
-                      boxSizing: "border-box",
-                    }}
-                    onFocus={(e) =>
-                      (e.target.style.borderColor = "rgba(139,92,246,0.45)")
-                    }
-                    onBlur={(e) =>
-                      (e.target.style.borderColor = "rgba(255,255,255,0.08)")
-                    }
+                    type="number"
+                    value={isCreating ? newPlan.price : editingPlan?.price}
+                    onChange={e => isCreating ? setNewPlan({...newPlan, price: Number(e.target.value)}) : setEditingPlan({...editingPlan!, price: Number(e.target.value)})}
+                    className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-purple-500/50"
                   />
                 </div>
-
                 <div>
-                  <label
-                    style={{
-                      fontSize: "10px",
-                      fontWeight: 700,
-                      color: "#475569",
-                      letterSpacing: "0.1em",
-                      textTransform: "uppercase",
-                      display: "block",
-                      marginBottom: "8px",
-                    }}
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2">Interval</label>
+                  <select
+                    value={isCreating ? newPlan.interval : editingPlan?.interval}
+                    onChange={e => isCreating ? setNewPlan({...newPlan, interval: e.target.value}) : setEditingPlan({...editingPlan!, interval: e.target.value})}
+                    className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white outline-none"
                   >
-                    Monthly Price (USD)
-                  </label>
-                  <div style={{ position: "relative" }}>
-                    <span
-                      style={{
-                        position: "absolute",
-                        left: "14px",
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        fontSize: "13px",
-                        color: "#475569",
-                        fontWeight: 600,
-                        pointerEvents: "none",
-                      }}
-                    >
-                      $
-                    </span>
-                    <input
-                      type="number"
-                      value={editingPlan.price}
-                      onChange={(e) =>
-                        setEditingPlan({
-                          ...editingPlan,
-                          price: Number(e.target.value),
-                        })
-                      }
-                      style={{
-                        width: "100%",
-                        padding: "10px 14px 10px 26px",
-                        borderRadius: "10px",
-                        background: "rgba(255,255,255,0.03)",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                        fontSize: "13px",
-                        fontWeight: 600,
-                        color: "#e2e8f0",
-                        outline: "none",
-                        transition: "border-color 0.2s",
-                        boxSizing: "border-box",
-                      }}
-                      onFocus={(e) =>
-                        (e.target.style.borderColor = "rgba(139,92,246,0.45)")
-                      }
-                      onBlur={(e) =>
-                        (e.target.style.borderColor = "rgba(255,255,255,0.08)")
-                      }
-                    />
-                  </div>
+                    <option value="month">Monthly</option>
+                    <option value="year">Yearly</option>
+                  </select>
                 </div>
+              </div>
 
-                {/* Active toggle */}
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "12px 14px",
-                    borderRadius: "10px",
-                    background: "rgba(255,255,255,0.02)",
-                    border: "1px solid rgba(255,255,255,0.06)",
-                  }}
-                >
-                  <div>
-                    <div
-                      style={{
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        color: "#e2e8f0",
-                        marginBottom: "2px",
-                      }}
-                    >
-                      Active for new tenants
-                    </div>
-                    <div style={{ fontSize: "10px", color: "#475569" }}>
-                      New orgs can subscribe to this tier
-                    </div>
-                  </div>
-                  <div
-                    onClick={() =>
-                      setEditingPlan({
-                        ...editingPlan,
-                        isActive: !editingPlan.isActive,
-                      })
-                    }
-                    style={{
-                      width: "40px",
-                      height: "22px",
-                      borderRadius: "11px",
-                      cursor: "pointer",
-                      background: editingPlan.isActive
-                        ? "#8b5cf6"
-                        : "rgba(255,255,255,0.08)",
-                      border: editingPlan.isActive
-                        ? "1px solid rgba(139,92,246,0.5)"
-                        : "1px solid rgba(255,255,255,0.1)",
-                      position: "relative",
-                      transition: "background 0.2s, border-color 0.2s",
-                      boxShadow: editingPlan.isActive
-                        ? "0 0 10px rgba(139,92,246,0.3)"
-                        : "none",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: "3px",
-                        left: editingPlan.isActive ? "21px" : "3px",
-                        width: "14px",
-                        height: "14px",
-                        borderRadius: "50%",
-                        background: "#fff",
-                        transition: "left 0.2s",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
-                      }}
-                    />
-                  </div>
+              {!isCreating && (
+                <div className="flex justify-between items-center p-3 rounded-xl bg-white/[0.02] border border-white-05">
+                   <div className="text-xs font-bold text-white">Publicly Available</div>
+                   <div 
+                    onClick={() => setEditingPlan({...editingPlan!, isActive: !editingPlan?.isActive})}
+                    className={`w-10 h-5 rounded-full relative cursor-pointer transition-all ${editingPlan?.isActive ? 'bg-purple-600' : 'bg-slate-700'}`}
+                   >
+                     <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${editingPlan?.isActive ? 'left-6' : 'left-1'}`} />
+                   </div>
                 </div>
+              )}
 
-                {/* Actions */}
-                <div
-                  style={{ display: "flex", gap: "10px", paddingTop: "4px" }}
+              <div className="flex gap-3 pt-2">
+                <button 
+                  onClick={() => { setEditingPlan(null); setIsCreating(false); }}
+                  className="flex-1 py-2.5 rounded-xl border border-white-05 text-[11px] font-bold text-slate-500 hover:text-white"
                 >
-                  <button
-                    onClick={() => setEditingPlan(null)}
-                    className="icon-btn flex-1 border border-white-05 hover:bg-white/5 transition-all"
-                    style={{
-                      padding: "10px",
-                      fontSize: "11px",
-                      fontWeight: 700,
-                      letterSpacing: "0.06em",
-                      textTransform: "uppercase",
-                      borderRadius: "10px",
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleUpdate}
-                    disabled={saving}
-                    className="flex-1 bg-purple-600 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
-                    style={{
-                      padding: "10px",
-                      borderRadius: "10px",
-                      border: "none",
-                      cursor: saving ? "not-allowed" : "pointer",
-                      color: "#fff",
-                      fontSize: "11px",
-                      fontWeight: 700,
-                      letterSpacing: "0.06em",
-                      textTransform: "uppercase",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "6px",
-                    }}
-                  >
-                    {saving ? (
-                      <Loader2 size={12} className="animate-spin" />
-                    ) : (
-                      <Save size={12} />
-                    )}
-                    Save Changes
-                  </button>
-                </div>
+                  Cancel
+                </button>
+                <button 
+                  onClick={isCreating ? handleCreate : handleUpdate}
+                  disabled={saving || (isCreating && !newPlan.name)}
+                  className="flex-1 py-2.5 rounded-xl bg-purple-600 text-[11px] font-bold text-white flex items-center justify-center gap-2 hover:brightness-110 disabled:opacity-50"
+                >
+                  {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                  {isCreating ? "Create Plan" : "Save Changes"}
+                </button>
               </div>
             </div>
           </div>

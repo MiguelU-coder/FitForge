@@ -8,6 +8,7 @@ import {
   Clock,
   CheckCircle,
   AlertTriangle,
+  AlertCircle,
   Loader2,
   Plus,
   Download,
@@ -18,6 +19,10 @@ import {
   MoreVertical,
   Eye,
   Banknote,
+  X,
+  Receipt,
+  RefreshCw,
+  ExternalLink,
 } from "lucide-react";
 
 const API_URL =
@@ -33,6 +38,11 @@ interface Payment {
   dueDate?: string;
   paidAt?: string;
   createdAt: string;
+  transactionId?: string;
+  invoiceUrl?: string;
+  planName?: string;
+  billingPeriod?: { start: string; end: string };
+  failureReason?: string;
 }
 
 /* ── Status helpers ── */
@@ -84,6 +94,9 @@ const OrganizationPayments: React.FC<{ session: any; profile: any }> = ({
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("");
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
+  const [refunding, setRefunding] = useState<string | null>(null);
   const [stats, setStats] = useState({
     totalRevenue: 0,
     thisMonthRevenue: 0,
@@ -122,6 +135,37 @@ const OrganizationPayments: React.FC<{ session: any; profile: any }> = ({
       .catch((e) => console.error(e))
       .finally(() => setLoading(false));
   }, [session, organizationId, statusFilter]);
+
+  const showNotification = (type: 'success' | 'error' | 'info', message: string) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification(null), 4000);
+  };
+
+  const handleViewDetails = (payment: Payment) => {
+    setSelectedPayment(payment);
+  };
+
+  const handleRefund = async (paymentId: string) => {
+    setRefunding(paymentId);
+    try {
+      await axios.post(`${API_URL}/payments/${paymentId}/refund`, {}, {
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      showNotification('success', 'Reembolso procesado correctamente');
+      const { data } = await axios.get(`${API_URL}/organizations/${organizationId}/payments`, {
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (data.success) {
+        setPayments(data.data.payments || []);
+        setStats(data.data.stats || { totalRevenue: 0, thisMonthRevenue: 0, pendingCount: 0, overdueCount: 0 });
+      }
+      setSelectedPayment(null);
+    } catch (err: any) {
+      showNotification('error', err.response?.data?.message || 'Error al procesar reembolso');
+    } finally {
+      setRefunding(null);
+    }
+  };
 
   const filteredPayments = statusFilter
     ? payments.filter((p) => p.status === statusFilter)
@@ -436,7 +480,7 @@ const OrganizationPayments: React.FC<{ session: any; profile: any }> = ({
                             ? "none"
                             : "1px solid rgba(255,255,255,0.04)",
                         }}
-                        onClick={() => navigate(`/payments/${payment.id}`)}
+                        onClick={() => handleViewDetails(payment)}
                       >
                         {/* Member */}
                         <td style={{ padding: "16px", whiteSpace: "nowrap" }}>
@@ -657,7 +701,7 @@ const OrganizationPayments: React.FC<{ session: any; profile: any }> = ({
                               style={{ color: "#a78bfa" }}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                navigate(`/payments/${payment.id}`);
+                                handleViewDetails(payment);
                               }}
                               title="Ver detalle"
                             >
@@ -701,6 +745,143 @@ const OrganizationPayments: React.FC<{ session: any; profile: any }> = ({
           </>
         )}
       </div>
+
+      {/* Notification Toast */}
+      {notification && (
+        <div
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg animate-slide-in"
+          style={{
+            background: notification.type === 'success' ? 'rgba(16,185,129,0.95)' : notification.type === 'error' ? 'rgba(244,63,94,0.95)' : 'rgba(59,130,246,0.95)',
+            color: '#fff',
+            fontSize: '13px',
+            fontWeight: 600,
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          {notification.type === 'success' ? <CheckCircle size={18} /> : notification.type === 'error' ? <AlertCircle size={18} /> : <CreditCard size={18} />}
+          {notification.message}
+        </div>
+      )}
+
+      {/* Payment Detail Modal */}
+      {selectedPayment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.7)' }}>
+          <div className="vd-card" style={{ width: '520px', maxHeight: '85vh', overflow: 'auto' }}>
+            <div className="flex justify-between items-start mb-5">
+              <div>
+                <h2 className="text-lg font-bold">Detalles del Pago</h2>
+                <p className="text-xs text-muted mt-1">ID: {selectedPayment.id.slice(0, 8)}...</p>
+              </div>
+              <button onClick={() => setSelectedPayment(null)} className="icon-btn"><X size={18} /></button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Status */}
+              <div className="p-4 rounded-lg" style={{ background: statusAccent(selectedPayment.status).bg, border: `1px solid ${statusAccent(selectedPayment.status).border}` }}>
+                <div className="flex items-center gap-2">
+                  {selectedPayment.status === 'PAID' ? <CheckCircle size={18} style={{ color: statusAccent(selectedPayment.status).color }} /> : selectedPayment.status === 'PENDING' ? <Clock size={18} style={{ color: statusAccent(selectedPayment.status).color }} /> : <AlertTriangle size={18} style={{ color: statusAccent(selectedPayment.status).color }} />}
+                  <span style={{ color: statusAccent(selectedPayment.status).color, fontWeight: 700, fontSize: '14px' }}>{statusAccent(selectedPayment.status).label}</span>
+                </div>
+                {selectedPayment.failureReason && (
+                  <p className="text-xs mt-2" style={{ color: '#f43f5e' }}>Razón: {selectedPayment.failureReason}</p>
+                )}
+              </div>
+
+              {/* Amount */}
+              <div className="flex justify-between items-center p-4 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <span className="text-sm text-muted">Monto</span>
+                <span className="text-xl font-bold" style={{ color: '#e2e8f0' }}>${selectedPayment.amount.toLocaleString()} <span className="text-xs font-normal text-muted">{selectedPayment.currency}</span></span>
+              </div>
+
+              {/* Member */}
+              <div className="p-4 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <span className="text-xs text-muted block mb-2">Miembro</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 font-bold">
+                    {selectedPayment.user?.avatarUrl ? <img src={selectedPayment.user.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" /> : selectedPayment.user?.displayName?.[0] || 'U'}
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold" style={{ color: '#e2e8f0' }}>{selectedPayment.user?.displayName}</div>
+                    <div className="text-xs text-muted">{selectedPayment.user?.email}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Plan */}
+              {selectedPayment.planName && (
+                <div className="flex justify-between items-center p-4 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <span className="text-sm text-muted">Plan</span>
+                  <span className="text-sm font-medium" style={{ color: '#e2e8f0' }}>{selectedPayment.planName}</span>
+                </div>
+              )}
+
+              {/* Payment Method */}
+              <div className="flex justify-between items-center p-4 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <span className="text-sm text-muted">Método de pago</span>
+                <div className="flex items-center gap-2">
+                  <Banknote size={14} className="text-muted" />
+                  <span className="text-sm" style={{ color: '#e2e8f0' }}>{selectedPayment.paymentMethod || 'No especificado'}</span>
+                </div>
+              </div>
+
+              {/* Transaction ID */}
+              {selectedPayment.transactionId && (
+                <div className="flex justify-between items-center p-4 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <span className="text-sm text-muted">ID de Transacción</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono" style={{ color: '#94a3b8' }}>{selectedPayment.transactionId}</span>
+                    <button className="icon-btn p-1"><ExternalLink size={10} /></button>
+                  </div>
+                </div>
+              )}
+
+              {/* Dates */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <span className="text-xs text-muted block mb-1">Fecha de creación</span>
+                  <span className="text-xs" style={{ color: '#e2e8f0' }}>{new Date(selectedPayment.createdAt).toLocaleDateString('es-ES')}</span>
+                </div>
+                {selectedPayment.paidAt && (
+                  <div className="p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <span className="text-xs text-muted block mb-1">Fecha de pago</span>
+                    <span className="text-xs" style={{ color: '#e2e8f0' }}>{new Date(selectedPayment.paidAt).toLocaleDateString('es-ES')}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2 pt-2">
+                {selectedPayment.invoiceUrl && (
+                  <button className="flex-1 py-2.5 rounded-lg bg-white/5 border border-white-10 text-muted hover:text-white flex items-center justify-center gap-2" style={{ fontSize: '13px', fontWeight: 600 }}>
+                    <Receipt size={14} /> Ver Factura
+                  </button>
+                )}
+                {selectedPayment.status === 'PAID' && (
+                  <button
+                    onClick={() => handleRefund(selectedPayment.id)}
+                    disabled={refunding === selectedPayment.id}
+                    className="flex-1 py-2.5 rounded-lg border text-muted hover:text-red-400 flex items-center justify-center gap-2"
+                    style={{ fontSize: '13px', fontWeight: 600, borderColor: 'rgba(255,255,255,0.1)' }}
+                  >
+                    {refunding === selectedPayment.id ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                    Reembolsar
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes slideIn {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        .animate-slide-in {
+          animation: slideIn 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 };

@@ -12,10 +12,15 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PrismaService } from '../../database/prisma.service';
 import { PaymentStatus } from '@prisma/client';
 
+import { OrganizationsService } from './organizations.service';
+
 @Controller('organizations')
 @UseGuards(JwtAuthGuard)
 export class OrganizationPaymentsController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly organizationsService: OrganizationsService,
+  ) {}
 
   @Get(':id/payments')
   async getPayments(@Param('id') organizationId: string, @Request() req: any) {
@@ -225,6 +230,38 @@ export class OrganizationPaymentsController {
     return {
       success: true,
       data: monthlyData.reverse(),
+    };
+  }
+
+  @Post(':id/payments/:paymentId/refund')
+  async refundPayment(
+    @Param('id') organizationId: string,
+    @Param('paymentId') paymentId: string,
+    @Request() req: any,
+  ) {
+    const payment = await this.prisma.memberPayment.findUnique({
+      where: { id: paymentId },
+    });
+
+    if (!payment || payment.organizationId !== organizationId) {
+      return { success: false, message: 'Payment not found' };
+    }
+
+    if (payment.status !== 'PAID') {
+      return { success: false, message: 'Can only refund paid payments' };
+    }
+
+    const updatedPayment = await this.prisma.memberPayment.update({
+      where: { id: paymentId },
+      data: {
+        status: 'REFUNDED',
+        notes: `Refunded at ${new Date().toISOString()}`,
+      },
+    });
+
+    return {
+      success: true,
+      data: updatedPayment,
     };
   }
 }

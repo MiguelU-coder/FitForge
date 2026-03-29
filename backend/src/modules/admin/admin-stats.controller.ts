@@ -22,4 +22,10 @@ export class AdminStatsController {
     const data = await this.adminService.getRevenueChart();
     return { success: true, data };
   }
+
+  @Get('distributions')
+  async getDistributions() {
+    const data = await this.adminService.getDistributions();
+    return { success: true, data };
+  }
 }

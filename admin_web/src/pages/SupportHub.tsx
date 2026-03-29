@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import {
   MessageSquare,
   Send,
@@ -6,47 +7,17 @@ import {
   CheckCircle2,
   Clock,
   Search,
-  Filter,
   Users,
   Building2,
   ChevronRight,
+  X,
+  Loader2,
+  Check,
+  RadioTower,
+  Inbox,
+  BarChart3,
+  Eye,
 } from "lucide-react";
-
-/* ── Data ── */
-const MOCK_TICKETS = [
-  {
-    id: "TKT-101",
-    gym: "Iron Temple Gym",
-    subject: "API Integration Error",
-    priority: "High",
-    status: "Open",
-    date: "Dec 30, 2024",
-  },
-  {
-    id: "TKT-102",
-    gym: "FitForge Central",
-    subject: "Billing Discrepancy",
-    priority: "Medium",
-    status: "Pending",
-    date: "Dec 28, 2024",
-  },
-  {
-    id: "TKT-103",
-    gym: "Zenith Yoga Studio",
-    subject: "Login Issues (New Staff)",
-    priority: "Low",
-    status: "Resolved",
-    date: "Dec 25, 2024",
-  },
-  {
-    id: "TKT-104",
-    gym: "Elite Performance Hub",
-    subject: "Hardware Sync Problem",
-    priority: "Critical",
-    status: "Open",
-    date: "Dec 22, 2024",
-  },
-];
 
 const QUEUE_ITEMS = [
   { label: "API / Integration", count: 8, max: 10, color: "#3b82f6" },
@@ -55,19 +26,215 @@ const QUEUE_ITEMS = [
   { label: "Hardware Sync", count: 5, max: 10, color: "#f43f5e" },
 ];
 
-const SupportHub: React.FC<{ session?: any }> = () => {
-  const [broadcastMsg, setBroadcastMsg] = useState("");
-  const [sent, setSent] = useState(false);
-  const [hoveredRow, setHoveredRow] = useState<string | null>(null);
+/* ── Status / Priority helpers ── */
+const statusAccent = (status: string) => {
+  switch (status) {
+    case "OPEN":
+      return {
+        color: "#3b82f6",
+        bg: "rgba(59,130,246,0.08)",
+        border: "rgba(59,130,246,0.2)",
+        label: "Abierto",
+      };
+    case "IN_PROGRESS":
+      return {
+        color: "#f59e0b",
+        bg: "rgba(245,158,11,0.08)",
+        border: "rgba(245,158,11,0.2)",
+        label: "En proceso",
+      };
+    case "CLOSED":
+      return {
+        color: "#10b981",
+        bg: "rgba(16,185,129,0.08)",
+        border: "rgba(16,185,129,0.2)",
+        label: "Cerrado",
+      };
+    default:
+      return {
+        color: "#64748b",
+        bg: "rgba(100,116,139,0.08)",
+        border: "rgba(100,116,139,0.2)",
+        label: status,
+      };
+  }
+};
 
-  const handleSend = () => {
-    if (!broadcastMsg.trim()) return;
-    setSent(true);
-    setTimeout(() => {
-      setSent(false);
-      setBroadcastMsg("");
-    }, 2400);
+const priorityAccent = (priority: string) => {
+  switch (priority) {
+    case "CRITICAL":
+      return {
+        color: "#f43f5e",
+        bg: "rgba(244,63,94,0.08)",
+        border: "rgba(244,63,94,0.2)",
+      };
+    case "HIGH":
+      return {
+        color: "#f59e0b",
+        bg: "rgba(245,158,11,0.08)",
+        border: "rgba(245,158,11,0.2)",
+      };
+    case "MEDIUM":
+      return {
+        color: "#8b5cf6",
+        bg: "rgba(139,92,246,0.08)",
+        border: "rgba(139,92,246,0.2)",
+      };
+    default:
+      return {
+        color: "#475569",
+        bg: "rgba(100,116,139,0.08)",
+        border: "rgba(100,116,139,0.2)",
+      };
+  }
+};
+
+/* ── Section title (shared with other pages) ── */
+const SectionTitle: React.FC<{
+  icon: React.ReactNode;
+  title: string;
+  color?: string;
+}> = ({ icon, title, color = "#8b5cf6" }) => (
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "10px",
+      marginBottom: "16px",
+      paddingBottom: "12px",
+      borderBottom: "1px solid rgba(255,255,255,0.05)",
+    }}
+  >
+    <span
+      style={{
+        width: "26px",
+        height: "26px",
+        minWidth: "26px",
+        borderRadius: "7px",
+        background: `${color}18`,
+        border: `1px solid ${color}30`,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color,
+      }}
+    >
+      {icon}
+    </span>
+    <h3 style={{ fontSize: "13px", fontWeight: 700, color: "#e2e8f0" }}>
+      {title}
+    </h3>
+  </div>
+);
+
+/* ─────────────────────────────── */
+const SupportHub: React.FC<{ session?: any }> = ({ session }) => {
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [stats, setStats] = useState({ total: 0, open: 0, resolved: 0 });
+  const [loading, setLoading] = useState(true);
+  const [broadcastMsg, setBroadcastMsg] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<any>(null);
+  const [replyMsg, setReplyMsg] = useState("");
+  const [sendingReply, setSendingReply] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const API_URL =
+    (import.meta as any).env.VITE_API_URL || "http://localhost:3000/api/v1";
+  const headers = { Authorization: `Bearer ${session?.access_token}` };
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [ticketsRes, statsRes] = await Promise.all([
+        axios.get(`${API_URL}/support/tickets`, { headers }),
+        axios.get(`${API_URL}/support/stats`, { headers }),
+      ]);
+      const tp = ticketsRes?.data;
+      const td = (tp && (tp.data ?? tp.tickets ?? tp)) ?? [];
+      setTickets(Array.isArray(td) ? td : []);
+      const sp = statsRes?.data;
+      setStats((sp && (sp.data ?? sp)) ?? { total: 0, open: 0, resolved: 0 });
+    } catch (err) {
+      setTickets([]);
+      setStats({ total: 0, open: 0, resolved: 0 });
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    if (session?.access_token) fetchData();
+  }, [session]);
+
+  const safeTickets = Array.isArray(tickets) ? tickets : [];
+  const activeCount = safeTickets.filter(
+    (t) => t.status === "OPEN" || t.status === "IN_PROGRESS",
+  ).length;
+  const filteredTickets = search
+    ? safeTickets.filter(
+        (t) =>
+          t.user?.displayName?.toLowerCase().includes(search.toLowerCase()) ||
+          t.subject?.toLowerCase().includes(search.toLowerCase()),
+      )
+    : safeTickets;
+
+  const handleSendBroadcast = async () => {
+    if (!broadcastMsg.trim()) return;
+    setSending(true);
+    try {
+      await axios.post(
+        `${API_URL}/support/broadcast`,
+        { title: "Global Announcement", message: broadcastMsg, type: "info" },
+        { headers },
+      );
+      setSent(true);
+      setTimeout(() => {
+        setSent(false);
+        setBroadcastMsg("");
+      }, 2400);
+    } catch {
+      alert("Failed to send broadcast.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleReply = async () => {
+    if (!replyMsg.trim() || !selectedTicket) return;
+    setSendingReply(true);
+    try {
+      await axios.post(
+        `${API_URL}/support/tickets/${selectedTicket.id}/reply`,
+        { message: replyMsg },
+        { headers },
+      );
+      setReplyMsg("");
+      setSelectedTicket(null);
+      fetchData();
+    } catch {
+      alert("Failed to send reply.");
+    } finally {
+      setSendingReply(false);
+    }
+  };
+
+  const handleCloseTicket = async (id: string) => {
+    try {
+      await axios.put(
+        `${API_URL}/support/tickets/${id}/status`,
+        { status: "CLOSED" },
+        { headers },
+      );
+      fetchData();
+      if (selectedTicket?.id === id) setSelectedTicket(null);
+    } catch {
+      alert("Failed to close ticket.");
+    }
+  };
+
+  const resolveRate = Math.round((stats.resolved / (stats.total || 1)) * 100);
 
   return (
     <div
@@ -82,33 +249,42 @@ const SupportHub: React.FC<{ session?: any }> = () => {
             Manage organization assistance & platform-wide communications.
           </p>
         </div>
-        {/* Active chats badge — same style as SecurityAudit live badge */}
+        {/* Active tickets badge */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
             gap: "7px",
-            padding: "7px 14px",
-            borderRadius: "8px",
+            padding: "8px 16px",
+            borderRadius: "10px",
             background: "rgba(139,92,246,0.07)",
             border: "1px solid rgba(139,92,246,0.22)",
-            fontSize: "11px",
+            fontSize: "12px",
             fontWeight: 700,
             color: "#a78bfa",
-            letterSpacing: "0.06em",
           }}
         >
-          <MessageSquare size={13} style={{ flexShrink: 0 }} />
-          12 Active Chats
+          <span
+            style={{
+              width: "6px",
+              height: "6px",
+              borderRadius: "50%",
+              background: "#8b5cf6",
+              boxShadow: "0 0 5px #8b5cf6",
+            }}
+          />
+          <MessageSquare size={13} />
+          {activeCount} Active Tickets
           <span
             style={{
               fontSize: "9px",
               fontWeight: 800,
-              background: "rgba(139,92,246,0.15)",
-              border: "1px solid rgba(139,92,246,0.3)",
-              borderRadius: "4px",
+              background: "rgba(139,92,246,0.2)",
+              border: "1px solid rgba(139,92,246,0.35)",
+              borderRadius: "5px",
               padding: "1px 6px",
               color: "#c4b5fd",
+              letterSpacing: "0.06em",
             }}
           >
             LIVE
@@ -120,54 +296,58 @@ const SupportHub: React.FC<{ session?: any }> = () => {
       <div className="grid-cols-stats mb-6">
         {[
           {
-            dot: "bg-blue-400",
+            color: "#3b82f6",
             label: "Open Tickets",
-            value: "24",
-            sub: null,
-            subColor: null,
+            value: stats.open.toString(),
           },
           {
-            dot: "bg-amber-400",
-            label: "Avg. Response",
-            value: "18m",
-            sub: "Fastest",
-            subColor: "#10b981",
+            color: "#f59e0b",
+            label: "Total Requests",
+            value: stats.total.toString(),
+            sub: "All time",
           },
           {
-            dot: "bg-emerald-400",
-            label: "Resolved Today",
-            value: "11",
-            sub: "+3 desde ayer",
-            subColor: "#10b981",
+            color: "#10b981",
+            label: "Resolved",
+            value: stats.resolved.toString(),
+            sub: `${resolveRate}% resolve rate`,
           },
           {
-            dot: "bg-rose-400",
-            label: "Critical Open",
-            value: "4",
-            sub: "Requieren atención",
-            subColor: "#f43f5e",
-            valColor: "#f43f5e",
+            color: "#10b981",
+            label: "Platform Status",
+            value: "STABLE",
+            sub: "Monitoring",
+            valColor: "#10b981",
           },
         ].map((c: any) => (
           <div
             key={c.label}
             className="vd-card flex flex-col"
-            style={{ padding: "20px 22px", gap: "10px" }}
+            style={{ padding: "16px 20px" }}
           >
-            <span className="text-[10px] text-muted flex items-center gap-1.5">
+            <span className="text-[10px] text-muted flex items-center gap-1.5 mb-2">
               <span
-                className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${c.dot}`}
+                style={{
+                  width: "6px",
+                  height: "6px",
+                  borderRadius: "50%",
+                  background: c.color,
+                  boxShadow: `0 0 5px ${c.color}`,
+                  flexShrink: 0,
+                }}
               />
               {c.label}
             </span>
             <h4
               className="text-xl font-bold"
-              style={{ color: c.valColor || "inherit" }}
+              style={{ color: c.valColor || "#e2e8f0" }}
             >
               {c.value}
             </h4>
             {c.sub && (
-              <span style={{ fontSize: "9px", color: c.subColor || "#475569" }}>
+              <span
+                style={{ fontSize: "9px", color: "#475569", marginTop: "4px" }}
+              >
                 {c.sub}
               </span>
             )}
@@ -177,28 +357,34 @@ const SupportHub: React.FC<{ session?: any }> = () => {
 
       {/* ── MAIN GRID ── */}
       <div className="grid grid-cols-dashboard gap-4">
-        {/* ── LEFT COL ── */}
-        <div className="flex flex-col gap-4">
-          {/* Broadcast card */}
-          <div className="vd-card" style={{ padding: "24px" }}>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-1 h-4 bg-purple-500 rounded-full" />
-              <h3 className="text-sm font-bold">Global Broadcast</h3>
-            </div>
-            <p className="text-[10px] text-muted mb-5 leading-relaxed">
-              Send a system-wide banner to ALL organization dashboards.
-            </p>
+        {/* LEFT: Broadcast + Queue */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          {/* Broadcast */}
+          <div className="vd-card" style={{ padding: "20px 22px" }}>
+            <SectionTitle
+              icon={<RadioTower size={13} />}
+              title="Global Broadcast"
+              color="#8b5cf6"
+            />
             <textarea
               value={broadcastMsg}
               onChange={(e) => setBroadcastMsg(e.target.value)}
-              placeholder="e.g. Scheduled maintenance tonight at 11 PM EST…"
-              className="w-full rounded-xl text-[11px] text-slate-300 outline-none resize-none transition-all mb-2"
+              placeholder="e.g. Scheduled maintenance tonight at 22:00 UTC…"
               style={{
+                width: "100%",
                 height: "88px",
-                padding: "12px 14px",
-                backgroundColor: "rgba(255,255,255,0.02)",
+                background: "rgba(255,255,255,0.03)",
                 border: "1px solid rgba(255,255,255,0.07)",
-                lineHeight: "1.6",
+                borderRadius: "9px",
+                padding: "10px 12px",
+                fontSize: "12px",
+                color: "#e2e8f0",
+                outline: "none",
+                resize: "none",
+                transition: "border-color 0.2s",
+                boxSizing: "border-box",
+                marginBottom: "10px",
+                lineHeight: 1.6,
               }}
               onFocus={(e) =>
                 (e.target.style.borderColor = "rgba(139,92,246,0.4)")
@@ -207,69 +393,79 @@ const SupportHub: React.FC<{ session?: any }> = () => {
                 (e.target.style.borderColor = "rgba(255,255,255,0.07)")
               }
             />
-            <div className="flex justify-between items-center text-[9px] text-muted mb-4">
-              <span>{broadcastMsg.length} / 280 chars</span>
-              <span className="flex items-center gap-1">
-                <Users size={9} /> All tenants
-              </span>
-            </div>
             <button
-              onClick={handleSend}
-              disabled={!broadcastMsg.trim()}
-              className={`w-full py-2.5 rounded-xl text-[11px] font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-40 disabled:grayscale ${sent ? "bg-emerald-500" : "btn-primary bg-purple-600 hover:brightness-110"}`}
+              onClick={handleSendBroadcast}
+              disabled={!broadcastMsg.trim() || sending}
               style={{
+                width: "100%",
+                padding: "10px",
+                borderRadius: "9px",
+                fontSize: "12px",
+                fontWeight: 700,
                 color: "#fff",
                 border: "none",
-                cursor: broadcastMsg.trim() ? "pointer" : "not-allowed",
+                cursor:
+                  !broadcastMsg.trim() || sending ? "not-allowed" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "7px",
+                background: sent
+                  ? "linear-gradient(135deg,#10b981,#059669)"
+                  : "linear-gradient(135deg,#8b5cf6,#7c3aed)",
+                boxShadow: sent
+                  ? "0 4px 14px rgba(16,185,129,0.25)"
+                  : "0 4px 14px rgba(139,92,246,0.25)",
+                opacity: !broadcastMsg.trim() || sending ? 0.5 : 1,
+                transition: "all 0.2s",
+              }}
+              onMouseEnter={(e) => {
+                if (broadcastMsg.trim() && !sending)
+                  e.currentTarget.style.filter = "brightness(1.1)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.filter = "brightness(1)";
               }}
             >
-              {sent ? (
-                <>
-                  <CheckCircle2 size={13} /> Broadcast Sent!
-                </>
+              {sending ? (
+                <Loader2 size={13} className="animate-spin" />
+              ) : sent ? (
+                <Check size={13} />
               ) : (
-                <>
-                  <Send size={13} /> Send Broadcast
-                </>
+                <Send size={13} />
               )}
+              {sending ? "Sending…" : sent ? "Sent!" : "Send Broadcast"}
             </button>
           </div>
 
-          {/* Queue card — same card style as Revenue Streams */}
-          <div className="vd-card flex-1" style={{ padding: "24px" }}>
-            <div className="flex items-center gap-2 mb-5">
-              <div className="w-1 h-4 bg-blue-500 rounded-full" />
-              <h3 className="text-sm font-bold">Queue Overview</h3>
-            </div>
-
-            <div className="flex flex-col gap-3">
+          {/* Queue Overview */}
+          <div className="vd-card" style={{ padding: "20px 22px" }}>
+            <SectionTitle
+              icon={<BarChart3 size={13} />}
+              title="Queue Overview"
+              color="#3b82f6"
+            />
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "10px" }}
+            >
               {QUEUE_ITEMS.map((item) => (
                 <div
                   key={item.label}
                   style={{
-                    borderRadius: "12px",
+                    borderRadius: "10px",
                     background: `${item.color}0d`,
-                    border: `1px solid ${item.color}25`,
+                    border: `1px solid ${item.color}22`,
                     overflow: "hidden",
-                    transition: "filter 0.15s",
                   }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.filter = "brightness(1.1)")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.filter = "brightness(1)")
-                  }
                 >
-                  {/* colored top line */}
                   <div
                     style={{
                       height: "2px",
                       background: item.color,
-                      opacity: 0.7,
+                      opacity: 0.6,
                     }}
                   />
-
-                  <div style={{ padding: "11px 14px" }}>
+                  <div style={{ padding: "10px 14px" }}>
                     <div
                       style={{
                         display: "flex",
@@ -280,42 +476,42 @@ const SupportHub: React.FC<{ session?: any }> = () => {
                     >
                       <span
                         style={{
+                          fontSize: "10px",
+                          fontWeight: 700,
+                          color: "#64748b",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.06em",
                           display: "flex",
                           alignItems: "center",
-                          gap: "7px",
-                          fontSize: "11px",
-                          color: "#94a3b8",
+                          gap: "6px",
                         }}
                       >
                         <span
                           style={{
-                            width: "6px",
-                            height: "6px",
+                            width: "5px",
+                            height: "5px",
                             borderRadius: "50%",
                             background: item.color,
-                            boxShadow: `0 0 5px ${item.color}`,
-                            flexShrink: 0,
+                            boxShadow: `0 0 4px ${item.color}`,
                           }}
                         />
                         {item.label}
                       </span>
                       <span
                         style={{
-                          fontSize: "13px",
+                          fontSize: "12px",
                           fontWeight: 800,
                           color: item.color,
-                          letterSpacing: "-0.01em",
                         }}
                       >
                         {item.count}
                       </span>
                     </div>
-                    {/* progress bar */}
                     <div
                       style={{
-                        height: "4px",
+                        height: "3px",
                         background: "rgba(255,255,255,0.05)",
-                        borderRadius: "4px",
+                        borderRadius: "3px",
                         overflow: "hidden",
                       }}
                     >
@@ -323,10 +519,10 @@ const SupportHub: React.FC<{ session?: any }> = () => {
                         style={{
                           width: `${(item.count / item.max) * 100}%`,
                           height: "100%",
-                          borderRadius: "4px",
+                          borderRadius: "3px",
                           background: item.color,
-                          boxShadow: `0 0 8px ${item.color}55`,
-                          transition: "width 0.6s ease",
+                          boxShadow: `0 0 6px ${item.color}50`,
+                          transition: "width 0.5s ease",
                         }}
                       />
                     </div>
@@ -337,90 +533,95 @@ const SupportHub: React.FC<{ session?: any }> = () => {
           </div>
         </div>
 
-        {/* ── TICKET TABLE ── */}
-        <div className="vd-card" style={{ padding: 0, overflow: "hidden" }}>
-          {/* Toolbar — two rows: title row + controls row */}
+        {/* RIGHT: Tickets table */}
+        <div
+          className="vd-card"
+          style={{
+            padding: 0,
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          {/* Toolbar */}
           <div
-            className="border-b border-white-05 bg-slate-950/20"
-            style={{ padding: "18px 24px 14px" }}
+            style={{
+              padding: "14px 20px",
+              borderBottom: "1px solid rgba(255,255,255,0.05)",
+              background: "rgba(2,6,23,0.2)",
+              display: "flex",
+              flexDirection: "column",
+              gap: "10px",
+            }}
           >
-            {/* Row 1: title + badge */}
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span
+                style={{
+                  width: "3px",
+                  height: "16px",
+                  background: "#f43f5e",
+                  borderRadius: "2px",
+                }}
+              />
+              <h3
+                style={{ fontSize: "13px", fontWeight: 700, color: "#e2e8f0" }}
+              >
+                Incoming Help Requests
+              </h3>
+              <span
+                style={{
+                  marginLeft: "auto",
+                  fontSize: "11px",
+                  color: "#475569",
+                }}
+              >
+                {filteredTickets.length} tickets
+              </span>
+            </div>
+            {/* Search */}
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: "10px",
-                marginBottom: "12px",
+                gap: "8px",
+                padding: "0 12px",
+                height: "34px",
+                background: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.07)",
+                borderRadius: "9px",
+                transition: "border-color 0.2s",
               }}
+              onFocusCapture={(e) =>
+                (e.currentTarget.style.borderColor = "rgba(244,63,94,0.35)")
+              }
+              onBlurCapture={(e) =>
+                (e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)")
+              }
             >
-              <div className="w-1 h-4 bg-rose-500 rounded-full" />
-              <h3 className="text-sm font-bold">Incoming Help Requests</h3>
-              <span
+              <Search size={12} style={{ color: "#475569", flexShrink: 0 }} />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search tickets…"
                 style={{
-                  fontSize: "9px",
-                  fontWeight: 700,
-                  padding: "3px 9px",
-                  borderRadius: "20px",
-                  background: "rgba(244,63,94,0.1)",
-                  color: "#f43f5e",
-                  border: "1px solid rgba(244,63,94,0.2)",
-                  letterSpacing: "0.06em",
-                }}
-              >
-                4 CRITICAL
-              </span>
-            </div>
-            {/* Row 2: search + filter */}
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  padding: "0 12px",
-                  height: "32px",
                   flex: 1,
-                  background: "rgba(255,255,255,0.03)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  borderRadius: "8px",
-                  transition: "border-color 0.2s",
+                  background: "transparent",
+                  border: "none",
+                  outline: "none",
+                  fontSize: "12px",
+                  color: "#e2e8f0",
                 }}
-                onFocusCapture={(e) =>
-                  (e.currentTarget.style.borderColor = "rgba(139,92,246,0.4)")
-                }
-                onBlurCapture={(e) =>
-                  (e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)")
-                }
-              >
-                <Search size={12} style={{ color: "#475569", flexShrink: 0 }} />
-                <input
-                  placeholder="Search by gym, subject or ID…"
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    outline: "none",
-                    fontSize: "11px",
-                    color: "#94a3b8",
-                    width: "100%",
-                  }}
-                />
-              </div>
-              <button
-                className="icon-btn text-xs border border-white-05 flex items-center gap-1.5"
-                style={{ padding: "6px 12px", flexShrink: 0 }}
-              >
-                <Filter size={12} /> Filter
-              </button>
+              />
             </div>
           </div>
 
-          {/* Scrollable table */}
-          <div style={{ overflowX: "auto" }}>
+          {/* Table */}
+          <div style={{ overflowX: "auto", flex: 1 }}>
             <table
               style={{
                 width: "100%",
                 borderCollapse: "collapse",
-                minWidth: "600px",
+                minWidth: "560px",
               }}
             >
               <thead>
@@ -428,17 +629,17 @@ const SupportHub: React.FC<{ session?: any }> = () => {
                   style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
                 >
                   {[
-                    { label: "ID / Gym", w: "30%" },
-                    { label: "Subject", w: "28%" },
-                    { label: "Priority", w: "14%" },
-                    { label: "Status", w: "14%" },
-                    { label: "Actions", w: "14%", right: true },
-                  ].map(({ label, w, right }) => (
+                    { label: "Ticket / User", w: "28%" },
+                    { label: "Subject", w: "30%" },
+                    { label: "Priority", w: "14%", center: true },
+                    { label: "Estado", w: "14%", center: true },
+                    { label: "", w: "14%", right: true },
+                  ].map(({ label, w, center, right }) => (
                     <th
                       key={label}
                       style={{
-                        padding: "12px 16px",
-                        textAlign: right ? "right" : "left",
+                        padding: "11px 16px",
+                        textAlign: center ? "center" : right ? "right" : "left",
                         fontSize: "10px",
                         fontWeight: 700,
                         color: "#475569",
@@ -446,7 +647,6 @@ const SupportHub: React.FC<{ session?: any }> = () => {
                         textTransform: "uppercase",
                         whiteSpace: "nowrap",
                         width: w,
-                        paddingRight: right ? "24px" : "16px",
                       }}
                     >
                       {label}
@@ -455,249 +655,642 @@ const SupportHub: React.FC<{ session?: any }> = () => {
                 </tr>
               </thead>
               <tbody>
-                {MOCK_TICKETS.map((t, idx) => {
-                  const priColor =
-                    t.priority === "Critical"
-                      ? "#f43f5e"
-                      : t.priority === "High"
-                        ? "#f59e0b"
-                        : t.priority === "Medium"
-                          ? "#3b82f6"
-                          : "#94a3b8";
-                  const priBg =
-                    t.priority === "Critical"
-                      ? "rgba(244,63,94,0.08)"
-                      : t.priority === "High"
-                        ? "rgba(245,158,11,0.08)"
-                        : t.priority === "Medium"
-                          ? "rgba(59,130,246,0.08)"
-                          : "rgba(255,255,255,0.04)";
-                  const priBdr =
-                    t.priority === "Critical"
-                      ? "rgba(244,63,94,0.25)"
-                      : t.priority === "High"
-                        ? "rgba(245,158,11,0.25)"
-                        : t.priority === "Medium"
-                          ? "rgba(59,130,246,0.25)"
-                          : "rgba(255,255,255,0.08)";
-                  const isLast = idx === MOCK_TICKETS.length - 1;
-
-                  const stColor =
-                    t.status === "Resolved"
-                      ? "#10b981"
-                      : t.status === "Pending"
-                        ? "#f59e0b"
-                        : "#64748b";
-                  const stBg =
-                    t.status === "Resolved"
-                      ? "rgba(16,185,129,0.08)"
-                      : t.status === "Pending"
-                        ? "rgba(245,158,11,0.08)"
-                        : "rgba(255,255,255,0.04)";
-                  const stBdr =
-                    t.status === "Resolved"
-                      ? "rgba(16,185,129,0.2)"
-                      : t.status === "Pending"
-                        ? "rgba(245,158,11,0.2)"
-                        : "rgba(255,255,255,0.08)";
-
-                  return (
-                    <tr
-                      key={t.id}
-                      className="hover:bg-white/[0.02] transition-colors group"
-                      style={{
-                        borderBottom: isLast
-                          ? "none"
-                          : "1px solid rgba(255,255,255,0.04)",
-                      }}
-                      onMouseEnter={() => setHoveredRow(t.id)}
-                      onMouseLeave={() => setHoveredRow(null)}
+                {loading ? (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      style={{ padding: "60px 0", textAlign: "center" }}
                     >
-                      {/* ID / Gym */}
-                      <td style={{ padding: "16px", whiteSpace: "nowrap" }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "10px",
-                          }}
+                      <Loader2
+                        size={22}
+                        className="animate-spin mx-auto mb-2"
+                        style={{ color: "#8b5cf6" }}
+                      />
+                      <p style={{ fontSize: "12px", color: "#475569" }}>
+                        Cargando tickets…
+                      </p>
+                    </td>
+                  </tr>
+                ) : filteredTickets.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      style={{ padding: "60px 0", textAlign: "center" }}
+                    >
+                      <div
+                        style={{
+                          width: "48px",
+                          height: "48px",
+                          borderRadius: "14px",
+                          background: "rgba(255,255,255,0.03)",
+                          border: "1px solid rgba(255,255,255,0.06)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          margin: "0 auto 14px",
+                        }}
+                      >
+                        <Inbox size={22} style={{ color: "#334155" }} />
+                      </div>
+                      <p
+                        style={{
+                          fontSize: "13px",
+                          fontWeight: 600,
+                          color: "#94a3b8",
+                          marginBottom: "4px",
+                        }}
+                      >
+                        Sin tickets pendientes
+                      </p>
+                      <p style={{ fontSize: "11px", color: "#475569" }}>
+                        ¡Buen trabajo!
+                      </p>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredTickets.map((t, idx) => {
+                    const sa = statusAccent(t.status);
+                    const pa = priorityAccent(t.priority);
+                    const isLast = idx === filteredTickets.length - 1;
+                    return (
+                      <tr
+                        key={t.id}
+                        className="hover:bg-white/[0.02] transition-colors cursor-pointer group"
+                        style={{
+                          borderBottom: isLast
+                            ? "none"
+                            : "1px solid rgba(255,255,255,0.04)",
+                        }}
+                        onClick={() => setSelectedTicket(t)}
+                      >
+                        {/* User */}
+                        <td
+                          style={{ padding: "14px 16px", whiteSpace: "nowrap" }}
                         >
                           <div
                             style={{
-                              width: "32px",
-                              height: "32px",
-                              minWidth: "32px",
-                              borderRadius: "9px",
-                              border: `1px solid ${priBdr}`,
-                              color: priColor,
-                              background: priBg,
                               display: "flex",
                               alignItems: "center",
-                              justifyContent: "center",
-                              fontSize: "9px",
-                              fontWeight: 800,
+                              gap: "10px",
                             }}
                           >
-                            {t.id.replace("TKT-", "#")}
-                          </div>
-                          <div>
                             <div
                               style={{
-                                fontSize: "9px",
-                                fontWeight: 700,
-                                color: "#475569",
-                                marginBottom: "2px",
-                              }}
-                            >
-                              {t.id}
-                            </div>
-                            <div
-                              style={{
-                                fontSize: "11px",
-                                color: "#94a3b8",
+                                width: "32px",
+                                height: "32px",
+                                minWidth: "32px",
+                                borderRadius: "9px",
+                                background: sa.bg,
+                                border: `1px solid ${sa.border}`,
                                 display: "flex",
                                 alignItems: "center",
-                                gap: "3px",
-                                whiteSpace: "nowrap",
+                                justifyContent: "center",
+                                fontSize: "12px",
+                                fontWeight: 800,
+                                color: sa.color,
                               }}
                             >
-                              <Building2 size={9} />
-                              {t.gym}
+                              {t.user?.displayName?.[0]?.toUpperCase() || "?"}
+                            </div>
+                            <div>
+                              <p
+                                style={{
+                                  fontSize: "12px",
+                                  fontWeight: 700,
+                                  color: "#e2e8f0",
+                                  marginBottom: "2px",
+                                }}
+                              >
+                                {t.user?.displayName || "Anonymous"}
+                              </p>
+                              <p
+                                style={{
+                                  fontSize: "9px",
+                                  color: "#334155",
+                                  fontFamily: "monospace",
+                                }}
+                              >
+                                #{t.id?.slice(-6)}
+                              </p>
                             </div>
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* Subject */}
-                      <td
-                        style={{
-                          padding: "16px",
-                          fontSize: "12px",
-                          color: "#94a3b8",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          maxWidth: "200px",
-                        }}
-                        className="group-hover:text-white transition-colors"
-                      >
-                        {t.subject}
-                      </td>
-
-                      {/* Priority */}
-                      <td style={{ padding: "16px", whiteSpace: "nowrap" }}>
-                        <span
+                        {/* Subject */}
+                        <td
                           style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "4px",
-                            padding: "4px 9px",
-                            borderRadius: "20px",
-                            fontSize: "9px",
-                            fontWeight: 700,
-                            letterSpacing: "0.06em",
-                            color: priColor,
-                            background: priBg,
-                            border: `1px solid ${priBdr}`,
+                            padding: "14px 16px",
+                            fontSize: "11px",
+                            color: "#64748b",
+                            maxWidth: "200px",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
                           }}
                         >
-                          {t.priority === "Critical" && (
-                            <AlertTriangle size={8} />
-                          )}
-                          {t.priority.toUpperCase()}
-                        </span>
-                      </td>
+                          {t.subject}
+                        </td>
 
-                      {/* Status */}
-                      <td style={{ padding: "16px", whiteSpace: "nowrap" }}>
-                        <span
+                        {/* Priority */}
+                        <td
                           style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "5px",
-                            padding: "4px 9px",
-                            borderRadius: "20px",
-                            fontSize: "9px",
-                            fontWeight: 700,
-                            color: stColor,
-                            background: stBg,
-                            border: `1px solid ${stBdr}`,
+                            padding: "14px 16px",
+                            textAlign: "center",
+                            whiteSpace: "nowrap",
                           }}
                         >
                           <span
                             style={{
-                              width: "5px",
-                              height: "5px",
-                              borderRadius: "50%",
-                              background: stColor,
-                              boxShadow: `0 0 4px ${stColor}`,
-                              flexShrink: 0,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              padding: "4px 9px",
+                              borderRadius: "20px",
+                              fontSize: "9px",
+                              fontWeight: 700,
+                              color: pa.color,
+                              background: pa.bg,
+                              border: `1px solid ${pa.border}`,
                             }}
-                          />
-                          {t.status.toUpperCase()}
-                        </span>
-                      </td>
+                          >
+                            <span
+                              style={{
+                                width: "4px",
+                                height: "4px",
+                                borderRadius: "50%",
+                                background: pa.color,
+                                boxShadow: `0 0 4px ${pa.color}`,
+                              }}
+                            />
+                            {t.priority || "LOW"}
+                          </span>
+                        </td>
 
-                      {/* Actions */}
-                      <td
-                        style={{
-                          padding: "16px 24px 16px 16px",
-                          textAlign: "right",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        <button
-                          className="text-[9px] font-bold text-purple-400 bg-purple-400/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all inline-flex items-center gap-1 ml-auto"
+                        {/* Status */}
+                        <td
                           style={{
-                            padding: "5px 10px",
-                            border: "1px solid rgba(139,92,246,0.25)",
+                            padding: "14px 16px",
+                            textAlign: "center",
+                            whiteSpace: "nowrap",
                           }}
                         >
-                          REPLY <ChevronRight size={10} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              padding: "4px 9px",
+                              borderRadius: "20px",
+                              fontSize: "9px",
+                              fontWeight: 700,
+                              color: sa.color,
+                              background: sa.bg,
+                              border: `1px solid ${sa.border}`,
+                            }}
+                          >
+                            <span
+                              style={{
+                                width: "4px",
+                                height: "4px",
+                                borderRadius: "50%",
+                                background: sa.color,
+                                boxShadow: `0 0 4px ${sa.color}`,
+                              }}
+                            />
+                            {sa.label}
+                          </span>
+                        </td>
+
+                        {/* Action */}
+                        <td
+                          style={{
+                            padding: "14px 20px 14px 16px",
+                            textAlign: "right",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "flex-end",
+                              gap: "4px",
+                            }}
+                          >
+                            <button
+                              className="icon-btn p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                              style={{ color: "#a78bfa" }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedTicket(t);
+                              }}
+                              title="Ver ticket"
+                            >
+                              <Eye size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
 
           {/* Footer */}
           <div
-            className="flex justify-between items-center border-t border-white-05"
-            style={{ padding: "13px 24px" }}
+            style={{
+              padding: "12px 20px",
+              borderTop: "1px solid rgba(255,255,255,0.05)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
           >
-            <span className="text-[10px] text-muted">
-              Showing 4 of 24 open tickets
+            <span style={{ fontSize: "10px", color: "#475569" }}>
+              Mostrando {filteredTickets.length} tickets
             </span>
-            <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "5px",
-                  fontSize: "10px",
-                  fontWeight: 700,
-                  color: "#10b981",
-                }}
-              >
-                <span
-                  style={{
-                    width: "6px",
-                    height: "6px",
-                    borderRadius: "50%",
-                    background: "#10b981",
-                    boxShadow: "0 0 6px #10b981",
-                    flexShrink: 0,
-                  }}
-                />
-                3 Support Admins Online
-              </span>
-            </div>
+            <span
+              style={{
+                fontSize: "10px",
+                color: "#f43f5e",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              Ver todos →
+            </span>
           </div>
         </div>
       </div>
+
+      {/* ══════════════════════════════
+          TICKET DETAIL MODAL
+      ══════════════════════════════ */}
+      {selectedTicket && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 50,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+            background: "rgba(2,6,23,0.85)",
+            backdropFilter: "blur(8px)",
+          }}
+          className="animate-fade-in"
+          onClick={() => setSelectedTicket(null)}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: "500px",
+              background:
+                "linear-gradient(160deg, rgba(15,23,42,0.98) 0%, rgba(9,14,30,0.98) 100%)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: "18px",
+              overflow: "hidden",
+              boxShadow:
+                "0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04) inset",
+              position: "relative",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Glow */}
+            <div
+              style={{
+                position: "absolute",
+                top: "-60px",
+                right: "-60px",
+                width: "200px",
+                height: "200px",
+                background:
+                  "radial-gradient(circle, rgba(244,63,94,0.1) 0%, transparent 70%)",
+                pointerEvents: "none",
+              }}
+            />
+
+            {/* Header */}
+            <div
+              style={{
+                padding: "20px 22px 16px",
+                borderBottom: "1px solid rgba(255,255,255,0.06)",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+              }}
+            >
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "12px" }}
+              >
+                {(() => {
+                  const sa = statusAccent(selectedTicket.status);
+                  return (
+                    <div
+                      style={{
+                        width: "36px",
+                        height: "36px",
+                        minWidth: "36px",
+                        borderRadius: "10px",
+                        background: sa.bg,
+                        border: `1px solid ${sa.border}`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "14px",
+                        fontWeight: 800,
+                        color: sa.color,
+                      }}
+                    >
+                      {selectedTicket.user?.displayName?.[0]?.toUpperCase() ||
+                        "?"}
+                    </div>
+                  );
+                })()}
+                <div>
+                  <h3
+                    style={{
+                      fontSize: "14px",
+                      fontWeight: 800,
+                      color: "#e2e8f0",
+                      marginBottom: "3px",
+                    }}
+                  >
+                    {selectedTicket.subject}
+                  </h3>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
+                    <span style={{ fontSize: "10px", color: "#475569" }}>
+                      {selectedTicket.user?.email}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "9px",
+                        color: "#334155",
+                        fontFamily: "monospace",
+                      }}
+                    >
+                      #{selectedTicket.id?.slice(-6)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedTicket(null)}
+                style={{
+                  width: "28px",
+                  height: "28px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "8px",
+                  border: "1px solid rgba(255,255,255,0.07)",
+                  background: "rgba(255,255,255,0.03)",
+                  color: "#475569",
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "#e2e8f0";
+                  e.currentTarget.style.background = "rgba(255,255,255,0.07)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "#475569";
+                  e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+                }}
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            {/* Status + priority chips */}
+            <div
+              style={{
+                padding: "12px 22px",
+                borderBottom: "1px solid rgba(255,255,255,0.05)",
+                display: "flex",
+                gap: "8px",
+              }}
+            >
+              {(() => {
+                const sa = statusAccent(selectedTicket.status);
+                const pa = priorityAccent(selectedTicket.priority);
+                return (
+                  <>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "5px",
+                        padding: "4px 10px",
+                        borderRadius: "20px",
+                        fontSize: "10px",
+                        fontWeight: 700,
+                        color: sa.color,
+                        background: sa.bg,
+                        border: `1px solid ${sa.border}`,
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: "5px",
+                          height: "5px",
+                          borderRadius: "50%",
+                          background: sa.color,
+                          boxShadow: `0 0 4px ${sa.color}`,
+                        }}
+                      />
+                      {sa.label}
+                    </span>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "5px",
+                        padding: "4px 10px",
+                        borderRadius: "20px",
+                        fontSize: "10px",
+                        fontWeight: 700,
+                        color: pa.color,
+                        background: pa.bg,
+                        border: `1px solid ${pa.border}`,
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: "5px",
+                          height: "5px",
+                          borderRadius: "50%",
+                          background: pa.color,
+                          boxShadow: `0 0 4px ${pa.color}`,
+                        }}
+                      />
+                      {selectedTicket.priority || "LOW"}
+                    </span>
+                  </>
+                );
+              })()}
+            </div>
+
+            {/* Message */}
+            <div
+              style={{
+                margin: "16px 22px",
+                padding: "14px 16px",
+                borderRadius: "10px",
+                background: "rgba(255,255,255,0.02)",
+                border: "1px solid rgba(255,255,255,0.05)",
+              }}
+            >
+              <p
+                style={{
+                  fontSize: "10px",
+                  fontWeight: 700,
+                  color: "#334155",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.06em",
+                  marginBottom: "8px",
+                }}
+              >
+                Mensaje
+              </p>
+              <p
+                style={{
+                  fontSize: "12px",
+                  color: "#94a3b8",
+                  lineHeight: 1.7,
+                  fontStyle: "italic",
+                }}
+              >
+                "{selectedTicket.message}"
+              </p>
+            </div>
+
+            {/* Reply textarea */}
+            <div style={{ padding: "0 22px 16px" }}>
+              <p
+                style={{
+                  fontSize: "10px",
+                  fontWeight: 700,
+                  color: "#475569",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.06em",
+                  marginBottom: "8px",
+                }}
+              >
+                Respuesta
+              </p>
+              <textarea
+                value={replyMsg}
+                onChange={(e) => setReplyMsg(e.target.value)}
+                placeholder="Escribe tu respuesta…"
+                style={{
+                  width: "100%",
+                  height: "100px",
+                  background: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.07)",
+                  borderRadius: "9px",
+                  padding: "10px 12px",
+                  fontSize: "12px",
+                  color: "#e2e8f0",
+                  outline: "none",
+                  resize: "none",
+                  transition: "border-color 0.2s",
+                  boxSizing: "border-box",
+                  lineHeight: 1.6,
+                }}
+                onFocus={(e) =>
+                  (e.target.style.borderColor = "rgba(139,92,246,0.4)")
+                }
+                onBlur={(e) =>
+                  (e.target.style.borderColor = "rgba(255,255,255,0.07)")
+                }
+              />
+            </div>
+
+            {/* Footer buttons */}
+            <div
+              style={{
+                padding: "14px 22px 20px",
+                borderTop: "1px solid rgba(255,255,255,0.05)",
+                display: "flex",
+                gap: "10px",
+              }}
+            >
+              <button
+                onClick={() => handleCloseTicket(selectedTicket.id)}
+                style={{
+                  padding: "10px 14px",
+                  borderRadius: "9px",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  color: "#f43f5e",
+                  background: "rgba(244,63,94,0.06)",
+                  border: "1px solid rgba(244,63,94,0.18)",
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(244,63,94,0.12)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(244,63,94,0.06)";
+                }}
+              >
+                Cerrar Ticket
+              </button>
+              <button
+                onClick={handleReply}
+                disabled={!replyMsg.trim() || sendingReply}
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  borderRadius: "9px",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  color: "#fff",
+                  border: "none",
+                  cursor:
+                    !replyMsg.trim() || sendingReply
+                      ? "not-allowed"
+                      : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "7px",
+                  background: "linear-gradient(135deg,#8b5cf6,#7c3aed)",
+                  boxShadow: "0 4px 14px rgba(139,92,246,0.25)",
+                  opacity: !replyMsg.trim() || sendingReply ? 0.5 : 1,
+                  transition: "filter 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  if (replyMsg.trim() && !sendingReply)
+                    e.currentTarget.style.filter = "brightness(1.1)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.filter = "brightness(1)";
+                }}
+              >
+                {sendingReply ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <Send size={13} />
+                )}
+                {sendingReply ? "Enviando…" : "Enviar Respuesta"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

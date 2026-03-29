@@ -16,7 +16,8 @@ import {
   DollarSign,
   ShieldAlert,
   LifeBuoy,
-  X
+  X,
+  Target
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -122,6 +123,12 @@ const DashboardLayout: React.FC<LayoutProps> = ({ children, user }) => {
                 label="Pagos"
                 to="/payments"
                 active={location.pathname === '/payments'}
+              />
+              <NavItem
+                icon={<Target size={18} />}
+                label="Planes de Gimnasio"
+                to="/gym-plans"
+                active={location.pathname === '/gym-plans'}
               />
               <div className="nav-section-title">Configuración</div>
               <NavItem
@@ -432,7 +439,8 @@ const DashboardLayout: React.FC<LayoutProps> = ({ children, user }) => {
 
         .content-inner {
           margin: 0 auto;
-          max-width: 1200px;
+          max-width: 1600px;
+          width: 100%;
         }
       `}</style>
     </div>

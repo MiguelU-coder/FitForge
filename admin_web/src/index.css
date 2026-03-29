@@ -488,3 +488,10 @@ button {
     opacity: 0;
   }
 }
+
+/* Dashboard Content Container */
+.dashboard-content {
+  padding: 1.5rem;
+  max-width: 1920px;
+  margin: 0 auto;
+}

@@ -60,10 +60,10 @@ pip-delete-this-directory.txt
 .coverage
 .cache
 nosetests.xml
-coverage.xml
-*.db
-/ia_microservices/venv/
-/ai-services/venv/
+63: coverage.xml
+64: *.db
+65: /ia_microservices/venv/
+66: /ai-services/venv/
 
 # ── Flutter / Mobile specific ──────────────────────────────────────────────────
 /fitforge_flutter/.dart_tool/
@@ -85,3 +85,14 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 .turbo/
+
+# ── Maintenance & Helper Scripts ──────────────────────────────────────────────
+/backend/check-supabase.js
+/backend/check-user.js
+/backend/check-user.ts
+/backend/create-admin.ts
+/backend/get-admin.ts
+/backend/sync-pass.js
+/backend/test-db.ts
+/backend/scripts/
+git_status.txt

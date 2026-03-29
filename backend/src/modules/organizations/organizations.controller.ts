@@ -1,53 +1,60 @@
 import { Controller, Get, Post, Patch, Body, Param, Delete, UseGuards } from '@nestjs/common';
 import { OrganizationsService } from './organizations.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
 import { UserRole } from '@prisma/client';
 import { Roles } from '../../common/decorators/roles.decorator';
 
 @Controller('organizations')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class OrganizationsController {
   constructor(private readonly organizationsService: OrganizationsService) {}
 
   @Post()
   @Roles(UserRole.GLOBAL_ADMIN)
-  create(@Body() body: any) {
-    return this.organizationsService.create(body);
+  async create(@Body() body: any) {
+    const org = await this.organizationsService.create(body);
+    return { success: true, data: org };
   }
 
   @Get()
   @Roles(UserRole.GLOBAL_ADMIN)
-  findAll() {
-    return this.organizationsService.findAll();
+  async findAll() {
+    const orgs = await this.organizationsService.findAll();
+    return { success: true, data: orgs };
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.organizationsService.findOne(id);
+  async findOne(@Param('id') id: string) {
+    const org = await this.organizationsService.findOne(id);
+    return { success: true, data: org };
   }
 
   @Patch(':id')
   @Roles(UserRole.GLOBAL_ADMIN, UserRole.ORG_ADMIN)
-  update(
+  async update(
     @Param('id') id: string,
     @Body() body: { name?: string; slug?: string; logoUrl?: string; planId?: string }
   ) {
-    return this.organizationsService.update(id, body);
+    const org = await this.organizationsService.update(id, body);
+    return { success: true, data: org };
   }
 
   @Delete(':id')
   @Roles(UserRole.GLOBAL_ADMIN)
-  remove(@Param('id') id: string) {
-    return this.organizationsService.remove(id);
+  async remove(@Param('id') id: string) {
+    await this.organizationsService.remove(id);
+    return { success: true, message: 'Organization removed successfully' };
   }
 
   @Post(':id/users')
   @Roles(UserRole.ORG_ADMIN, UserRole.GLOBAL_ADMIN)
-  addUser(
+  async addUser(
     @Param('id') organizationId: string,
     @Body() body: { userId: string; role: UserRole },
   ) {
-    return this.organizationsService.addUser(organizationId, body.userId, body.role);
+    const userOrg = await this.organizationsService.addUser(organizationId, body.userId, body.role);
+    return { success: true, data: userOrg };
   }
 
   @Delete(':id/users/:userId')

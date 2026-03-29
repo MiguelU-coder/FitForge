@@ -102,11 +102,11 @@ const OrganizationDashboard: React.FC<{ session: any; profile: any }> = ({ sessi
         }
 
         if (membersRes.data.success) {
-          setMembers(membersRes.data.data);
+          setMembers(membersRes.data.data?.members || []);
         }
 
         if (routinesRes.data.success) {
-          setRoutines(routinesRes.data.data);
+          setRoutines(Array.isArray(routinesRes.data.data) ? routinesRes.data.data : []);
         }
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
@@ -340,7 +340,7 @@ const OrganizationDashboard: React.FC<{ session: any; profile: any }> = ({ sessi
               </button>
             </div>
             <div className="flex flex-col gap-4">
-              {recentActivity.slice(0, 5).map(event => (
+              {(recentActivity || []).slice(0, 5).map(event => (
                 <div key={event.id} className="flex items-start gap-3 border-b border-white-05 pb-4 last:border-0 last:pb-0">
                   <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 flex-shrink-0">
                     <Activity size={14} />
@@ -369,10 +369,10 @@ const OrganizationDashboard: React.FC<{ session: any; profile: any }> = ({ sessi
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-1 h-4 bg-emerald-500 rounded-full" />
                 <h3 className="text-sm font-bold">Miembros Recientes</h3>
-                <span className="text-[10px] text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded">{members.length} total</span>
+                <span className="text-[10px] text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded">{(members || []).length} total</span>
               </div>
               <div className="flex flex-col gap-4">
-                {members.slice(0, 5).map((member) => (
+                {(members || []).slice(0, 5).map((member) => (
                   <div key={member.id} className="flex items-center gap-3 border-b border-white-05 pb-3 last:border-0 last:pb-0">
                     <div
                       className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold bg-gradient-to-br from-purple-500/20 to-emerald-500/20"
@@ -414,7 +414,7 @@ const OrganizationDashboard: React.FC<{ session: any; profile: any }> = ({ sessi
                     </div>
                   </div>
                 ))}
-                {members.length === 0 && (
+                {(!members || members.length === 0) && (
                   <div className="text-center py-6 text-muted">
                     <Users size={32} className="mx-auto mb-2 opacity-50" />
                     <p className="text-xs">No hay miembros registrados</p>
@@ -451,7 +451,7 @@ const OrganizationDashboard: React.FC<{ session: any; profile: any }> = ({ sessi
                   label="Crear Rutina"
                   description="Diseñar entrenamiento"
                   color={COLORS.success}
-                  onClick={() => navigate('/routines/create')}
+                  onClick={() => navigate('/routines?create=true')}
                 />
                 <QuickActionButton
                   icon={<Calendar size={16} />}
@@ -511,7 +511,7 @@ const OrganizationDashboard: React.FC<{ session: any; profile: any }> = ({ sessi
               <div className="col-span-3 text-center py-8 text-muted">
                 <Dumbbell size={40} className="mx-auto mb-3 opacity-30" />
                 <p className="text-sm">No hay rutinas creadas</p>
-                <button onClick={() => navigate('/routines/create')} className="text-xs text-purple-400 hover:underline mt-2">
+                <button onClick={() => navigate('/routines?create=true')} className="text-xs text-purple-400 hover:underline mt-2">
                   Crear la primera rutina →
                 </button>
               </div>

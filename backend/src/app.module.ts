@@ -33,6 +33,8 @@ import { BillingModule } from './modules/billing/billing.module';
 import { StripeModule } from './modules/stripe/stripe.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { EmailModule } from './modules/email/email.module';
+import { SupportModule } from './modules/support/support.module';
+import { AuditModule } from './modules/audit/audit.module';
 
 // Guards, filters, interceptors
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -42,6 +44,7 @@ import {
   TransformInterceptor,
   LoggingInterceptor,
 } from './common/interceptors/transform.interceptor';
+import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { AppController } from './app.controller';
 
 @Module({
@@ -104,6 +107,8 @@ import { AppController } from './app.controller';
     StripeModule,
     AdminModule,
     EmailModule,
+    SupportModule,
+    AuditModule,
   ],
 
   providers: [
@@ -112,6 +117,7 @@ import { AppController } from './app.controller';
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
     { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
     { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },
+    { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
   ],
 })
 export class AppModule {}
