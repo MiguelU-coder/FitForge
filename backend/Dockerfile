@@ -27,4 +27,4 @@ ENV PORT=3000
 EXPOSE ${PORT}
 
 # Production start command
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/src/main.js"]
