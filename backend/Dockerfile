@@ -20,8 +20,7 @@ RUN pnpm exec prisma generate
 # Build the NestJS app
 RUN pnpm run build
 
-# Prune dev dependencies (optional, but good for saving memory in Railway)
-RUN pnpm prune --prod
+# Dev dependencies kept for simplicity since husky breaks on prune
 
 # The PORT environment variable is automatically injected by Railway
 ENV PORT=3000
