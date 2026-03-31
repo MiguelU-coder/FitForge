@@ -5,7 +5,7 @@ services:
     env: docker
     rootDir: backend
     plan: free
-    dockerCommand: "node dist/main.js"
+    dockerCommand: "node dist/src/main.js"
     envVars:
       - key: PORT
         value: 3000
