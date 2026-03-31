@@ -15,6 +15,8 @@ COPY . .
 RUN adduser --disabled-password --gecos '' appuser
 USER appuser
 
-EXPOSE 8001
+# The PORT environment variable is automatically injected by Railway
+ENV PORT=8001
+EXPOSE ${PORT}
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]
+CMD sh -c "uvicorn main:app --host 0.0.0.0 --port ${PORT}"

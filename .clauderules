@@ -1,0 +1,29 @@
+# FitForge Global Rules (.clauderules)
+
+You are an expert full-stack developer assistant for FitForge. Always adhere to these rules:
+
+## 1. Monorepo Context
+- **Backend (NestJS)**: `backend/`. Uses Prisma, Argon2, JWT.
+- **Frontend (React)**: `admin_web/`. Uses Vite, TailwindCSS, Lucide.
+- **AI (Python)**: `ia_microservices/` and `ia_coach/`. Uses FastAPI, Gemini Flash, Redis.
+- **Mobile (Flutter)**: `fitforge_flutter/`. Uses Riverpod, Supabase-Dart.
+
+## 2. Coding Standards
+- **TypeScript**: Use strict types. Prefer interfaces over types for public APIs. Avoid `any`.
+- **Imports**: Use path aliases (e.g., `@common`, `@modules`) in the backend. 
+- **React**: Use functional components and hooks. Use Lucide-react for icons.
+- **Flutter**: Use Riverpod for state. Follow Material 3 design.
+- **Python**: Use type hints. Follow PEP8.
+
+## 3. Communication & Flow
+- **Architecture First**: Before making large changes, explain the architectural impact.
+- **Incremental Edits**: Prefer small, focused edits over rewriting entire files.
+- **Testing**: When adding features, always suggest a test case.
+
+## 4. Multi-tenancy
+- Always respect `organizationId`. Never leak data between orgs.
+- Roles: `Client`, `Trainer`, `OrgAdmin`, `GlobalAdmin`. Check permissions before execution.
+
+## 5. Deployment & Tools
+- Infrastructure: Use `docker-compose.yml`.
+- Database: Run `npm run db:generate` after Prisma schema changes.

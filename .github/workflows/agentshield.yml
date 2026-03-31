@@ -1,0 +1,29 @@
+name: ECC AgentShield Security Audit
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install AgentShield
+        run: npm install -g ecc-agentshield
+
+      - name: Run AgentShield Scan
+        run: ecc-agentshield scan
+        # Note: If you want to use the Opus-powered AI scan, you can use:
+        # run: ecc-agentshield scan --opus
+        # env:
+        #   ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
