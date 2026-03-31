@@ -1,0 +1,41 @@
+services:
+  # Base de Datos principal / Backend (NestJS)
+  - type: web
+    name: fitforge-backend
+    env: docker
+    rootDir: backend
+    plan: free
+    dockerCommand: "node dist/main.js"
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: DATABASE_URL
+        sync: false # Deben llenarse en el Dashboard
+      - key: JWT_SECRET
+        sync: false
+
+  # IA Microservicios (Procesamiento y generación de rutinas)
+  - type: web
+    name: fitforge-ia-microservices
+    env: docker
+    rootDir: ia_microservices
+    plan: free
+    dockerCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: GEMINI_API_KEY
+        sync: false
+
+  # IA Coach (Chat Assistant)
+  - type: web
+    name: fitforge-ia-coach
+    env: docker
+    rootDir: ia_coach
+    plan: free
+    dockerCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: PORT
+        value: 8001
+      - key: GEMINI_API_KEY
+        sync: false
