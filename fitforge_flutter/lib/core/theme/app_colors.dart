@@ -1,54 +1,59 @@
 // lib/core/theme/app_colors.dart
-// Design System — FitForge Modern Fitness Theme
-// Inspired by Hevy, Strong, and Alpha Progression
+// Design System — FitForge "Carbon Forge" — v3.0
+// Direction: Premium athletic — neutral carbon base + emerald green
+// Neutral backgrounds let the green breathe. No navy competing with the accent.
 
 import 'package:flutter/material.dart';
 
-/// Centralized color palette for the FitForge Design System.
-///
-/// Color System:
-/// - Background: Deep black for the main canvas
-/// - Surface: Slightly lighter for content areas
-/// - Card: Elevated card backgrounds
-/// - Primary: Vibrant green for CTAs and accents
-/// - Accent: Brighter green for highlights
 class AppColors {
   AppColors._();
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // BACKGROUNDS
+  // BACKGROUNDS — Pure neutral carbon (no blue tint, clean and breathable)
   // ═══════════════════════════════════════════════════════════════════════════
 
-  /// Main background — Deep black (#0B0B0B)
-  static const Color background = Color(0xFF0B0B0B);
+  /// Main background — Carbon black (#111111)
+  static const Color background = Color(0xFF111111);
 
-  /// Content surface / Sidebar (#121212)
-  static const Color surface = Color(0xFF121212);
+  /// Content surface (#191919)
+  static const Color surface = Color(0xFF191919);
 
-  /// Card backgrounds — elevated elements (#1A1A1A)
-  static const Color card = Color(0xFF1A1A1A);
+  /// Card backgrounds (#212121)
+  static const Color card = Color(0xFF212121);
 
-  /// Highly elevated elements — inputs, modals, overlays (#27272A)
-  static const Color elevated = Color(0xFF27272A);
+  /// Highly elevated elements — inputs, modals (#2A2A2A)
+  static const Color elevated = Color(0xFF2A2A2A);
 
-  /// Borders and dividers (#2A2A2A)
-  static const Color border = Color(0xFF2A2A2A);
+  /// Borders and dividers (#383838)
+  static const Color border = Color(0xFF383838);
 
   /// Modal overlay / scrim
-  static const Color overlay = Color(0x99000000);
+  static const Color overlay = Color(0xBB000000);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // PRIMARY GREEN
+  // PRIMARY — EMERALD GREEN (vitality, movement, growth)
+  // Neutral backgrounds amplify green contrast — the color pops without noise.
+  // References: Nike Training, Huel, Athletic Greens — premium and intentional.
   // ═══════════════════════════════════════════════════════════════════════════
 
-  /// Primary green — CTAs, links, selection (#00C853)
-  static const Color primary = Color(0xFF00C853);
+  /// Primary — Emerald Green (#18B97A)
+  static const Color primary = Color(0xFF18B97A);
 
-  /// Accent green — highlights, progress, PRs (#00E676)
-  static const Color primaryBright = Color(0xFF00E676);
+  /// Brighter emerald for gradients and hover (#34D399)
+  static const Color primaryBright = Color(0xFF34D399);
 
-  /// Dimmed green — pressed/disabled states
-  static const Color primaryDark = Color(0xFF00A844);
+  /// Deep emerald — pressed/disabled states (#0E9060)
+  static const Color primaryDark = Color(0xFF0E9060);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SECONDARY — ELECTRIC VIOLET (depth, AI features, premium contrast)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Electric violet (#6D28D9)
+  static const Color secondary = Color(0xFF6D28D9);
+
+  /// Lighter violet (#8B5CF6)
+  static const Color secondaryBright = Color(0xFF8B5CF6);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // SEMANTIC COLORS (feedback)
@@ -57,83 +62,114 @@ class AppColors {
   static const Color success = Color(0xFF10B981);
   static const Color error = Color(0xFFEF4444);
   static const Color warning = Color(0xFFF59E0B);
-  static const Color info = Color(0xFF3B82F6);
+  static const Color info = Color(0xFF0EA5E9);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // TEXT
+  // TEXT — Warm whites over neutral gray backgrounds
   // ═══════════════════════════════════════════════════════════════════════════
 
-  /// Primary text — white
-  static const Color textPrimary = Color(0xFFFFFFFF);
+  static const Color textPrimary = Color(0xFFF5F5F5);
+  static const Color textSecondary = Color(0xFFA3A3A3);
+  static const Color textTertiary = Color(0xFF6B6B6B);
+  static const Color textMuted = Color(0xFF3D3D3D);
 
-  /// Secondary text — muted gray (#B3B3B3)
-  static const Color textSecondary = Color(0xFFB3B3B3);
-
-  /// Tertiary text — more muted
-  static const Color textTertiary = Color(0xFF71717A);
-
-  /// Muted text — least prominent
-  static const Color textMuted = Color(0xFF52525B);
-
-  /// Text on primary color — black for contrast
-  static const Color textOnPrimary = Color(0xFF000000);
+  /// Text on primary green — white for contrast
+  static const Color textOnPrimary = Color(0xFFFFFFFF);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // FITNESS-SPECIFIC COLORS
   // ═══════════════════════════════════════════════════════════════════════════
 
-  /// Personal records — premium gold
-  static const Color pr = Color(0xFFFBBF24);
+  /// Personal records — gold
+  static const Color pr = Color(0xFFF59E0B);
 
   /// Failed sets / RIR 0
   static const Color failure = Color(0xFFF87171);
 
-  /// Drop sets, variants — purple neon
-  static const Color dropSet = Color(0xFFA78BFA);
+  /// Drop sets — electric violet alias
+  static const Color dropSet = Color(0xFF8B5CF6);
 
-  /// Secondary accent (cyan) — charts and variants
-  static const Color accentCyan = Color(0xFF22D3EE);
+  /// Accent — Sky blue (metric highlights, secondary data)
+  static const Color accentCyan = Color(0xFF0EA5E9);
 
-  /// Accent alias — for convenience
+  /// Accent alias
   static const Color accent = accentCyan;
 
   // ═══════════════════════════════════════════════════════════════════════════
   // CARD DECORATIONS
   // ═══════════════════════════════════════════════════════════════════════════
 
-  /// Neon glow card decoration
+  /// Emerald card — green accent border with subtle glow
   static BoxDecoration neonCard({double radius = 16}) => BoxDecoration(
         color: card,
         borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: primary.withValues(alpha: 0.3), width: 1),
+        border: Border.all(
+          color: primary.withValues(alpha: 0.30),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: primary.withValues(alpha: 0.1),
-            blurRadius: 12,
+            color: primary.withValues(alpha: 0.10),
+            blurRadius: 16,
             offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: primary.withValues(alpha: 0.04),
+            blurRadius: 32,
+            spreadRadius: 2,
           ),
         ],
       );
 
-  /// Gradient card with primary glow
+  /// Gradient card with emerald tint
   static BoxDecoration gradientCard({double radius = 16}) => BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
             primary.withValues(alpha: 0.08),
-            primary.withValues(alpha: 0.02),
+            card,
           ],
         ),
         borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: primary.withValues(alpha: 0.2), width: 1),
+        border: Border.all(
+          color: primary.withValues(alpha: 0.20),
+          width: 1,
+        ),
       );
 
-  /// Glassmorphism card
+  /// Glass card — neutral-tinted glassmorphism
   static BoxDecoration glassCard({double radius = 16}) => BoxDecoration(
-        color: card.withValues(alpha: 0.8),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            elevated.withValues(alpha: 0.85),
+            card.withValues(alpha: 0.6),
+          ],
+        ),
         borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: border.withValues(alpha: 0.5), width: 1),
+        border: Border.all(
+          color: const Color(0xFF444444).withValues(alpha: 0.5),
+          width: 0.8,
+        ),
+      );
+
+  /// Violet accent card — for AI/secondary features
+  static BoxDecoration violetCard({double radius = 16}) => BoxDecoration(
+        color: secondary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(
+          color: secondary.withValues(alpha: 0.3),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: secondary.withValues(alpha: 0.10),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       );
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -145,4 +181,7 @@ class AppColors {
 
   static Color cardWithOpacity(double opacity) =>
       card.withValues(alpha: opacity);
+
+  static Color secondaryWithOpacity(double opacity) =>
+      secondary.withValues(alpha: opacity);
 }

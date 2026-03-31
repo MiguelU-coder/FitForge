@@ -272,7 +272,7 @@ export class OrganizationMembersController {
     this.getOrganizationName(organizationId).then((orgName) => {
       this.organizationsService.sendWelcomeEmailToMember({
         email: result.data.email,
-        password: result.data.password,
+        password: result.data.password || '',
         displayName: result.data.displayName,
         organizationName: orgName,
         loginUrl: `${frontendUrl}/login`,

@@ -125,7 +125,7 @@ class DobStep extends ConsumerWidget {
                       data: Theme.of(context).copyWith(
                         colorScheme: const ColorScheme.dark(
                           primary: AppTheme.neon,
-                          onPrimary: Colors.black,
+                          onPrimary: Colors.white,
                           surface: AppTheme.bgElevated,
                           onSurface: AppTheme.textPri,
                         ),

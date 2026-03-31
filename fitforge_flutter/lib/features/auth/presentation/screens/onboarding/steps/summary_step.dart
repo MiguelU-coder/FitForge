@@ -436,7 +436,7 @@ class SummaryStep extends ConsumerWidget {
                 ? const SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                   )
                 : const Icon(Icons.auto_awesome, size: 18),
             label: Text(
@@ -445,7 +445,7 @@ class SummaryStep extends ConsumerWidget {
             ),
             style: FilledButton.styleFrom(
               backgroundColor: AppTheme.neon,
-              foregroundColor: Colors.black,
+              foregroundColor: Colors.white,
               disabledBackgroundColor: AppTheme.neon.withValues(alpha: 0.4),
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 28),
             ),
@@ -519,7 +519,7 @@ class SummaryStep extends ConsumerWidget {
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
-                      color: Colors.black,
+                      color: Colors.white,
                     ),
                   ),
                 ),
@@ -564,7 +564,7 @@ class SummaryStep extends ConsumerWidget {
                       onPressed: () => context.go('/workouts/active?routine=$routineId'),
                       style: FilledButton.styleFrom(
                         backgroundColor: AppTheme.neon,
-                        foregroundColor: Colors.black,
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 13),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),

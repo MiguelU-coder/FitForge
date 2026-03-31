@@ -1,4 +1,7 @@
 // lib/core/widgets/ff_widgets.dart
+// "Midnight Forge" shared widget library
+// All widgets updated for the new orange+violet+navy color system.
+
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -6,6 +9,12 @@ import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../services/notification_service.dart';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NeonButton — Forge Edition
+// Primary: orange gradient with white text + glow shadow.
+// Outlined: orange border, no fill.
+// ─────────────────────────────────────────────────────────────────────────────
 
 class NeonButton extends StatelessWidget {
   final String label;
@@ -15,6 +24,7 @@ class NeonButton extends StatelessWidget {
   final IconData? icon;
   final double height;
   final double? width;
+  final Color? color;
 
   const NeonButton({
     super.key,
@@ -23,19 +33,22 @@ class NeonButton extends StatelessWidget {
     this.isLoading = false,
     this.outlined = false,
     this.icon,
-    this.height = 52,
+    this.height = 56,
     this.width,
+    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
-    Widget child = isLoading
-        ? const SizedBox(
+    final effectiveColor = color ?? AppColors.primary;
+
+    Widget content = isLoading
+        ? SizedBox(
             width: 20,
             height: 20,
             child: CircularProgressIndicator(
               strokeWidth: 2.5,
-              color: Colors.black,
+              color: outlined ? effectiveColor : Colors.white,
             ),
           )
         : Row(
@@ -43,7 +56,7 @@ class NeonButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (icon != null) ...[
-                Icon(icon, size: 18),
+                Icon(icon, size: 20),
                 const SizedBox(width: 8),
               ],
               Text(label),
@@ -57,34 +70,47 @@ class NeonButton extends StatelessWidget {
         child: OutlinedButton(
           onPressed: isLoading ? null : onPressed,
           style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.primary,
-            side: const BorderSide(color: AppColors.primary, width: 1.5),
+            foregroundColor: effectiveColor,
+            side: BorderSide(color: effectiveColor, width: 1.5),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.lg),
             ),
+            textStyle: GoogleFonts.dmSans(
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+              letterSpacing: 0.3,
+            ),
           ),
-          child: child,
+          child: content,
         ),
       );
     }
 
-    // Filled button with gradient for premium look
+    // Filled — orange gradient with glow shadow
     return SizedBox(
       width: width ?? double.infinity,
       height: height,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF1A7A3A), AppColors.primary],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
+          gradient: LinearGradient(
+            colors: [
+              effectiveColor,
+              Color.lerp(effectiveColor, Colors.white, 0.15) ?? effectiveColor,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(AppRadius.lg),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.30),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+              color: effectiveColor.withValues(alpha: 0.35),
+              blurRadius: 16,
+              offset: const Offset(0, 5),
+            ),
+            BoxShadow(
+              color: effectiveColor.withValues(alpha: 0.12),
+              blurRadius: 32,
+              offset: const Offset(0, 0),
             ),
           ],
         ),
@@ -92,19 +118,28 @@ class NeonButton extends StatelessWidget {
           onPressed: isLoading ? null : onPressed,
           style: FilledButton.styleFrom(
             backgroundColor: Colors.transparent,
-            foregroundColor: Colors.black,
+            foregroundColor: Colors.white,
             shadowColor: Colors.transparent,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.lg),
             ),
+            textStyle: GoogleFonts.dmSans(
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+              letterSpacing: 0.3,
+            ),
             elevation: 0,
           ),
-          child: child,
+          child: content,
         ),
       ),
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GlassCard — Navy glassmorphism
+// ─────────────────────────────────────────────────────────────────────────────
 
 class GlassCard extends StatelessWidget {
   final Widget child;
@@ -112,6 +147,8 @@ class GlassCard extends StatelessWidget {
   final bool neonBorder;
   final EdgeInsetsGeometry padding;
   final VoidCallback? onTap;
+  final Color? accentColor;
+
   const GlassCard({
     super.key,
     required this.child,
@@ -119,20 +156,62 @@ class GlassCard extends StatelessWidget {
     this.neonBorder = false,
     this.padding = const EdgeInsets.all(16),
     this.onTap,
+    this.accentColor,
   });
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: Container(
-      decoration: neonBorder
-          ? AppColors.neonCard(radius: radius)
-          : AppColors.glassCard(radius: radius),
-      padding: padding,
-      child: child,
-    ),
-  );
+  Widget build(BuildContext context) {
+    final accent = accentColor ?? AppColors.primary;
+
+    BoxDecoration decoration;
+    if (neonBorder) {
+      decoration = BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.elevated.withValues(alpha: 0.9),
+            AppColors.card.withValues(alpha: 0.7),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: accent.withValues(alpha: 0.45), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withValues(alpha: 0.14),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      );
+    } else {
+      decoration = BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.elevated.withValues(alpha: 0.85),
+            AppColors.card.withValues(alpha: 0.6),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(
+          color: AppColors.border.withValues(alpha: 0.6),
+          width: 1,
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(decoration: decoration, padding: padding, child: child),
+    );
+  }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// StatBadge — Bebas Neue numbers + DM Sans labels
+// ─────────────────────────────────────────────────────────────────────────────
 
 class StatBadge extends StatelessWidget {
   final String value, label;
@@ -155,41 +234,56 @@ class StatBadge extends StatelessWidget {
       children: [
         if (icon != null) ...[
           Container(
-            width: 36,
-            height: 36,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: effectiveColor.withValues(alpha: 0.12),
+              gradient: LinearGradient(
+                colors: [
+                  effectiveColor.withValues(alpha: 0.18),
+                  effectiveColor.withValues(alpha: 0.08),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               shape: BoxShape.circle,
+              border: Border.all(
+                color: effectiveColor.withValues(alpha: 0.3),
+                width: 1,
+              ),
             ),
-            child: Icon(icon, size: 18, color: effectiveColor),
+            child: Icon(icon, size: 20, color: effectiveColor),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
         ],
-        // Number: Barlow ExtraBold for maximum impact
+        // Number: Bebas Neue for maximum athletic impact
         Text(
           value,
-          style: GoogleFonts.barlow(
-            fontSize: 28,
-            fontWeight: FontWeight.w800,
+          style: GoogleFonts.bebasNeue(
+            fontSize: 36,
             color: color ?? AppColors.textPrimary,
-            height: 1,
+            height: 0.95,
+            letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: 3),
-        // Label: Inter Light, muted grey
+        const SizedBox(height: 5),
+        // Label: DM Sans small, muted
         Text(
-          label,
-          style: GoogleFonts.inter(
+          label.toUpperCase(),
+          style: GoogleFonts.dmSans(
             fontSize: 11,
-            fontWeight: FontWeight.w300,
-            color: const Color(0xFF888888),
-            letterSpacing: 0.3,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textTertiary,
+            letterSpacing: 0.8,
           ),
         ),
       ],
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SectionHeader
+// ─────────────────────────────────────────────────────────────────────────────
 
 class SectionHeader extends StatelessWidget {
   final String title;
@@ -209,30 +303,51 @@ class SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         if (icon != null) ...[
-          Icon(icon, size: 18, color: AppColors.primary),
-          const SizedBox(width: 8),
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Icon(icon, size: 17, color: AppColors.primary),
+          ),
+          const SizedBox(width: 10),
         ],
-        Text(
-          title,
-          style: theme.textTheme.titleMedium,
-        ),
+        Text(title, style: theme.textTheme.titleLarge),
         const Spacer(),
         if (action != null)
           GestureDetector(
             onTap: onAction,
-            child: Text(
-              action!,
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: AppColors.primary,
-              ),
+            child: Row(
+              children: [
+                Text(
+                  action!,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(width: 2),
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 11,
+                  color: AppColors.primary,
+                ),
+              ],
             ),
           ),
       ],
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MuscleTag — color-coded muscle group chips
+// ─────────────────────────────────────────────────────────────────────────────
 
 class MuscleTag extends StatelessWidget {
   final String muscle;
@@ -252,9 +367,9 @@ class MuscleTag extends StatelessWidget {
     'BACK' || 'BICEPS' => AppColors.accentCyan,
     'SHOULDERS' => AppColors.pr,
     'QUADS' || 'HAMSTRINGS' => AppColors.warning,
-    'GLUTES' || 'CALVES' => const Color(0xFF39FF14),
+    'GLUTES' || 'CALVES' => AppColors.success,
     'ABS' || 'OBLIQUES' => AppColors.error,
-    _ => AppColors.textSecondary,
+    _ => AppColors.secondary,
   };
 
   static String label(String m) => m
@@ -270,32 +385,42 @@ class MuscleTag extends StatelessWidget {
     final c = color(muscle);
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
         padding: EdgeInsets.symmetric(
           horizontal: small ? AppSpacing.sm : AppSpacing.md,
-          vertical: small ? 3 : 6,
+          vertical: small ? 4 : 7,
         ),
         decoration: BoxDecoration(
           color: isSelected
-              ? c.withValues(alpha: 0.15)
-              : AppColors.elevated.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(small ? AppRadius.sm : AppRadius.md),
+              ? c.withValues(alpha: 0.18)
+              : AppColors.elevated.withValues(alpha: 0.4),
+          borderRadius: BorderRadius.circular(
+            small ? AppRadius.sm : AppRadius.md,
+          ),
           border: Border.all(
-            color: isSelected ? c : AppColors.border.withValues(alpha: 0.5),
-            width: isSelected ? 1 : 0.5,
+            color: isSelected ? c : AppColors.border,
+            width: isSelected ? 1 : 0.8,
           ),
         ),
         child: Text(
           label(muscle),
-          style: (small ? theme.textTheme.labelSmall : theme.textTheme.labelMedium)?.copyWith(
-            color: isSelected ? c : AppColors.textSecondary,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-          ),
+          style:
+              (small ? theme.textTheme.labelSmall : theme.textTheme.labelMedium)
+                  ?.copyWith(
+                    color: isSelected ? c : AppColors.textSecondary,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    letterSpacing: 0.2,
+                  ),
         ),
       ),
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RestTimerWidget — with forge orange/error color transitions
+// ─────────────────────────────────────────────────────────────────────────────
 
 class RestTimerWidget extends StatefulWidget {
   final int initialSeconds;
@@ -369,45 +494,59 @@ class _RestTimerWidgetState extends State<RestTimerWidget>
     final theme = Theme.of(context);
     final isLow = _remaining <= 10 && _remaining > 0;
     final progress = _total > 0 ? (_total - _remaining) / _total : 1.0;
+    final timerColor = _remaining == 0
+        ? AppColors.primary
+        : isLow
+        ? AppColors.error
+        : AppColors.primary;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: AppColors.elevated,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.border),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.elevated.withValues(alpha: 0.9),
+            AppColors.card.withValues(alpha: 0.7),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(
+          color: timerColor.withValues(alpha: 0.3),
+          width: 0.8,
+        ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Timer section (Text + icon o mini indicador)
           Row(
             children: [
               Stack(
                 alignment: Alignment.center,
                 children: [
                   SizedBox(
-                    width: 36,
-                    height: 36,
+                    width: 48,
+                    height: 48,
                     child: CircularProgressIndicator(
                       value: progress,
-                      strokeWidth: 3,
-                      backgroundColor: AppColors.background,
-                      color: isLow ? AppColors.error : AppColors.primary,
+                      strokeWidth: 3.5,
+                      backgroundColor: AppColors.border,
+                      color: timerColor,
                       strokeCap: StrokeCap.round,
                     ),
                   ),
                   if (_remaining == 0)
-                    const Icon(Icons.check, size: 18, color: AppColors.primary)
+                    const Icon(
+                      Icons.check_rounded,
+                      size: 20,
+                      color: AppColors.primary,
+                    )
                   else
-                    Icon(
-                      Icons.timer_outlined,
-                      size: 16,
-                      color: isLow ? AppColors.error : AppColors.primary,
-                    ),
+                    Icon(Icons.timer_outlined, size: 18, color: timerColor),
                 ],
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 14),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
@@ -415,8 +554,9 @@ class _RestTimerWidgetState extends State<RestTimerWidget>
                   Text(
                     'REST TIMER',
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: AppColors.textSecondary,
+                      color: AppColors.textTertiary,
                       letterSpacing: 1.5,
+                      fontSize: 10,
                     ),
                   ),
                   AnimatedBuilder(
@@ -426,13 +566,12 @@ class _RestTimerWidgetState extends State<RestTimerWidget>
                           ? (0.6 + _pulse.value * 0.4)
                           : 1.0,
                       child: Text(
-                        _remaining == 0 ? 'Done!' : _display,
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          color: _remaining == 0
-                              ? AppColors.primary
-                              : isLow
-                                  ? AppColors.error
-                                  : AppColors.textPrimary,
+                        _remaining == 0 ? 'Ready!' : _display,
+                        style: GoogleFonts.bebasNeue(
+                          fontSize: 34,
+                          letterSpacing: 1,
+                          color: timerColor,
+                          height: 0.95,
                         ),
                       ),
                     ),
@@ -441,8 +580,6 @@ class _RestTimerWidgetState extends State<RestTimerWidget>
               ),
             ],
           ),
-
-          // Action sections
           Row(
             children: [
               if (_remaining > 0) ...[
@@ -467,16 +604,19 @@ class _RestTimerWidgetState extends State<RestTimerWidget>
                   }
                 },
                 child: Container(
-                  width: 36,
-                  height: 36,
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
-                    color: AppColors.border.withValues(alpha: 0.3),
+                    color: AppColors.border.withValues(alpha: 0.4),
                     borderRadius: BorderRadius.circular(AppRadius.sm),
+                    border: Border.all(color: AppColors.border, width: 1),
                   ),
                   child: Icon(
-                    _remaining == 0 ? Icons.close : Icons.refresh,
-                    size: 18,
-                    color: AppColors.textPrimary,
+                    _remaining == 0
+                        ? Icons.close_rounded
+                        : Icons.refresh_rounded,
+                    size: 20,
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ),
@@ -484,7 +624,7 @@ class _RestTimerWidgetState extends State<RestTimerWidget>
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.1, end: 0);
+    ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.08, end: 0);
   }
 }
 
@@ -501,21 +641,25 @@ class _MiniAdjBtn extends StatelessWidget {
   @override
   Widget build(BuildContext context) => GestureDetector(
     onTap: onTap,
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 120),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: accent ? AppColors.primary.withValues(alpha: 0.15) : AppColors.background,
-        borderRadius: BorderRadius.circular(6),
+        color: accent
+            ? AppColors.primary.withValues(alpha: 0.18)
+            : AppColors.background.withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(9),
         border: Border.all(
           color: accent
               ? AppColors.primary.withValues(alpha: 0.5)
               : AppColors.border,
+          width: 1,
         ),
       ),
       child: Text(
         label,
-        style: TextStyle(
-          fontSize: 12,
+        style: GoogleFonts.dmSans(
+          fontSize: 13,
           fontWeight: FontWeight.w700,
           color: accent ? AppColors.primary : AppColors.textSecondary,
         ),
@@ -523,6 +667,10 @@ class _MiniAdjBtn extends StatelessWidget {
     ),
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EmptyState — with animated icon container
+// ─────────────────────────────────────────────────────────────────────────────
 
 class EmptyState extends StatelessWidget {
   final IconData icon;
@@ -550,44 +698,62 @@ class EmptyState extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              color: AppColors.elevated,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Icon(icon, size: 32, color: AppColors.textMuted),
-          ),
-          const SizedBox(height: 20),
+                width: 88,
+                height: 88,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.elevated.withValues(alpha: 0.8),
+                      AppColors.card,
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: AppColors.border, width: 1),
+                ),
+                child: Icon(icon, size: 38, color: AppColors.textMuted),
+              )
+              .animate(onPlay: (c) => c.repeat(reverse: true))
+              .scaleXY(
+                begin: 1.0,
+                end: 1.04,
+                duration: 2000.ms,
+                curve: Curves.easeInOut,
+              ),
+          const SizedBox(height: 24),
           Text(
             title,
             style: const TextStyle(
-              fontSize: 18,
+              fontSize: 20,
               fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
             ),
             textAlign: TextAlign.center,
           ),
           if (subtitle != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Text(
               subtitle!,
-              style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 15,
+                height: 1.55,
+              ),
               textAlign: TextAlign.center,
             ),
           ],
           if (action != null) ...[
-            const SizedBox(height: 24),
+            const SizedBox(height: 28),
             action!,
           ] else if (actionLabel != null) ...[
-            const SizedBox(height: 24),
+            const SizedBox(height: 28),
             SizedBox(
               width: 200,
               child: NeonButton(
                 label: actionLabel!,
                 onPressed: onAction,
-                height: 44,
+                height: 46,
               ),
             ),
           ],

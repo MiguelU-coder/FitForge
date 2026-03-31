@@ -211,7 +211,7 @@ class _AnimatedCheckIcon extends StatelessWidget {
           ),
         ],
       ),
-      child: const Icon(Icons.check, color: Colors.black, size: 16),
+      child: const Icon(Icons.check, color: Colors.white, size: 16),
     );
   }
 }

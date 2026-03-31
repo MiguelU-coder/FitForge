@@ -405,7 +405,7 @@ class _WorkoutHeader extends StatelessWidget {
               child: const Text(
                 'Finish',
                 style: TextStyle(
-                  color: Colors.black,
+                  color: Colors.white,
                   fontWeight: FontWeight.w800,
                   fontSize: 14,
                 ),
@@ -687,7 +687,7 @@ class _ExerciseTitleBar extends StatelessWidget {
               size: 18,
               color: AppTheme.textMuted,
             ),
-            onPressed: onDelete,
+            onPressed: () => _confirmDelete(context),
             tooltip: 'Remove exercise',
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
@@ -695,6 +695,42 @@ class _ExerciseTitleBar extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppTheme.bgCard,
+        title: Text(
+          'Remove "$name"?',
+          style: const TextStyle(
+            color: AppTheme.textPri,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        content: const Text(
+          'All logged sets for this exercise will be deleted.',
+          style: TextStyle(color: AppTheme.textSec, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: AppTheme.textSec),
+            ),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.error),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) onDelete();
   }
 
   void _showRestPicker(BuildContext context) {
@@ -1106,7 +1142,7 @@ class _AddSetRowState extends State<_AddSetRow> {
                   ),
                   child: const Icon(
                     Icons.check_rounded,
-                    color: Colors.black,
+                    color: Colors.white,
                     size: 22,
                   ),
                 ),

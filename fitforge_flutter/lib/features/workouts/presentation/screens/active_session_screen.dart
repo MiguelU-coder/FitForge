@@ -243,13 +243,13 @@ class _ActiveSessionScreenState extends ConsumerState<ActiveSessionScreen> {
                               height: 16,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.black,
+                                color: Colors.white,
                               ),
                             )
                           : const Text(
                               'Finish',
                               style: TextStyle(
-                                color: Colors.black,
+                                color: Colors.white,
                                 fontWeight: FontWeight.w800,
                                 fontSize: 13,
                               ),
@@ -381,12 +381,12 @@ class _ActiveSessionScreenState extends ConsumerState<ActiveSessionScreen> {
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.add, color: Colors.black, size: 22),
+                          Icon(Icons.add, color: Colors.white, size: 22),
                           SizedBox(width: 6),
                           Text(
                             'Add Exercise',
                             style: TextStyle(
-                              color: Colors.black,
+                              color: Colors.white,
                               fontWeight: FontWeight.w800,
                               fontSize: 16,
                             ),
@@ -1935,7 +1935,7 @@ class _StrongSetRowState extends State<_StrongSetRow> {
                               ),
                               child: const Icon(
                                 Icons.check_rounded,
-                                color: Colors.black,
+                                color: Colors.white,
                                 size: 18,
                               ),
                             ),

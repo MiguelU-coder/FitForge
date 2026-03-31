@@ -6,6 +6,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/auth_provider.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/app_colors.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../widgets/auth_text_field.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -198,6 +200,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                 const SizedBox(height: 24),
 
+                // ── Social login options ──────────────────────────
+                _buildSocialLogin(),
+
+                const SizedBox(height: 24),
+
                 // ── Login link ────────────────────────────────────────────
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -221,6 +228,116 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSocialLogin() {
+    return Column(
+      children: [
+        // Divider with text
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                height: 1,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.transparent,
+                      AppColors.border,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                'OR CONTINUE WITH',
+                style: GoogleFonts.dmSans(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1,
+                  color: AppColors.textTertiary,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Container(
+                height: 1,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.border,
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        )
+            .animate()
+            .fadeIn(delay: 350.ms, duration: 400.ms),
+
+        const SizedBox(height: 20),
+
+        // Social buttons
+        Row(
+          children: [
+            Expanded(
+              child: _buildSocialButton(
+                icon: Icons.g_mobiledata,
+                label: 'Google',
+                onTap: () => ref.read(authStateProvider.notifier).signInWithGoogle(),
+              ),
+            ),
+          ],
+        )
+            .animate()
+            .fadeIn(delay: 400.ms, duration: 400.ms)
+            .slideY(begin: 0.1),
+      ],
+    );
+  }
+
+  Widget _buildSocialButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 44,
+        decoration: BoxDecoration(
+          color: AppColors.elevated,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppColors.border,
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: AppColors.textPrimary,
+              size: 22,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: GoogleFonts.dmSans(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ],
         ),
       ),
     );

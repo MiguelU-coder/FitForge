@@ -1,5 +1,10 @@
 {
-  "devDependencies": {
-    "@types/node": "^25.5.0"
+  "name": "fitforge-scripts",
+  "version": "1.0.0",
+  "description": "Global workspace scripts for FitForge",
+  "scripts": {
+    "claude:refactor": "claude --agents '{\"refactor-cleaner\": {\"description\": \"Deep code refactor and dead code elimination.\"}}'",
+    "claude:pr": "claude --agents '{\"pr-generator\": {\"description\": \"Generates PR descriptions.\"}}'",
+    "claude:security": "claude --agents '{\"security-scanner\": {\"description\": \"Audits code for vulnerabilities and secrets.\"}}'"
   }
 }

@@ -203,7 +203,7 @@ class OnboardingFlowScreen extends ConsumerWidget {
           style: FilledButton.styleFrom(
             minimumSize: const Size(double.infinity, 58),
             backgroundColor: AppTheme.neon,
-            foregroundColor: Colors.black,
+            foregroundColor: Colors.white,
             elevation: isLastStep ? 8 : 0,
             shadowColor: AppTheme.neon.withValues(alpha: 0.3),
             shape: RoundedRectangleBorder(
@@ -216,7 +216,7 @@ class OnboardingFlowScreen extends ConsumerWidget {
                   width: 24,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: Colors.black,
+                    color: Colors.white,
                   ),
                 )
               : Text(

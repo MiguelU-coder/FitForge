@@ -271,7 +271,7 @@ class _ExercisesScreenState extends ConsumerState<ExercisesScreen> {
                     ),
                   )
                 : SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
+                    padding: EdgeInsets.fromLTRB(16, 0, 16, MediaQuery.of(context).padding.bottom),
                     sliver: SliverGrid(
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(

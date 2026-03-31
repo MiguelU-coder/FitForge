@@ -8,9 +8,15 @@ class AppConstants {
   // Para emulador Android: usar 10.0.2.2 (apunta al localhost del host)
   // Para dispositivo físico: usar la IP de tu máquina en la red local
   // Para iOS Simulator: localhost funciona directamente
-  static const String baseUrl = 'http://10.0.2.2:3000/api/v1';
-  // static const String baseUrl = 'http://localhost:3000/api/v1';       // iOS
-  // static const String baseUrl = 'http://192.168.x.x:3000/api/v1';    // Físico
+  // Para emulador Android y Dispositivo físico (vía USB con adb reverse):
+  static const String baseUrl = 'http://localhost:3000/api/v1'; 
+  
+  // static const String baseUrl = 'http://192.168.1.3:3000/api/v1'; // IP Wi-Fi (Requiere Firewall abierto)
+
+  // Otros posibles IPs en tu red:
+  // static const String baseUrl = 'http://192.168.1.20:3000/api/v1'; // Ethernet
+  // static const String baseUrl = 'http://192.168.1.5:3000/api/v1';  // Wi-Fi 4
+  // static const String baseUrl = 'http://localhost:3000/api/v1';    // iOS
 
   // ── RapidAPI ─────────────────────────────────────────────────────────────
   static const String rapidApiHost = 'ai-workout-planner-exercise-fitness-nutrition-guide.p.rapidapi.com';
@@ -33,4 +39,9 @@ class AppConstants {
   static const double radiusS   = 8.0;
   static const double radiusM   = 12.0;
   static const double radiusL   = 16.0;
+
+  /// Height of the floating nav bar container (68) + bottom gap (12).
+  /// Used to compensate MediaQuery.padding.bottom so screens are never
+  /// obscured by the navbar when extendBody: true is active.
+  static const double kNavBarExtra = 80.0;
 }

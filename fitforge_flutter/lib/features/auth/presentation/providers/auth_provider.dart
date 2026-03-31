@@ -230,4 +230,56 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   void clearError() => state = state.copyWith(clearError: true);
+
+  // ── OAuth Providers ─────────────────────────────────────────────────────────────
+
+  Future<void> signInWithGoogle() async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final response = await _supabase.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: 'io.supabase.fitforge://callback',
+      );
+
+      if (!response) {
+        state = state.copyWith(
+          isLoading: false,
+          error: 'Failed to open Google sign-in',
+        );
+      }
+      // El login se completa vía deep link, el listener de onAuthStateChange manejará el resto
+    } on AuthException catch (e) {
+      state = state.copyWith(isLoading: false, error: e.message);
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Error signing in with Google',
+      );
+    }
+  }
+
+  Future<void> signInWithApple() async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final response = await _supabase.auth.signInWithOAuth(
+        OAuthProvider.apple,
+        redirectTo: 'io.supabase.fitforge://callback',
+      );
+
+      if (!response) {
+        state = state.copyWith(
+          isLoading: false,
+          error: 'Failed to open Apple sign-in',
+        );
+      }
+      // El login se completa vía deep link, el listener de onAuthStateChange manejará el resto
+    } on AuthException catch (e) {
+      state = state.copyWith(isLoading: false, error: e.message);
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Error signing in with Apple',
+      );
+    }
+  }
 }

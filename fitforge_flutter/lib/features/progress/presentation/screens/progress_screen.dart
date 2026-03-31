@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/ff_widgets.dart';
@@ -169,7 +170,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen>
           ? FloatingActionButton.extended(
               onPressed: () => _showAddMetricSheet(context, ref),
               backgroundColor: AppColors.primary,
-              foregroundColor: Colors.black,
+              foregroundColor: Colors.white,
               icon: const Icon(Icons.add_rounded),
               label: Text(
                 'REGISTER',
@@ -193,7 +194,7 @@ class _PerformanceTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      padding: EdgeInsets.fromLTRB(16, 20, 16, MediaQuery.of(context).padding.bottom),
       children: [
         const SectionHeader(
           title: 'Current Week Volume',
@@ -251,12 +252,14 @@ class _PhysicalTab extends ConsumerWidget {
     final user = auth.user;
 
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      padding: EdgeInsets.fromLTRB(16, 20, 16, MediaQuery.of(context).padding.bottom),
       children: [
         _MetricHeader(
           heightCm: user?.heightCm,
           goalWeight: user?.goalWeightKg,
         ),
+        const SizedBox(height: 16),
+        const _AddMetricBanner(),
         const SizedBox(height: 24),
         const SectionHeader(
           title: 'Weight & Body Fat',
@@ -299,6 +302,80 @@ class _PhysicalTab extends ConsumerWidget {
   }
 }
 
+class _AddMetricBanner extends ConsumerWidget {
+  const _AddMetricBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return GestureDetector(
+      onTap: () => _showAddMetricSheet(context, ref),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: AppColors.gradientCard(),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  width: 1.5,
+                ),
+              ),
+              child: const Icon(
+                Icons.add_chart_rounded,
+                color: AppColors.primary,
+                size: 28,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'LOG MEASUREMENTS',
+                    style: GoogleFonts.inter(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Track weight, fat & metrics',
+                    style: GoogleFonts.inter(
+                      color: AppColors.textPrimary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: AppColors.primary,
+                size: 14,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 class _AwardsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -312,7 +389,7 @@ class _AwardsTab extends ConsumerWidget {
               subtitle: 'Hit new personal records to see them here',
             )
           : ListView.separated(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom),
               itemCount: prs.length,
               separatorBuilder: (_, __) => const SizedBox(height: 10),
               itemBuilder: (ctx, i) => _PrCard(pr: prs[i]),
@@ -833,6 +910,12 @@ class _PrCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final is1rm = pr.prType == 'ONE_RM_ESTIMATED';
+    // Use gold (AppColors.pr) for true max weight, and cyan for estimations
+    final cardColor = is1rm ? AppColors.accentCyan : AppColors.pr;
+    final iconData = is1rm ? Icons.calculate_rounded : Icons.workspace_premium_rounded;
+    final titleText = is1rm ? 'Estimated 1RM' : 'Max Weight';
+
     return GlassCard(
       padding: const EdgeInsets.all(14),
       child: Row(
@@ -842,12 +925,12 @@ class _PrCard extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: AppColors.pr.withValues(alpha: 0.12),
+              color: cardColor.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.workspace_premium_rounded,
-              color: AppColors.pr,
+            child: Icon(
+              iconData,
+              color: cardColor,
               size: 22,
             ),
           ),
@@ -866,7 +949,7 @@ class _PrCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  pr.prType == 'ONE_RM_ESTIMATED' ? 'Estimated 1RM' : 'Max Weight',
+                  titleText,
                   style: GoogleFonts.inter(
                     fontSize: 11,
                     fontWeight: FontWeight.w300,
@@ -882,7 +965,7 @@ class _PrCard extends StatelessWidget {
             style: GoogleFonts.barlow(
               fontSize: 22,
               fontWeight: FontWeight.w800,
-              color: AppColors.pr,
+              color: cardColor,
               height: 1,
             ),
           ),
@@ -961,6 +1044,7 @@ void _showEditProfileSheet(BuildContext context) {
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
+    useRootNavigator: true,
     builder: (context) => _EditProfileBottomSheet(),
   );
 }
@@ -1056,6 +1140,7 @@ void _showAddMetricSheet(BuildContext context, WidgetRef ref) {
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
+    useRootNavigator: true,
     builder: (context) => _AddMetricBottomSheet(),
   );
 }
@@ -1068,7 +1153,6 @@ class _AddMetricBottomSheet extends ConsumerStatefulWidget {
 class _AddMetricBottomSheetState extends ConsumerState<_AddMetricBottomSheet> {
   final _wtCtrl = TextEditingController();
   final _fatCtrl = TextEditingController();
-  final _bmiCtrl = TextEditingController();
   final _waterCtrl = TextEditingController();
   final _boneCtrl = TextEditingController();
   final _visceralCtrl = TextEditingController();
@@ -1076,6 +1160,16 @@ class _AddMetricBottomSheetState extends ConsumerState<_AddMetricBottomSheet> {
   final _hipsCtrl = TextEditingController();
   DateTime _recordedAt = DateTime.now();
   bool _submitting = false;
+  String? _weightError;
+
+  /// Auto-calculates BMI from entered weight and profile height.
+  double? get _autoBmi {
+    final weight = double.tryParse(_wtCtrl.text);
+    final heightCm = ref.read(authStateProvider).user?.heightCm;
+    if (weight == null || heightCm == null || heightCm <= 0) return null;
+    final heightM = heightCm / 100.0;
+    return weight / (heightM * heightM);
+  }
 
   Future<void> _selectDate() async {
     final picked = await showDatePicker(
@@ -1083,30 +1177,25 @@ class _AddMetricBottomSheetState extends ConsumerState<_AddMetricBottomSheet> {
       initialDate: _recordedAt,
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppColors.primary,
-              onPrimary: Colors.black,
-              surface: Color(0xFF151515),
-              onSurface: Colors.white,
-            ),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: AppColors.primary,
+            onPrimary: Colors.white,
+            surface: Color(0xFF151515),
+            onSurface: Colors.white,
           ),
-          child: child!,
-        );
-      },
+        ),
+        child: child!,
+      ),
     );
-    if (picked != null) {
-      setState(() => _recordedAt = picked);
-    }
+    if (picked != null) setState(() => _recordedAt = picked);
   }
 
   @override
   void dispose() {
     _wtCtrl.dispose();
     _fatCtrl.dispose();
-    _bmiCtrl.dispose();
     _waterCtrl.dispose();
     _boneCtrl.dispose();
     _visceralCtrl.dispose();
@@ -1118,6 +1207,7 @@ class _AddMetricBottomSheetState extends ConsumerState<_AddMetricBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+    final bmi = _autoBmi;
 
     return Container(
       decoration: const BoxDecoration(
@@ -1125,154 +1215,212 @@ class _AddMetricBottomSheetState extends ConsumerState<_AddMetricBottomSheet> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         border: Border(top: BorderSide(color: Color(0xFF222222), width: 1)),
       ),
-      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.92),
       child: Stack(
         children: [
           SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(24, 80, 24, bottomPadding + 32),
+            padding: EdgeInsets.fromLTRB(20, 84, 20, bottomPadding + 32),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Section: Core Metrics (Mandatory)
+                // ── CORE METRICS ──────────────────────────────────────────
                 _buildSectionHeader('CORE METRICS', Icons.star_rounded, isRequired: true),
-                Row(
+                _MetricSectionCard(
                   children: [
-                    Expanded(
-                      child: _MetricInput(
-                        controller: _wtCtrl,
-                        label: 'Weight',
-                        unit: 'kg',
-                        icon: Icons.monitor_weight_outlined,
-                        hint: '0.0',
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _MetricInput(
+                            controller: _wtCtrl,
+                            label: 'Weight',
+                            unit: 'kg',
+                            icon: Icons.monitor_weight_outlined,
+                            hint: '0.0',
+                            isRequired: true,
+                            hasError: _weightError != null,
+                            onChanged: (_) => setState(() => _weightError = null),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _MetricInput(
+                            controller: _fatCtrl,
+                            label: 'Body Fat',
+                            unit: '%',
+                            icon: Icons.percent_rounded,
+                            hint: '0.0',
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _MetricInput(
-                        controller: _fatCtrl,
-                        label: 'Body Fat',
-                        unit: '%',
-                        icon: Icons.percent_rounded,
-                        hint: '0.0',
+                    if (_weightError != null) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(Icons.error_outline_rounded,
+                              size: 14, color: Color(0xFFFF453A)),
+                          const SizedBox(width: 6),
+                          Text(
+                            _weightError!,
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: const Color(0xFFFF453A),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
+                    ],
+                    // Auto-BMI badge
+                    if (bmi != null) ...[
+                      const SizedBox(height: 12),
+                      _BmiBadge(bmi: bmi),
+                    ],
                   ],
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 20),
 
-                // Section: Advanced Composition
+                // ── BODY COMPOSITION ──────────────────────────────────────
                 _buildSectionHeader('BODY COMPOSITION', Icons.analytics_outlined),
-                Row(
+                _MetricSectionCard(
                   children: [
-                    Expanded(
-                      child: _MetricInput(
-                        controller: _bmiCtrl,
-                        label: 'BMI',
-                        unit: '',
-                        icon: Icons.calculate_outlined,
-                        hint: '0.0',
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _MetricInput(
+                            controller: _waterCtrl,
+                            label: 'Body Water',
+                            unit: '%',
+                            icon: Icons.water_drop_outlined,
+                            hint: '0.0',
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _MetricInput(
+                            controller: _boneCtrl,
+                            label: 'Bone Mass',
+                            unit: 'kg',
+                            icon: Icons.fitness_center_rounded,
+                            hint: '0.0',
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _MetricInput(
-                        controller: _waterCtrl,
-                        label: 'Body Water',
-                        unit: '%',
-                        icon: Icons.water_drop_outlined,
-                        hint: '0.0',
-                      ),
+                    const SizedBox(height: 12),
+                    _MetricInput(
+                      controller: _visceralCtrl,
+                      label: 'Visceral Fat Rating',
+                      unit: 'lvl',
+                      icon: Icons.speed_rounded,
+                      hint: '1 – 20',
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _MetricInput(
-                        controller: _boneCtrl,
-                        label: 'Bone Mass',
-                        unit: 'kg',
-                        icon: Icons.fitness_center_rounded,
-                        hint: '0.0',
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _MetricInput(
-                        controller: _visceralCtrl,
-                        label: 'Visceral Fat',
-                        unit: 'lvl',
-                        icon: Icons.speed_rounded,
-                        hint: '1-20',
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 20),
 
-                // Section: Measurements
+                // ── CIRCUMFERENCES ────────────────────────────────────────
                 _buildSectionHeader('CIRCUMFERENCES', Icons.straighten_rounded),
-                Row(
+                _MetricSectionCard(
                   children: [
-                    Expanded(
-                      child: _MetricInput(
-                        controller: _waistCtrl,
-                        label: 'Waist',
-                        unit: 'cm',
-                        icon: Icons.circle_outlined,
-                        hint: '0',
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _MetricInput(
-                        controller: _hipsCtrl,
-                        label: 'Hips',
-                        unit: 'cm',
-                        icon: Icons.accessibility_new_rounded,
-                        hint: '0',
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _MetricInput(
+                            controller: _waistCtrl,
+                            label: 'Waist',
+                            unit: 'cm',
+                            icon: Icons.circle_outlined,
+                            hint: '0',
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _MetricInput(
+                            controller: _hipsCtrl,
+                            label: 'Hips',
+                            unit: 'cm',
+                            icon: Icons.accessibility_new_rounded,
+                            hint: '0',
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                // Date Selection
-                InkWell(
+                const SizedBox(height: 20),
+
+                // ── DATE ──────────────────────────────────────────────────
+                _buildSectionHeader('DATE', Icons.calendar_month_rounded),
+                GestureDetector(
                   onTap: _selectDate,
-                  borderRadius: BorderRadius.circular(12),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     decoration: BoxDecoration(
-                      border: Border.all(color: const Color(0xFF222222)),
-                      borderRadius: BorderRadius.circular(12),
+                      color: const Color(0xFF111111),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.25),
+                        width: 1.2,
+                      ),
                     ),
                     child: Row(
-                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.primary),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${_recordedAt.day}/${_recordedAt.month}/${_recordedAt.year}',
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
                           ),
+                          child: const Icon(
+                            Icons.calendar_today_rounded,
+                            size: 18,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Measurement date',
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  color: const Color(0xFF666666),
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                DateFormat('MMMM d, yyyy').format(_recordedAt),
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.chevron_right_rounded,
+                          color: AppColors.primary,
+                          size: 20,
                         ),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 28),
 
                 NeonButton(
                   label: 'SAVE MEASUREMENTS',
                   isLoading: _submitting,
                   onPressed: () async {
-                    if (_wtCtrl.text.isEmpty || _fatCtrl.text.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Weight and Body Fat are mandatory')),
-                      );
+                    if (_wtCtrl.text.trim().isEmpty) {
+                      setState(() => _weightError = 'Weight is required to log a measurement');
                       return;
                     }
                     final navigator = Navigator.of(context);
@@ -1282,7 +1430,7 @@ class _AddMetricBottomSheetState extends ConsumerState<_AddMetricBottomSheet> {
                         recordedAt: _recordedAt,
                         weightKg: double.tryParse(_wtCtrl.text),
                         bodyFatPct: double.tryParse(_fatCtrl.text),
-                        bmi: double.tryParse(_bmiCtrl.text),
+                        bmi: _autoBmi,
                         bodyWaterPct: double.tryParse(_waterCtrl.text),
                         boneMassKg: double.tryParse(_boneCtrl.text),
                         visceralFatRating: int.tryParse(_visceralCtrl.text),
@@ -1298,43 +1446,62 @@ class _AddMetricBottomSheetState extends ConsumerState<_AddMetricBottomSheet> {
               ],
             ),
           ),
-          // Blur Top Header
+
+          // ── Blur top header ──────────────────────────────────────────────
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
               child: Container(
                 height: 80,
-                color: Colors.black.withValues(alpha: 0.6),
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                color: const Color(0xFF0A0A0A).withValues(alpha: 0.85),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'LOG METRICS',
-                          style: GoogleFonts.barlow(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 2,
-                            color: Colors.white,
+                    // Handle + title
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Drag handle
+                          Container(
+                            width: 32,
+                            height: 3,
+                            margin: const EdgeInsets.only(bottom: 8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF333333),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
                           ),
-                        ),
-                        Text(
-                          'Track your physical evolution',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: const Color(0xFF888888),
+                          Text(
+                            'LOG METRICS',
+                            style: GoogleFonts.barlow(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.5,
+                              color: Colors.white,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close_rounded, color: Colors.white70),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1A1A1A),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0xFF2A2A2A)),
+                        ),
+                        child: const Icon(
+                          Icons.close_rounded,
+                          color: Colors.white70,
+                          size: 16,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -1348,27 +1515,108 @@ class _AddMetricBottomSheetState extends ConsumerState<_AddMetricBottomSheet> {
 
   Widget _buildSectionHeader(String title, IconData icon, {bool isRequired = false}) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          Icon(icon, size: 14, color: AppColors.primary),
-          const SizedBox(width: 8),
+          Icon(icon, size: 13, color: AppColors.primary),
+          const SizedBox(width: 7),
           Text(
             title,
             style: GoogleFonts.inter(
               fontSize: 11,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.5,
-              color: Colors.white70,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.4,
+              color: const Color(0xFF888888),
             ),
           ),
           if (isRequired) ...[
-            const SizedBox(width: 4),
-            const Text(
+            const SizedBox(width: 3),
+            Text(
               '*',
-              style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppColors.primary,
+              ),
             ),
-          ]
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Card that groups a section's inputs with a subtle border.
+class _MetricSectionCard extends StatelessWidget {
+  final List<Widget> children;
+  const _MetricSectionCard({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F0F0F),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFF1E1E1E), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
+    );
+  }
+}
+
+/// Auto-calculated BMI displayed as an informational badge.
+class _BmiBadge extends StatelessWidget {
+  final double bmi;
+  const _BmiBadge({required this.bmi});
+
+  String get _category {
+    if (bmi < 18.5) return 'Underweight';
+    if (bmi < 25.0) return 'Normal';
+    if (bmi < 30.0) return 'Overweight';
+    return 'Obese';
+  }
+
+  Color get _color {
+    if (bmi < 18.5) return const Color(0xFF3B82F6);
+    if (bmi < 25.0) return const Color(0xFF22C55E);
+    if (bmi < 30.0) return const Color(0xFFF59E0B);
+    return const Color(0xFFEF4444);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: _color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _color.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.calculate_outlined, size: 14, color: _color),
+          const SizedBox(width: 8),
+          Text(
+            'BMI ${bmi.toStringAsFixed(1)}',
+            style: GoogleFonts.barlow(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: _color,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            '· $_category',
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: _color.withValues(alpha: 0.8),
+            ),
+          ),
         ],
       ),
     );
@@ -1379,6 +1627,9 @@ class _MetricInput extends StatelessWidget {
   final TextEditingController controller;
   final String label, hint, unit;
   final IconData icon;
+  final bool isRequired;
+  final bool hasError;
+  final ValueChanged<String>? onChanged;
 
   const _MetricInput({
     required this.controller,
@@ -1386,46 +1637,70 @@ class _MetricInput extends StatelessWidget {
     required this.hint,
     required this.unit,
     required this.icon,
+    this.isRequired = false,
+    this.hasError = false,
+    this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
+    final borderColor = hasError
+        ? const Color(0xFFFF453A)
+        : const Color(0xFF222222);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 10,
-            fontWeight: FontWeight.w500,
-            color: const Color(0xFF666666),
-          ),
+        Row(
+          children: [
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF888888),
+              ),
+            ),
+            if (isRequired) ...[
+              const SizedBox(width: 2),
+              Text(
+                '*',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ],
         ),
         const SizedBox(height: 6),
-        Container(
-          height: 56,
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          height: 52,
           decoration: BoxDecoration(
             color: const Color(0xFF151515),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFF222222)),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: borderColor, width: hasError ? 1.5 : 1),
           ),
           child: Row(
             children: [
-              const SizedBox(width: 14),
-              Icon(icon, color: Colors.white.withValues(alpha: 0.3), size: 18),
+              const SizedBox(width: 12),
+              Icon(icon, color: Colors.white.withValues(alpha: 0.5), size: 17),
               Expanded(
                 child: TextField(
                   controller: controller,
                   textAlign: TextAlign.center,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  onChanged: onChanged,
                   style: GoogleFonts.barlow(
-                    fontSize: 20,
+                    fontSize: 19,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
                   ),
                   decoration: InputDecoration(
                     hintText: hint,
-                    hintStyle: const TextStyle(color: Color(0xFF333333)),
+                    hintStyle: const TextStyle(color: Color(0xFF3A3A3A)),
                     border: InputBorder.none,
                     isDense: true,
                     contentPadding: EdgeInsets.zero,
@@ -1434,17 +1709,17 @@ class _MetricInput extends StatelessWidget {
               ),
               if (unit.isNotEmpty)
                 Padding(
-                  padding: const EdgeInsets.only(right: 14),
+                  padding: const EdgeInsets.only(right: 12),
                   child: Text(
                     unit,
                     style: GoogleFonts.inter(
-                      fontSize: 12,
+                      fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
+                      color: AppColors.primary.withValues(alpha: 0.8),
                     ),
                   ),
                 ),
-              if (unit.isEmpty) const SizedBox(width: 14),
+              if (unit.isEmpty) const SizedBox(width: 12),
             ],
           ),
         ),

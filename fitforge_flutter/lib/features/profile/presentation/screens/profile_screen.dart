@@ -216,7 +216,7 @@ class ProfileScreen extends ConsumerWidget {
                   label: 'Version',
                   value: '1.0.0',
                 ),
-                const SizedBox(height: 100),
+                SizedBox(height: MediaQuery.of(context).padding.bottom),
               ]),
             ),
           ),
@@ -236,12 +236,16 @@ class ProfileScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
+      useRootNavigator: true,
+      builder: (bottomSheetContext) => Container(
         decoration: const BoxDecoration(
           color: AppColors.elevated,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        padding: const EdgeInsets.symmetric(vertical: 24),
+        padding: EdgeInsets.only(
+          top: 24,
+          bottom: MediaQuery.of(bottomSheetContext).padding.bottom + 24,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -288,6 +292,7 @@ class ProfileScreen extends ConsumerWidget {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      useRootNavigator: true,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) => Padding(
           padding: EdgeInsets.only(
@@ -298,7 +303,12 @@ class ProfileScreen extends ConsumerWidget {
               color: AppColors.elevated,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.fromLTRB(
+              24,
+              24,
+              24,
+              MediaQuery.of(ctx).padding.bottom > 0 ? MediaQuery.of(ctx).padding.bottom + 24 : 48,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -340,7 +350,7 @@ class ProfileScreen extends ConsumerWidget {
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.black,
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -390,7 +400,7 @@ class ProfileScreen extends ConsumerWidget {
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
-                            color: Colors.black,
+                            color: Colors.white,
                             strokeWidth: 2,
                           ),
                         )

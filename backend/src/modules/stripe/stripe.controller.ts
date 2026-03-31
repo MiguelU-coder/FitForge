@@ -147,7 +147,7 @@ export class StripeController {
           await this.organizationsService.sendPaymentConfirmation({
             email: user.email,
             displayName: user.displayName,
-            amount: Number(pendingOrg.plan?.price || 29.99),
+            amount: Number((pendingOrg as any).plan?.price || 29.99),
             currency: 'USD',
             organizationName: pendingOrg.name,
             paymentId: result.organizationId,

@@ -35,19 +35,19 @@ class TemplatesScreen extends ConsumerWidget {
                         Text(
                           'Templates',
                           style: GoogleFonts.inter(
-                            fontSize: 28,
+                            fontSize: 30,
                             fontWeight: FontWeight.w800,
                             color: AppColors.textPrimary,
-                            letterSpacing: -0.5,
+                            letterSpacing: -0.6,
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 3),
                         Text(
                           'Your custom routines',
                           style: GoogleFonts.inter(
-                            color: const Color(0xFF888888),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w300,
+                            color: const Color(0xFF999999),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
                           ),
                         ),
                       ],
@@ -81,14 +81,14 @@ class TemplatesScreen extends ConsumerWidget {
                           children: [
                             const Icon(
                               Icons.add_rounded,
-                              color: Colors.black,
+                              color: Colors.white,
                               size: 18,
                             ),
                             const SizedBox(width: 6),
                             Text(
                               'New',
                               style: GoogleFonts.inter(
-                                color: Colors.black,
+                                color: Colors.white,
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -193,7 +193,7 @@ class TemplatesScreen extends ConsumerWidget {
                               child: Text(
                                 'Create First Template',
                                 style: GoogleFonts.inter(
-                                  color: Colors.black,
+                                  color: Colors.white,
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -208,7 +208,7 @@ class TemplatesScreen extends ConsumerWidget {
               }
 
               return SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
+                padding: EdgeInsets.fromLTRB(16, 0, 16, MediaQuery.of(context).padding.bottom),
                 sliver: SliverList.separated(
                   itemCount: templates.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
@@ -241,19 +241,19 @@ class _TemplateCard extends ConsumerWidget {
           Row(
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: 52,
+                height: 52,
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Icon(
                   Icons.view_list_rounded,
                   color: AppColors.primary,
-                  size: 22,
+                  size: 26,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -261,18 +261,18 @@ class _TemplateCard extends ConsumerWidget {
                     Text(
                       template.name,
                       style: GoogleFonts.inter(
-                        fontSize: 16,
+                        fontSize: 17,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 3),
                     Text(
                       '${template.items.length} exercise${template.items.length == 1 ? '' : 's'}',
                       style: GoogleFonts.inter(
-                        color: const Color(0xFF888888),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w300,
+                        color: const Color(0xFF999999),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ],
@@ -361,15 +361,15 @@ class _TemplateCard extends ConsumerWidget {
             const SizedBox(height: 12),
             ...template.items.take(4).map(
               (item) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.only(bottom: 10),
                 child: Row(
                   children: [
                     Container(
-                      width: 24,
-                      height: 24,
+                      width: 28,
+                      height: 28,
                       decoration: BoxDecoration(
                         color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(7),
                       ),
                       child: Center(
                         child: Text(
@@ -377,18 +377,18 @@ class _TemplateCard extends ConsumerWidget {
                           style: GoogleFonts.barlow(
                             color: AppColors.primary,
                             fontWeight: FontWeight.w700,
-                            fontSize: 11,
+                            fontSize: 12,
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         item.exerciseName,
                         style: GoogleFonts.inter(
                           color: AppColors.textPrimary,
-                          fontSize: 13,
+                          fontSize: 14,
                           fontWeight: FontWeight.w400,
                         ),
                       ),
@@ -403,9 +403,9 @@ class _TemplateCard extends ConsumerWidget {
                 child: Text(
                   '+${template.items.length - 4} more exercises',
                   style: GoogleFonts.inter(
-                    color: const Color(0xFF888888),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w300,
+                    color: const Color(0xFF999999),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
               ),
@@ -446,14 +446,14 @@ class _TemplateCard extends ConsumerWidget {
                 children: [
                   const Icon(
                     Icons.play_arrow_rounded,
-                    color: Colors.black,
+                    color: Colors.white,
                     size: 20,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     'Start Workout',
                     style: GoogleFonts.inter(
-                      color: Colors.black,
+                      color: Colors.white,
                       fontWeight: FontWeight.w700,
                       fontSize: 15,
                     ),

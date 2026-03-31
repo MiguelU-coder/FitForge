@@ -66,5 +66,18 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+
+	<!-- URL Scheme for OAuth Callback -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>io.supabase.fitforge</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>io.supabase.fitforge</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

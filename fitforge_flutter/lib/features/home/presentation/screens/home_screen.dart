@@ -39,6 +39,7 @@ class HomeScreen extends ConsumerWidget {
             child: _HeroHeader(
               greeting: greeting,
               name: name,
+              onViewProfile: () => context.push(AppRoutes.profile),
               onLogout: () => ref.read(authStateProvider.notifier).logout(),
             ).animate().fadeIn(duration: 400.ms),
           ),
@@ -105,6 +106,11 @@ class HomeScreen extends ConsumerWidget {
             data: (sessions) =>
                 const SliverToBoxAdapter(child: SizedBox.shrink()),
           ),
+
+          // ── Bottom clearance for floating nav bar ──────────────────────
+          SliverToBoxAdapter(
+            child: SizedBox(height: MediaQuery.of(context).padding.bottom),
+          ),
         ],
       ),
     );
@@ -114,12 +120,66 @@ class HomeScreen extends ConsumerWidget {
 // ── Hero Header ───────────────────────────────────────────────────────────────
 class _HeroHeader extends StatelessWidget {
   final String greeting, name;
+  final VoidCallback onViewProfile;
   final VoidCallback onLogout;
   const _HeroHeader({
     required this.greeting,
     required this.name,
+    required this.onViewProfile,
     required this.onLogout,
   });
+
+  void _showProfileMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      useRootNavigator: true,
+      builder: (bottomSheetContext) => Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF1A1A1A),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: EdgeInsets.fromLTRB(
+          16, 
+          12, 
+          16, 
+          MediaQuery.of(bottomSheetContext).padding.bottom + 32,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFF444444),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            _ProfileMenuTile(
+              icon: Icons.person_outline_rounded,
+              label: 'View Profile',
+              onTap: () {
+                Navigator.pop(bottomSheetContext);
+                onViewProfile();
+              },
+            ),
+            _ProfileMenuTile(
+              icon: Icons.logout_outlined,
+              label: 'Log Out',
+              color: const Color(0xFFFF4444),
+              onTap: () {
+                Navigator.pop(bottomSheetContext);
+                onLogout();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -180,20 +240,20 @@ class _HeroHeader extends StatelessWidget {
                 Text(
                   greeting,
                   style: GoogleFonts.inter(
-                    color: const Color(0xFF888888),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w300,
+                    color: const Color(0xFF999999),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
                 const SizedBox(height: 2),
-                // Name — smaller, sharper
+                // Name
                 Text(
                   name,
                   style: GoogleFonts.inter(
                     color: AppColors.textPrimary,
-                    fontSize: 22,
+                    fontSize: 26,
                     fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
+                    letterSpacing: -0.6,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -202,27 +262,27 @@ class _HeroHeader extends StatelessWidget {
                   motivation,
                   style: GoogleFonts.inter(
                     color: const Color(0xFF888888),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w300,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
               ],
             ),
           ),
-          // Neon avatar
+          // Neon avatar with options menu
           GestureDetector(
-            onTap: onLogout,
+            onTap: () => _showProfileMenu(context),
             child: Container(
-              width: 44,
-              height: 44,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.primary, width: 1.5),
+                border: Border.all(color: AppColors.primary, width: 2),
                 color: AppColors.elevated,
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.2),
-                    blurRadius: 8,
+                    color: AppColors.primary.withValues(alpha: 0.22),
+                    blurRadius: 12,
                     spreadRadius: 0,
                   ),
                 ],
@@ -230,7 +290,7 @@ class _HeroHeader extends StatelessWidget {
               child: const Icon(
                 Icons.person_outline_rounded,
                 color: AppColors.primary,
-                size: 22,
+                size: 24,
               ),
             ),
           ),
@@ -274,19 +334,19 @@ class _ActiveBanner extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              width: 42,
-              height: 42,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
                 color: AppColors.primary.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
               ),
               child: const Icon(
                 Icons.play_arrow_rounded,
                 color: AppColors.primary,
-                size: 24,
+                size: 26,
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -295,18 +355,18 @@ class _ActiveBanner extends StatelessWidget {
                     'IN PROGRESS',
                     style: TextStyle(
                       color: AppColors.primary,
-                      fontSize: 10,
+                      fontSize: 11,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.5,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 3),
                   Text(
                     session.name,
                     style: const TextStyle(
                       color: AppColors.textPrimary,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -356,7 +416,7 @@ class _ActiveBanner extends StatelessWidget {
               child: const Text(
                 'Resume',
                 style: TextStyle(
-                  color: Colors.black,
+                  color: Colors.white,
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
                 ),
@@ -381,7 +441,7 @@ class _QuickStartCard extends StatelessWidget {
       onTap: isLoading ? null : onStart,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        height: 120,
+        height: 136,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -416,19 +476,19 @@ class _QuickStartCard extends StatelessWidget {
                   const SizedBox(width: 24),
                   // Circular icon with glow
                   Container(
-                    width: 52,
-                    height: 52,
+                    width: 60,
+                    height: 60,
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                       border: Border.all(
                         color: AppColors.primary.withValues(alpha: 0.4),
-                        width: 1,
+                        width: 1.5,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.25),
-                          blurRadius: 12,
+                          color: AppColors.primary.withValues(alpha: 0.28),
+                          blurRadius: 16,
                           spreadRadius: 0,
                         ),
                       ],
@@ -436,10 +496,10 @@ class _QuickStartCard extends StatelessWidget {
                     child: const Icon(
                       Icons.add_rounded,
                       color: AppColors.primary,
-                      size: 28,
+                      size: 32,
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 18),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -448,18 +508,18 @@ class _QuickStartCard extends StatelessWidget {
                         'Start Workout',
                         style: GoogleFonts.inter(
                           color: AppColors.primary,
-                          fontSize: 18,
+                          fontSize: 20,
                           fontWeight: FontWeight.w700,
-                          letterSpacing: -0.3,
+                          letterSpacing: -0.4,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 5),
                       Text(
                         'Tap to begin a new session',
                         style: GoogleFonts.inter(
-                          color: const Color(0xFF888888),
+                          color: const Color(0xFF999999),
                           fontSize: 13,
-                          fontWeight: FontWeight.w300,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                     ],
@@ -597,16 +657,16 @@ class _TodayStats extends ConsumerWidget {
               Row(
                 children: [
                   Container(
-                    width: 48,
-                    height: 48,
+                    width: 52,
+                    height: 52,
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     child: const Icon(
                       Icons.local_fire_department,
                       color: AppColors.primary,
-                      size: 24,
+                      size: 26,
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -615,7 +675,7 @@ class _TodayStats extends ConsumerWidget {
                       "Today's Training",
                       style: TextStyle(
                         color: AppColors.textPrimary,
-                        fontSize: 16,
+                        fontSize: 17,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -688,33 +748,33 @@ class _StatItem extends StatelessWidget {
       children: [
         // Icon with accent circle background
         Container(
-          width: 36,
-          height: 36,
+          width: 44,
+          height: 44,
           decoration: BoxDecoration(
             color: AppColors.primary.withValues(alpha: 0.12),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: AppColors.primary, size: 18),
+          child: Icon(icon, color: AppColors.primary, size: 22),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         // Number: Barlow ExtraBold
         Text(
           value,
           style: GoogleFonts.barlow(
-            fontSize: 28,
+            fontSize: 32,
             fontWeight: FontWeight.w800,
             color: AppColors.textPrimary,
             height: 1,
           ),
         ),
-        const SizedBox(height: 4),
-        // Label: Inter Light muted
+        const SizedBox(height: 5),
+        // Label: Inter muted
         Text(
           label,
           style: GoogleFonts.inter(
-            color: const Color(0xFF888888),
-            fontSize: 11,
-            fontWeight: FontWeight.w300,
+            color: const Color(0xFF999999),
+            fontSize: 12,
+            fontWeight: FontWeight.w400,
           ),
         ),
       ],
@@ -776,8 +836,8 @@ class _WeeklySummary extends StatelessWidget {
                   Text(
                     'THIS WEEK',
                     style: GoogleFonts.inter(
-                      color: const Color(0xFF888888),
-                      fontSize: 11,
+                      color: const Color(0xFF999999),
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 1.5,
                     ),
@@ -823,7 +883,7 @@ class _WeeklySummary extends StatelessWidget {
                   value: ((weekSessions.length + (activeSession.hasActiveSession ? 1 : 0)) / 5).clamp(0.0, 1.0),
                   backgroundColor: AppColors.elevated,
                   valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
-                  minHeight: 6,
+                  minHeight: 8,
                 ),
               ),
               const SizedBox(height: 8),
@@ -833,16 +893,16 @@ class _WeeklySummary extends StatelessWidget {
                   Text(
                     '${weekSessions.length + (activeSession.hasActiveSession ? 1 : 0)}/5 workouts',
                     style: GoogleFonts.inter(
-                      color: const Color(0xFF888888),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w300,
+                      color: const Color(0xFF999999),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
                   Text(
                     '+${_formatVolume(totalVolume)} vol',
                     style: GoogleFonts.barlow(
                       color: AppColors.primary,
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -929,21 +989,21 @@ class _StreakCard extends StatelessWidget {
                 child: Row(
                   children: [
                     Container(
-                      width: 40,
-                      height: 40,
+                      width: 46,
+                      height: 46,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            AppColors.warning.withValues(alpha: 0.2),
+                            AppColors.warning.withValues(alpha: 0.22),
                             AppColors.warning.withValues(alpha: 0.1),
                           ],
                         ),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(
                         Icons.local_fire_department,
                         color: AppColors.warning,
-                        size: 20,
+                        size: 24,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -954,7 +1014,7 @@ class _StreakCard extends StatelessWidget {
                           '$currentStreak',
                           style: GoogleFonts.barlow(
                             color: AppColors.textPrimary,
-                            fontSize: 26,
+                            fontSize: 30,
                             fontWeight: FontWeight.w800,
                             height: 1,
                           ),
@@ -962,9 +1022,9 @@ class _StreakCard extends StatelessWidget {
                         Text(
                           'Day streak',
                           style: GoogleFonts.inter(
-                            color: const Color(0xFF888888),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w300,
+                            color: const Color(0xFF999999),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
                           ),
                         ),
                       ],
@@ -980,21 +1040,21 @@ class _StreakCard extends StatelessWidget {
                 child: Row(
                   children: [
                     Container(
-                      width: 40,
-                      height: 40,
+                      width: 46,
+                      height: 46,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            AppColors.pr.withValues(alpha: 0.2),
+                            AppColors.pr.withValues(alpha: 0.22),
                             AppColors.pr.withValues(alpha: 0.1),
                           ],
                         ),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(
                         Icons.emoji_events,
                         color: AppColors.pr,
-                        size: 20,
+                        size: 24,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -1005,7 +1065,7 @@ class _StreakCard extends StatelessWidget {
                           '${sessions.length}',
                           style: GoogleFonts.barlow(
                             color: AppColors.textPrimary,
-                            fontSize: 26,
+                            fontSize: 30,
                             fontWeight: FontWeight.w800,
                             height: 1,
                           ),
@@ -1013,9 +1073,9 @@ class _StreakCard extends StatelessWidget {
                         Text(
                           'Total workouts',
                           style: GoogleFonts.inter(
-                            color: const Color(0xFF888888),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w300,
+                            color: const Color(0xFF999999),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
                           ),
                         ),
                       ],
@@ -1027,6 +1087,70 @@ class _StreakCard extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+// ── Profile Menu Tile ─────────────────────────────────────────────────────────
+class _ProfileMenuTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color? color;
+  const _ProfileMenuTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tileColor = color ?? AppColors.textPrimary;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.elevated,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: color != null
+                ? color!.withValues(alpha: 0.25)
+                : AppColors.border,
+            width: 0.5,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: tileColor.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: tileColor, size: 18),
+            ),
+            const SizedBox(width: 14),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: tileColor,
+              ),
+            ),
+            const Spacer(),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: tileColor.withValues(alpha: 0.4),
+              size: 18,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

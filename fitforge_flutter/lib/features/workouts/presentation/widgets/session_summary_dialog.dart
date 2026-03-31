@@ -187,7 +187,7 @@ class _SessionSummaryDialogState extends ConsumerState<SessionSummaryDialog> {
                             onPressed: _fetchSummary,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primary,
-                              foregroundColor: Colors.black,
+                              foregroundColor: Colors.white,
                               minimumSize: const Size.fromHeight(56),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
@@ -333,7 +333,7 @@ class _AiSummaryContent extends StatelessWidget {
             onPressed: () => Navigator.pop(context, rpe),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
-              foregroundColor: Colors.black,
+              foregroundColor: Colors.white,
               minimumSize: const Size.fromHeight(56),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
