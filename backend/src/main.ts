@@ -52,8 +52,8 @@ async function bootstrap(): Promise<void> {
   app.enableCors({
     origin: (origin, callback) => {
       // console.log(`[CORS REQUEST] Trying origin: ${origin}`);
-      // Permitir requests sin origin (mobile apps, Postman en dev)
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Permitir requests sin origin (mobile apps, Postman en dev) o si * está en allowedOrigins
+      if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
         console.error(`[CORS REJECTED] Origin ${origin} not in ${allowedOrigins.join(', ')}`);
