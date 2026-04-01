@@ -22,9 +22,9 @@ RUN pnpm run build
 
 # Dev dependencies kept for simplicity since husky breaks on prune
 
-# The PORT environment variable is automatically injected by Railway
+# The PORT environment variable is automatically injected by Render
 ENV PORT=3000
 EXPOSE ${PORT}
 
-# Production start command
-CMD ["node", "dist/src/main.js"]
+# Run migrations + seed then start the app
+CMD ["sh", "-c", "pnpm run db:setup && node dist/src/main.js"]

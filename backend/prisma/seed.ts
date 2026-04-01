@@ -3,6 +3,7 @@
 // O via package.json: npm run db:seed
 
 import { PrismaClient, Equipment, MovementPattern } from '@prisma/client';
+import * as argon2 from 'argon2';
 
 const prisma = new PrismaClient();
 
@@ -418,6 +419,33 @@ async function main(): Promise<void> {
     create: { id: 'default', platformFeePct: 5.0 },
   });
   console.log('✅ Seeded global settings');
+
+  // ── Global Admin ──────────────────────────────────────────────────────────
+  const adminEmail = process.env.SEED_ADMIN_EMAIL ?? 'mmsporify5673@gmail.com';
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+  if (!adminPassword) {
+    console.warn('⚠️  SEED_ADMIN_PASSWORD not set — skipping GlobalAdmin seed');
+  } else {
+    console.log('🌱 Seeding GlobalAdmin...');
+    const passwordHash = await argon2.hash(adminPassword, {
+      type: argon2.argon2id,
+      memoryCost: 65536,
+      timeCost: 3,
+      parallelism: 1,
+    });
+    await prisma.user.upsert({
+      where: { email: adminEmail },
+      update: { isGlobalAdmin: true, isActive: true },
+      create: {
+        email: adminEmail,
+        passwordHash,
+        displayName: 'Global Admin',
+        isGlobalAdmin: true,
+        isActive: true,
+      },
+    });
+    console.log(`✅ GlobalAdmin ready: ${adminEmail}`);
+  }
 
   console.log('Done!');
 }
