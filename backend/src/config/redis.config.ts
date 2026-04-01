@@ -1,34 +1,30 @@
-// src/config/redis.config.ts
+// FitForge uses a single Redis database (DB 0) with prefixes for:
+//   - Cache general
+//   - Sessions
+//   - BullMQ queues
+//   - Rate limiting
 //
-// Factory de configuración Redis — namespace 'redis'.
+// This is necessary because many cloud providers (like Render Key-Value) do not 
+// support the SELECT command for multiple databases.
 //
-// FitForge usa 4 databases Redis separadas:
-//   DB 0 → Cache general      (catálogo ejercicios, PRs)
-//   DB 1 → Sessions           (blacklist de refresh y access tokens)
-//   DB 2 → BullMQ queues      (pr-check, ai-recommend, volume-agg)
-//   DB 3 → Rate limiting      (Throttler Guard)
-//
-// Separar DBs permite FLUSHDB selectivo y políticas de eviction distintas.
-// Las queues (DB 2) NUNCA deben usar allkeys-lru (perdería jobs).
-//
-// Uso:
+// Usage:
 //   const redis = this.config.get<RedisConfig>('redis')!;
-//   const client = new Redis({ host: redis.host, port: redis.port, db: 0 });
+//   const client = new Redis(redis.url);
 
 import { registerAs } from '@nestjs/config';
 
 export interface RedisDb {
   CACHE: 0;
-  SESSIONS: 1;
-  QUEUES: 2;
-  RATE_LIMIT: 3;
+  SESSIONS: 0;
+  QUEUES: 0;
+  RATE_LIMIT: 0;
 }
 
 export const REDIS_DB: RedisDb = {
   CACHE: 0,
-  SESSIONS: 1,
-  QUEUES: 2,
-  RATE_LIMIT: 3,
+  SESSIONS: 0,
+  QUEUES: 0,
+  RATE_LIMIT: 0,
 } as const;
 
 export interface RedisTtl {

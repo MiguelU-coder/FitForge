@@ -4,30 +4,23 @@ import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import { EnvConfig } from '../config/env.validation';
 
-// ── Bases de datos Redis por propósito ────────────────────────────────────────
-// DB 0 → Cache general (PRs, recommendations, exercise catalog)
-// DB 1 → Sessions & Refresh token blacklist
-// DB 2 → BullMQ queues (manejado por BullMQ automáticamente)
-// DB 3 → Rate limiting (Throttler)
-
 export enum RedisDb {
   CACHE = 0,
-  SESSIONS = 1,
-  QUEUES = 2,
-  RATE_LIMIT = 3,
+  SESSIONS = 0,
+  QUEUES = 0,
+  RATE_LIMIT = 0,
 }
 
 @Injectable()
 export class RedisService implements OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
-  private readonly clients = new Map<RedisDb, Redis>();
+  private client: Redis | null = null;
 
   constructor(private readonly config: ConfigService<EnvConfig, true>) {}
 
-  getClient(db: RedisDb = RedisDb.CACHE): Redis {
-    if (!this.clients.has(db)) {
-      const client = new Redis(this.config.get('REDIS_URL'), {
-        db,
+  getClient(_db: RedisDb = RedisDb.CACHE): Redis {
+    if (!this.client) {
+      this.client = new Redis(this.config.get('REDIS_URL'), {
         maxRetriesPerRequest: 3,
         retryStrategy: (times): number => Math.min(times * 100, 3000),
         lazyConnect: false,
@@ -36,14 +29,12 @@ export class RedisService implements OnModuleDestroy {
         commandTimeout: 3000,
       });
 
-      client.on('connect', () => this.logger.log(`✅ Redis DB${db} connected`));
-      client.on('error', (err: Error) =>
-        this.logger.error(`❌ Redis DB${db} error: ${err.message}`),
+      this.client.on('connect', () => this.logger.log(`✅ Redis single-client (DB0) connected`));
+      this.client.on('error', (err: Error) =>
+        this.logger.error(`❌ Redis connection error: ${err.message}`),
       );
-
-      this.clients.set(db, client);
     }
-    return this.clients.get(db)!;
+    return this.client;
   }
 
   // Getters semánticos
@@ -83,8 +74,9 @@ export class RedisService implements OnModuleDestroy {
   }
 
   async onModuleDestroy(): Promise<void> {
-    const disconnects = Array.from(this.clients.values()).map((c) => c.quit());
-    await Promise.allSettled(disconnects);
-    this.logger.log('All Redis connections closed');
+    if (this.client) {
+      await this.client.quit();
+    }
+    this.logger.log('Redis connection closed');
   }
 }

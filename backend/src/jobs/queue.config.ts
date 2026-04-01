@@ -84,7 +84,7 @@ export const BULLMQ_REDIS_OPTIONS = {
   host: parsedUrl.hostname,
   port: parseInt(parsedUrl.port || '6379', 10),
   password: parsedUrl.password || undefined,
-  db: parseInt(process.env.REDIS_BULLMQ_DB ?? '2', 10),
+  db: 0,
 };
 
 // ─── Shared queue options applied to every Queue instance ────────────────────

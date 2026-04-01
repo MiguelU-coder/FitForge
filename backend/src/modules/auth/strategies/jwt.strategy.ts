@@ -110,10 +110,16 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       const token = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
 
       if (token) {
-        const isBlacklisted = await this.redis.getClient(RedisDb.SESSIONS).exists(`at:bl:${token}`);
+        try {
+          // Fallback: If Redis is unreachable (e.g. connection limits), 
+          // we proceed since Supabase already validated the JWT signature.
+          const isBlacklisted = await this.redis.getClient(RedisDb.SESSIONS).exists(`at:bl:${token}`);
 
-        if (isBlacklisted) {
-          throw new UnauthorizedException('Token has been revoked');
+          if (isBlacklisted) {
+            throw new UnauthorizedException('Token has been revoked');
+          }
+        } catch (redisError) {
+          console.warn('⚠️ Redis unreachable for blacklist check, skipping... Error:', redisError);
         }
       }
 

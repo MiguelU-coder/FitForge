@@ -74,7 +74,7 @@ import { AppController } from './app.controller';
             host: parsed.hostname,
             port: parseInt(parsed.port || '6379', 10),
             password: parsed.password || undefined,
-            db: 2,
+            db: 0,
           },
           defaultJobOptions: {
             removeOnComplete: { count: 1000 },
