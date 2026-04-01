@@ -76,11 +76,15 @@ export const QUEUE_JOB_OPTIONS: Record<QueueName, DefaultJobOptions> = {
 
 // ─── Shared Redis connection options for BullMQ ───────────────────────────────
 
+const fallbackUrl = 'redis://localhost:6379';
+const redisUrl = process.env.REDIS_URL ?? fallbackUrl;
+const parsedUrl = new URL(redisUrl);
+
 export const BULLMQ_REDIS_OPTIONS = {
-  host: process.env.REDIS_HOST ?? 'localhost',
-  port: parseInt(process.env.REDIS_PORT ?? '6379'),
-  password: process.env.REDIS_PASSWORD ?? undefined,
-  db: parseInt(process.env.REDIS_BULLMQ_DB ?? '0'),
+  host: parsedUrl.hostname,
+  port: parseInt(parsedUrl.port || '6379', 10),
+  password: parsedUrl.password || undefined,
+  db: parseInt(process.env.REDIS_BULLMQ_DB ?? '2', 10),
 };
 
 // ─── Shared queue options applied to every Queue instance ────────────────────
