@@ -84,6 +84,9 @@ export const BULLMQ_REDIS_OPTIONS = {
   host: parsedUrl.hostname,
   port: parseInt(parsedUrl.port || '6379', 10),
   password: parsedUrl.password || undefined,
+  maxRetriesPerRequest: null, // Requerido por BullMQ
+  enableReadyCheck: true,
+  keepAlive: 10000,
   db: 0,
 };
 

@@ -1,5 +1,5 @@
 // src/shared/redis.service.ts
-import { Injectable, OnModuleDestroy, Logger } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import { EnvConfig } from '../config/env.validation';
@@ -12,7 +12,7 @@ export enum RedisDb {
 }
 
 @Injectable()
-export class RedisService implements OnModuleDestroy {
+export class RedisService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
   private client: Redis | null = null;
 
@@ -21,8 +21,9 @@ export class RedisService implements OnModuleDestroy {
   getClient(_db: RedisDb = RedisDb.CACHE): Redis {
     if (!this.client) {
       this.client = new Redis(this.config.get('REDIS_URL'), {
-        maxRetriesPerRequest: 3,
+        maxRetriesPerRequest: null,
         retryStrategy: (times): number => Math.min(times * 100, 3000),
+        keepAlive: 10000, // Previene cierres por inactividad (ECONNRESET)
         lazyConnect: false,
         enableReadyCheck: true,
         connectTimeout: 5000,
@@ -71,6 +72,22 @@ export class RedisService implements OnModuleDestroy {
   async exists(key: string, db = RedisDb.CACHE): Promise<boolean> {
     const result = await this.getClient(db).exists(key);
     return result === 1;
+  }
+
+  async onModuleInit(): Promise<void> {
+    const client = this.getClient();
+    try {
+      // Verificar política de desalojo (Eviction Policy)
+      const config = (await client.config('GET', 'maxmemory-policy')) as string[];
+      if (config && config.length >= 2 && config[1] !== 'noeviction') {
+        this.logger.warn(
+          `⚠️  IMPORTANT! Redis eviction policy is "${config[1]}". It should be "noeviction" for BullMQ stability.`,
+        );
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.debug(`Could not check Redis config (likely a managed service without CONFIG access): ${message}`);
+    }
   }
 
   async onModuleDestroy(): Promise<void> {
