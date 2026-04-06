@@ -54,7 +54,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             content: Text(next.error!),
             backgroundColor: AppTheme.error,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
         ref.read(authStateProvider.notifier).clearError();
@@ -118,11 +120,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
             ],
           ),
-          child: const Icon(
-            Icons.bolt,
-            color: Colors.white,
-            size: 28,
-          ),
+          child: const Icon(Icons.bolt, color: Colors.white, size: 28),
         ),
         const SizedBox(width: 12),
         Column(
@@ -148,10 +146,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ],
         ),
       ],
-    )
-        .animate()
-        .fadeIn(duration: 400.ms)
-        .slideY(begin: -0.3, duration: 500.ms);
+    ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.3, duration: 500.ms);
   }
 
   Widget _buildHeadline() {
@@ -178,10 +173,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               color: AppColors.primary,
             ),
           ),
-        )
-            .animate()
-            .fadeIn(delay: 100.ms, duration: 400.ms)
-            .slideX(begin: -0.2),
+        ).animate().fadeIn(delay: 100.ms, duration: 400.ms).slideX(begin: -0.2),
 
         const SizedBox(height: 12),
 
@@ -194,10 +186,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             letterSpacing: 1,
             color: AppColors.textPrimary,
           ),
-        )
-            .animate()
-            .fadeIn(delay: 200.ms, duration: 500.ms)
-            .slideY(begin: 0.2),
+        ).animate().fadeIn(delay: 200.ms, duration: 500.ms).slideY(begin: 0.2),
 
         const SizedBox(height: 12),
 
@@ -209,9 +198,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             height: 1.5,
             color: AppColors.textSecondary,
           ),
-        )
-            .animate()
-            .fadeIn(delay: 350.ms, duration: 400.ms),
+        ).animate().fadeIn(delay: 350.ms, duration: 400.ms),
       ],
     );
   }
@@ -317,10 +304,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ],
         ),
       ),
-    )
-        .animate()
-        .fadeIn(delay: 400.ms, duration: 500.ms)
-        .slideY(begin: 0.15);
+    ).animate().fadeIn(delay: 400.ms, duration: 500.ms).slideY(begin: 0.15);
   }
 
   Widget _buildInputLabel(String label) {
@@ -359,15 +343,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: GoogleFonts.dmSans(
-          fontSize: 15,
-          color: AppColors.textMuted,
-        ),
-        prefixIcon: Icon(
-          prefixIcon,
-          color: AppColors.textTertiary,
-          size: 20,
-        ),
+        hintStyle: GoogleFonts.dmSans(fontSize: 15, color: AppColors.textMuted),
+        prefixIcon: Icon(prefixIcon, color: AppColors.textTertiary, size: 20),
         suffixIcon: suffixIcon != null
             ? Padding(
                 padding: const EdgeInsets.only(right: 12),
@@ -389,17 +366,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: AppColors.primary,
-            width: 1.5,
-          ),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: AppColors.error,
-            width: 1,
-          ),
+          borderSide: const BorderSide(color: AppColors.error, width: 1),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
@@ -478,12 +449,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             Expanded(
               child: Container(
                 height: 1,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [
-                      Colors.transparent,
-                      AppColors.border,
-                    ],
+                    colors: [Colors.transparent, AppColors.border],
                   ),
                 ),
               ),
@@ -503,20 +471,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             Expanded(
               child: Container(
                 height: 1,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [
-                      AppColors.border,
-                      Colors.transparent,
-                    ],
+                    colors: [AppColors.border, Colors.transparent],
                   ),
                 ),
               ),
             ),
           ],
-        )
-            .animate()
-            .fadeIn(delay: 600.ms, duration: 400.ms),
+        ).animate().fadeIn(delay: 600.ms, duration: 400.ms),
 
         const SizedBox(height: 20),
 
@@ -527,14 +490,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: _buildSocialButton(
                 icon: Icons.g_mobiledata,
                 label: 'Google',
-                onTap: () => ref.read(authStateProvider.notifier).signInWithGoogle(),
+                onTap: () =>
+                    ref.read(authStateProvider.notifier).signInWithGoogle(),
               ),
             ),
           ],
-        )
-            .animate()
-            .fadeIn(delay: 700.ms, duration: 400.ms)
-            .slideY(begin: 0.1),
+        ).animate().fadeIn(delay: 700.ms, duration: 400.ms).slideY(begin: 0.1),
       ],
     );
   }
@@ -551,19 +512,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         decoration: BoxDecoration(
           color: AppColors.elevated,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: AppColors.border,
-            width: 1,
-          ),
+          border: Border.all(color: AppColors.border, width: 1),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              color: AppColors.textPrimary,
-              size: 22,
-            ),
+            Icon(icon, color: AppColors.textPrimary, size: 22),
             const SizedBox(width: 8),
             Text(
               label,
@@ -609,8 +563,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ),
       ],
-    )
-        .animate()
-        .fadeIn(delay: 800.ms, duration: 400.ms);
+    ).animate().fadeIn(delay: 800.ms, duration: 400.ms);
   }
 }

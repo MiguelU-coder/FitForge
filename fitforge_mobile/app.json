@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "FitForge",
+    "slug": "fitforge-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "fitforge",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#111111"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.fitforge.mobile"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#111111"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.fitforge.mobile"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font"
+    ],
+    "extra": {
+      "SUPABASE_URL": "https://ilkdhwvmtdgobuoqcfbv.supabase.co",
+      "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlsa2Rod3ZtdGRnb2J1b3FjZmJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwNzc0NjgsImV4cCI6MjA4ODY1MzQ2OH0.mqQs_Nly2v11FvIR3aaudpEw48K_lvqYFQnMLmllb1A",
+      "BACKEND_API_URL": "https://fitforge-backend-e3l0.onrender.com/api/v1",
+      "AI_MICROSERVICES_URL": "https://fitforge-ia-microservices.onrender.com",
+      "AI_COACH_URL": "https://fitforge-ia-coach.onrender.com"
+    }
+  }
+}

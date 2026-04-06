@@ -242,12 +242,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             Expanded(
               child: Container(
                 height: 1,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [
-                      Colors.transparent,
-                      AppColors.border,
-                    ],
+                    colors: [Colors.transparent, AppColors.border],
                   ),
                 ),
               ),
@@ -267,20 +264,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             Expanded(
               child: Container(
                 height: 1,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [
-                      AppColors.border,
-                      Colors.transparent,
-                    ],
+                    colors: [AppColors.border, Colors.transparent],
                   ),
                 ),
               ),
             ),
           ],
-        )
-            .animate()
-            .fadeIn(delay: 350.ms, duration: 400.ms),
+        ).animate().fadeIn(delay: 350.ms, duration: 400.ms),
 
         const SizedBox(height: 20),
 
@@ -291,14 +283,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               child: _buildSocialButton(
                 icon: Icons.g_mobiledata,
                 label: 'Google',
-                onTap: () => ref.read(authStateProvider.notifier).signInWithGoogle(),
+                onTap: () =>
+                    ref.read(authStateProvider.notifier).signInWithGoogle(),
               ),
             ),
           ],
-        )
-            .animate()
-            .fadeIn(delay: 400.ms, duration: 400.ms)
-            .slideY(begin: 0.1),
+        ).animate().fadeIn(delay: 400.ms, duration: 400.ms).slideY(begin: 0.1),
       ],
     );
   }
@@ -315,19 +305,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         decoration: BoxDecoration(
           color: AppColors.elevated,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: AppColors.border,
-            width: 1,
-          ),
+          border: Border.all(color: AppColors.border, width: 1),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              color: AppColors.textPrimary,
-              size: 22,
-            ),
+            Icon(icon, color: AppColors.textPrimary, size: 22),
             const SizedBox(width: 8),
             Text(
               label,

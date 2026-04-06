@@ -9,7 +9,9 @@ class AppConstants {
   // Para dispositivo físico: usar la IP de tu máquina en la red local
   // Para iOS Simulator: localhost funciona directamente
   // Para emulador Android y Dispositivo físico (vía USB con adb reverse):
-  static const String baseUrl = 'http://localhost:3000/api/v1'; 
+  static String get baseUrl => dotenv.env['BACKEND_API_URL'] ?? 'http://localhost:3000/api/v1';
+  static String get aiMicroservicesUrl => dotenv.env['AI_MICROSERVICES_URL'] ?? 'http://localhost:8000';
+  static String get aiCoachUrl => dotenv.env['AI_COACH_URL'] ?? 'http://localhost:8001';
   
   // static const String baseUrl = 'http://192.168.1.3:3000/api/v1'; // IP Wi-Fi (Requiere Firewall abierto)
 

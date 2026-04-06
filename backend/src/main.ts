@@ -35,6 +35,8 @@ async function bootstrap(): Promise<void> {
       hidePoweredBy: true,
       // Evitar clickjacking
       frameguard: { action: 'deny' },
+      // Permite cargar recursos (imágenes) desde otros orígenes en la web
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
     }),
   );
 
