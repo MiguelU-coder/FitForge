@@ -43,13 +43,13 @@ export class RolesGuard implements CanActivate {
     const organizationId = params.id || params.organizationId;
 
     if (organizationId) {
-      const userOrg = user.organizations.find(org => org.id === organizationId);
+      const userOrg = user.organizations.find((org) => org.id === organizationId);
       if (!userOrg) return false;
 
       return requiredRoles.includes(userOrg.role as UserRole);
     }
 
     // 4. If no organizationId is provided, check if the user has the required role in ANY organization
-    return user.organizations.some(org => requiredRoles.includes(org.role as UserRole));
+    return user.organizations.some((org) => requiredRoles.includes(org.role as UserRole));
   }
 }

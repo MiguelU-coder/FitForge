@@ -4,7 +4,7 @@
 //   - BullMQ queues
 //   - Rate limiting
 //
-// This is necessary because many cloud providers (like Render Key-Value) do not 
+// This is necessary because many cloud providers (like Render Key-Value) do not
 // support the SELECT command for multiple databases.
 //
 // Usage:

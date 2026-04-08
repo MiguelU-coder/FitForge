@@ -1,4 +1,11 @@
-import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger, HttpException } from '@nestjs/common';
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
+  Logger,
+  HttpException,
+} from '@nestjs/common';
 import { Observable, throwError } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { AuditService } from '../../modules/audit/audit.service';
@@ -17,7 +24,11 @@ export class AuditInterceptor implements NestInterceptor {
 
     // Only log write operations (POST, PUT, DELETE, PATCH)
     const isWriteOperation = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
-    const isAdmin = user && (user.role === UserRole.GLOBAL_ADMIN || user.role === UserRole.ORG_ADMIN || user.isGlobalAdmin);
+    const isAdmin =
+      user &&
+      (user.role === UserRole.GLOBAL_ADMIN ||
+        user.role === UserRole.ORG_ADMIN ||
+        user.isGlobalAdmin);
 
     if (isWriteOperation && isAdmin) {
       return next.handle().pipe(
@@ -50,7 +61,7 @@ export class AuditInterceptor implements NestInterceptor {
         ip,
         userAgent,
         statusCode,
-        isError
+        isError,
       );
     } catch (err) {
       this.logger.error('Audit logging failed', (err as Error).stack);
@@ -74,7 +85,7 @@ export class AuditInterceptor implements NestInterceptor {
     if (!body) return null;
     const sanitized = { ...body };
     const sensitiveFields = ['password', 'token', 'secret', 'key', 'passwordHash'];
-    sensitiveFields.forEach(field => {
+    sensitiveFields.forEach((field) => {
       if (field in sanitized) sanitized[field] = '[REDACTED]';
     });
     return sanitized;

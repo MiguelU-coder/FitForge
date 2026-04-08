@@ -23,7 +23,10 @@ export class BillingService {
     });
   }
 
-  async updatePlan(id: string, data: { name?: string; price?: number; interval?: string; features?: any; isActive?: boolean }) {
+  async updatePlan(
+    id: string,
+    data: { name?: string; price?: number; interval?: string; features?: any; isActive?: boolean },
+  ) {
     return this.prisma.billingPlan.update({
       where: { id },
       data,

@@ -1,6 +1,7 @@
 // src/components/PlateCalculator.tsx
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, Modal } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
 
 const AVAILABLE_PLATES = [25, 20, 15, 10, 5, 2.5, 1.25];
@@ -39,58 +40,63 @@ export default function PlateCalculator({ visible, onClose, initialWeight }: Pla
   const plates = targetWeight ? calculatePlates(parseFloat(targetWeight)) : [];
 
   return (
-    <>
-      <Modal
-        visible={visible}
-        transparent
-        animationType="slide"
-        onRequestClose={onClose}
-      >
-        <View style={styles.modalBg}>
-          <View style={styles.modalContent}>
-            <View style={styles.header}>
-              <Text style={styles.title}>PLATE CALCULATOR</Text>
-              <Pressable onPress={onClose} style={styles.closeBtn}>
-                <Text style={styles.closeBtnText}>✕</Text>
-              </Pressable>
-            </View>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalBg}>
+        <View style={styles.modalContent}>
+          <View style={styles.header}>
+            <Text style={styles.title}>PLATE CALCULATOR</Text>
+            <Pressable
+              onPress={onClose}
+              style={({ pressed }) => [styles.closeBtn, pressed && styles.closeBtnPressed]}
+              accessibilityRole="button"
+              accessibilityLabel="Cerrar calculadora"
+              hitSlop={8}
+            >
+              <Ionicons name="close" size={20} color={Colors.textSecondary} />
+            </Pressable>
+          </View>
 
-            <View style={styles.inputWrap}>
-              <Text style={styles.label}>TARGET WEIGHT (KG)</Text>
-              <TextInput
-                style={styles.input}
-                keyboardType="numeric"
-                autoFocus
-                placeholder="100"
-                placeholderTextColor={Colors.textMuted}
-                value={targetWeight}
-                onChangeText={setTargetWeight}
-              />
-              <Text style={styles.hint}>Assumes a standard 20kg barbell.</Text>
-            </View>
+          <View style={styles.inputWrap}>
+            <Text style={styles.label}>TARGET WEIGHT (KG)</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="numeric"
+              autoFocus
+              placeholder="100"
+              placeholderTextColor={Colors.textMuted}
+              value={targetWeight}
+              onChangeText={setTargetWeight}
+              selectionColor={Colors.primary}
+            />
+            <Text style={styles.hint}>Assumes a standard 20kg barbell.</Text>
+          </View>
 
-            <View style={styles.resultArea}>
-              <Text style={styles.resultTitle}>PLATES PER SIDE</Text>
-              {targetWeight && parseFloat(targetWeight) < 20 ? (
-                <Text style={styles.errorText}>Weight is less than the bar (20kg)</Text>
-              ) : targetWeight && plates.length === 0 ? (
-                <Text style={styles.successText}>Just the bar!</Text>
-              ) : plates.length > 0 ? (
-                <View style={styles.platesRow}>
-                  {plates.map((p, i) => (
-                    <View key={i} style={styles.plate}>
-                      <Text style={styles.plateText}>{p}</Text>
-                    </View>
-                  ))}
-                </View>
-              ) : (
-                <Text style={styles.emptyText}>Enter a weight to calculate</Text>
-              )}
-            </View>
+          <View style={styles.resultArea}>
+            <Text style={styles.resultTitle}>PLATES PER SIDE</Text>
+            {targetWeight && parseFloat(targetWeight) < 20 ? (
+              <Text style={styles.errorText}>Weight is less than the bar (20kg)</Text>
+            ) : targetWeight && plates.length === 0 ? (
+              <Text style={styles.successText}>Just the bar!</Text>
+            ) : plates.length > 0 ? (
+              <View style={styles.platesRow}>
+                {plates.map((p, i) => (
+                  <View key={i} style={styles.plate}>
+                    <Text style={styles.plateText}>{p}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.emptyText}>Enter a weight to calculate</Text>
+            )}
           </View>
         </View>
-      </Modal>
-    </>
+      </View>
+    </Modal>
   );
 }
 
@@ -120,13 +126,16 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
   closeBtn: {
-    padding: 8,
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: `${Colors.elevated}80`,
-    borderRadius: 16,
+    borderRadius: 18,
   },
-  closeBtnText: {
-    color: Colors.textTertiary,
-    fontSize: 16,
+  closeBtnPressed: {
+    opacity: 0.6,
+    backgroundColor: Colors.elevated,
   },
   inputWrap: { marginBottom: 24 },
   label: {
@@ -190,7 +199,19 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: '#FFF',
   },
-  errorText: { fontFamily: 'DMSans-Medium', color: Colors.error },
-  successText: { fontFamily: 'DMSans-Bold', color: Colors.success, fontSize: 18 },
-  emptyText: { fontFamily: 'DMSans-Medium', color: Colors.textTertiary },
+  errorText: {
+    fontFamily: 'DMSans-Medium',
+    fontSize: 14,
+    color: Colors.error,
+  },
+  successText: {
+    fontFamily: 'DMSans-Bold',
+    fontSize: 18,
+    color: Colors.success,
+  },
+  emptyText: {
+    fontFamily: 'DMSans-Medium',
+    fontSize: 14,
+    color: Colors.textTertiary,
+  },
 });

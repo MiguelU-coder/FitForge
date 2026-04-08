@@ -60,7 +60,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   _restoreSession: async () => {
-    const { data } = await supabase.auth.getSession();
+    const { data, error } = await supabase.auth.getSession();
+    
+    if (error?.name === 'AuthApiError' && error.message.includes('Refresh Token Not Found')) {
+      await supabase.auth.signOut();
+      return;
+    }
+    
     if (data.session) {
       get()._updateUserFromSession(data.session);
     }

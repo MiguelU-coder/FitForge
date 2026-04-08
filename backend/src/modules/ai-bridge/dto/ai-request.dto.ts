@@ -448,7 +448,7 @@ export class CoachAnalyzeRequestDto {
   isPR!: boolean;
 
   @IsString()
-  injuryRisk!: string;  // "LOW" | "MODERATE" | "HIGH"
+  injuryRisk!: string; // "LOW" | "MODERATE" | "HIGH"
 
   @IsOptional()
   @IsNumber()

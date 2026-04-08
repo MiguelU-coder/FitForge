@@ -1,5 +1,7 @@
 // src/components/SessionSummary.tsx
 import { View, Text, StyleSheet, Modal, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../theme/colors';
 import { WorkoutSession } from '../types/workout';
 
@@ -28,32 +30,51 @@ export default function SessionSummary({ session, visible, onClose }: SessionSum
     >
       <View style={styles.modalBg}>
         <View style={styles.modalContent}>
-          <Text style={styles.congrats}>WORKOUT COMPLETE! 🏆</Text>
+          <View style={styles.trophyWrap}>
+            <Ionicons name="trophy" size={36} color={Colors.primaryBright} />
+          </View>
+
+          <Text style={styles.congrats}>WORKOUT COMPLETE</Text>
           <Text style={styles.title}>{session.name}</Text>
-          
+
           <View style={styles.statsGrid}>
             <View style={styles.statBox}>
-              <Text style={styles.statLabel}>DURATION</Text>
+              <Ionicons name="time-outline" size={16} color={Colors.textTertiary} style={styles.statIcon} />
+              <Text style={styles.statLabel}>DURACIÓN</Text>
               <Text style={styles.statValue}>{durationMin}m</Text>
             </View>
             <View style={styles.statBox}>
-              <Text style={styles.statLabel}>VOLUME</Text>
+              <Ionicons name="barbell-outline" size={16} color={Colors.textTertiary} style={styles.statIcon} />
+              <Text style={styles.statLabel}>VOLUMEN</Text>
               <Text style={styles.statValue}>{totalVolume} kg</Text>
             </View>
             <View style={styles.statBox}>
-              <Text style={styles.statLabel}>SETS</Text>
+              <Ionicons name="layers-outline" size={16} color={Colors.textTertiary} style={styles.statIcon} />
+              <Text style={styles.statLabel}>SERIES</Text>
               <Text style={styles.statValue}>{totalSets}</Text>
             </View>
             {session.perceivedExertion ? (
-               <View style={styles.statBox}>
-               <Text style={styles.statLabel}>RPE (EFFORT)</Text>
-               <Text style={styles.statValue}>{session.perceivedExertion}/10</Text>
-             </View>
+              <View style={styles.statBox}>
+                <Ionicons name="pulse-outline" size={16} color={Colors.textTertiary} style={styles.statIcon} />
+                <Text style={styles.statLabel}>RPE (EFFORT)</Text>
+                <Text style={styles.statValue}>{session.perceivedExertion}/10</Text>
+              </View>
             ) : null}
           </View>
 
-          <Pressable style={styles.closeBtn} onPress={onClose}>
-            <Text style={styles.closeBtnText}>DONE</Text>
+          <Pressable
+            onPress={onClose}
+            accessibilityRole="button"
+            accessibilityLabel="Cerrar resumen del workout"
+          >
+            <LinearGradient
+              colors={[Colors.primary, Colors.primaryBright]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.closeBtn}
+            >
+              <Text style={styles.closeBtnText}>DONE</Text>
+            </LinearGradient>
           </Pressable>
         </View>
       </View>
@@ -76,26 +97,38 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: `${Colors.primary}4D`,
   },
+  trophyWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: `${Colors.primary}1A`,
+    borderWidth: 1,
+    borderColor: `${Colors.primary}40`,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   congrats: {
     fontFamily: 'DMSans-Bold',
-    fontSize: 14,
+    fontSize: 12,
     letterSpacing: 2,
     color: Colors.primaryBright,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   title: {
     fontFamily: 'BebasNeue',
     fontSize: 32,
     color: Colors.textPrimary,
-    marginBottom: 32,
+    marginBottom: 28,
     textAlign: 'center',
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 16,
-    marginBottom: 32,
+    gap: 12,
+    marginBottom: 28,
+    width: '100%',
   },
   statBox: {
     backgroundColor: `${Colors.elevated}80`,
@@ -106,12 +139,15 @@ const styles = StyleSheet.create({
     minWidth: '45%',
     alignItems: 'center',
   },
+  statIcon: {
+    marginBottom: 6,
+  },
   statLabel: {
     fontFamily: 'DMSans-Bold',
-    fontSize: 11,
+    fontSize: 10,
     letterSpacing: 1.5,
     color: Colors.textTertiary,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   statValue: {
     fontFamily: 'BebasNeue',
@@ -119,7 +155,6 @@ const styles = StyleSheet.create({
     color: Colors.secondaryBright,
   },
   closeBtn: {
-    backgroundColor: Colors.primary,
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 16,
@@ -128,8 +163,8 @@ const styles = StyleSheet.create({
   },
   closeBtnText: {
     fontFamily: 'DMSans-Bold',
-    fontSize: 16,
+    fontSize: 15,
     letterSpacing: 2,
     color: '#FFF',
-  }
+  },
 });

@@ -132,15 +132,18 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
+      console.log('[Onboarding] Generando rutina con:', { trainingLevel, gender, mainGoal });
       const response = await apiClient.post('/routines/generate-initial', {
         trainingLevel,
         gender,
         mainGoal,
       });
 
+      console.log('[Onboarding] Rutina generada:', response.data);
       set({ generatedProgram: response.data });
-    } catch (e) {
-      set({ error: 'Error al generar rutina' });
+    } catch (e: any) {
+      console.error('[Onboarding] Error generando rutina:', e.response?.status, e.response?.data || e.message);
+      set({ error: `Error al generar rutina: ${e.response?.status || 'desconocido'}` });
       throw e;
     } finally {
       set({ isLoading: false });

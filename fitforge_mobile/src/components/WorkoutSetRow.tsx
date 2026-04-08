@@ -36,7 +36,7 @@ export default function WorkoutSetRow({
   onWeightChange, onRepsChange, onRirChange, onCheck, onDelete, onBlur, onOpenCalculator
 }: WorkoutSetRowProps) {
 
-  const renderRightActions = (progress: any, dragX: any) => {
+  const renderRightActions = (_progress: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>) => {
     const scale = dragX.interpolate({
       inputRange: [-80, 0],
       outputRange: [1, 0.5],
@@ -81,12 +81,14 @@ export default function WorkoutSetRow({
             editable={!isCompleted}
           />
           {onOpenCalculator && !isCompleted && (
-            <Pressable 
-                style={styles.calcTrigger} 
+            <Pressable
+                style={styles.calcTrigger}
                 onPress={onOpenCalculator}
-                hitSlop={6}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel="Abrir calculadora de discos"
             >
-                <Ionicons name="calculator-outline" size={10} color={Colors.textTertiary} />
+                <Ionicons name="calculator-outline" size={12} color={Colors.textTertiary} />
             </Pressable>
           )}
         </View>
@@ -273,8 +275,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 2,
     bottom: 2,
-    backgroundColor: '#333',
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#2A2A2A',
     borderRadius: 4,
-    padding: 1,
   }
 });

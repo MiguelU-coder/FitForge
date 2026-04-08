@@ -377,8 +377,7 @@ export class WorkoutsService {
     // ── PR detection (solo para sets de trabajo no fallidos) ─────────────────
     const weightKg = dto.weightKg ?? 0;
     const reps = dto.reps ?? 0;
-    const shouldCheckPR =
-      dto.setType === 'WORKING' && !dto.isFailed && weightKg > 0 && reps > 0;
+    const shouldCheckPR = dto.setType === 'WORKING' && !dto.isFailed && weightKg > 0 && reps > 0;
     let prResult: Awaited<ReturnType<typeof this.checkAndUpdatePR>> | null = null;
 
     if (shouldCheckPR) {
@@ -501,7 +500,7 @@ export class WorkoutsService {
         where: { externalId },
         select: { id: true },
       });
-      if (!exercise) return null;   // not yet imported — no history
+      if (!exercise) return null; // not yet imported — no history
       resolvedExerciseId = exercise.id;
     }
 
@@ -539,7 +538,9 @@ export class WorkoutsService {
           exerciseBlocks: {
             orderBy: { sortOrder: 'asc' },
             include: {
-              exercise: { select: { id: true, name: true, primaryMuscles: true, isUnilateral: true } },
+              exercise: {
+                select: { id: true, name: true, primaryMuscles: true, isUnilateral: true },
+              },
               sets: { orderBy: { setNumber: 'asc' } },
             },
           },

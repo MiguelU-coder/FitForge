@@ -11,5 +11,3 @@ import { AdminSettingsController } from './admin-settings.controller';
   exports: [AdminService, PrismaService],
 })
 export class AdminModule {}
-
-

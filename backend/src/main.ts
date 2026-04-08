@@ -72,7 +72,9 @@ async function bootstrap(): Promise<void> {
   // ── 2.5 Request Debugger ───────────────────────────────────────────────────
   app.use((req: any, res: any, next: any) => {
     console.log(`\n[INCOMING REQUEST] ${req.method} ${req.url}`);
-    console.log(`[AUTH HEADER] ${req.headers.authorization ? req.headers.authorization.substring(0, 30) + '...' : 'Missing'}`);
+    console.log(
+      `[AUTH HEADER] ${req.headers.authorization ? req.headers.authorization.substring(0, 30) + '...' : 'Missing'}`,
+    );
     next();
   });
 

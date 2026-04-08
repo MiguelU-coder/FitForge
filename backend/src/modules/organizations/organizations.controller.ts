@@ -34,7 +34,7 @@ export class OrganizationsController {
   @Roles(UserRole.GLOBAL_ADMIN, UserRole.ORG_ADMIN)
   async update(
     @Param('id') id: string,
-    @Body() body: { name?: string; slug?: string; logoUrl?: string; planId?: string }
+    @Body() body: { name?: string; slug?: string; logoUrl?: string; planId?: string },
   ) {
     const org = await this.organizationsService.update(id, body);
     return { success: true, data: org };
@@ -59,10 +59,7 @@ export class OrganizationsController {
 
   @Delete(':id/users/:userId')
   @Roles(UserRole.ORG_ADMIN, UserRole.GLOBAL_ADMIN)
-  removeUser(
-    @Param('id') organizationId: string,
-    @Param('userId') userId: string,
-  ) {
+  removeUser(@Param('id') organizationId: string, @Param('userId') userId: string) {
     return this.organizationsService.removeUser(organizationId, userId);
   }
 

@@ -134,13 +134,17 @@ export class StripeController {
       await this.organizationsService.markAsPaid(customerId);
 
       // Complete organization creation (create user, send email, etc.)
-      const result = await this.organizationsService.completeOrganizationAfterPayment(pendingOrg.id);
+      const result = await this.organizationsService.completeOrganizationAfterPayment(
+        pendingOrg.id,
+      );
 
       // Send payment confirmation email
       if (result.userId) {
         const user = await this.prisma.user.findUnique({ where: { id: result.userId } });
         if (user) {
-          const org = await this.prisma.organization.findUnique({ where: { id: result.organizationId } });
+          const org = await this.prisma.organization.findUnique({
+            where: { id: result.organizationId },
+          });
           const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
           const paymentLink = `${frontendUrl}/billing`;
 

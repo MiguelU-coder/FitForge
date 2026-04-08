@@ -24,7 +24,8 @@ export class BillingPlansController {
   @Roles(UserRole.GLOBAL_ADMIN)
   update(
     @Param('id') id: string,
-    @Body() body: { name?: string; price?: number; interval?: string; features?: any; isActive?: boolean },
+    @Body()
+    body: { name?: string; price?: number; interval?: string; features?: any; isActive?: boolean },
   ) {
     return this.billingService.updatePlan(id, body);
   }

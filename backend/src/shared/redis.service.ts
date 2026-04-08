@@ -86,7 +86,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      this.logger.debug(`Could not check Redis config (likely a managed service without CONFIG access): ${message}`);
+      this.logger.debug(
+        `Could not check Redis config (likely a managed service without CONFIG access): ${message}`,
+      );
     }
   }
 

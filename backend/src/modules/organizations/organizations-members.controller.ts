@@ -50,10 +50,7 @@ export class OrganizationMembersController {
     if (search) {
       where.user = {
         ...where.user,
-        OR: [
-          { displayName: { ilike: `%${search}%` } },
-          { email: { ilike: `%${search}%` } },
-        ],
+        OR: [{ displayName: { ilike: `%${search}%` } }, { email: { ilike: `%${search}%` } }],
       };
     }
 
@@ -138,11 +135,14 @@ export class OrganizationMembersController {
           role: m.role,
           joinedAt: m.joinedAt,
           status: m.user.subscriptionStatus,
-          subscription: includeSubscription === 'true' ? {
-            planId: m.user.subscriptionPlanId,
-            status: m.user.subscriptionStatus,
-            currentPeriodEnd: m.user.subscriptionCurrentPeriodEnd,
-          } : undefined,
+          subscription:
+            includeSubscription === 'true'
+              ? {
+                  planId: m.user.subscriptionPlanId,
+                  status: m.user.subscriptionStatus,
+                  currentPeriodEnd: m.user.subscriptionCurrentPeriodEnd,
+                }
+              : undefined,
         })),
         stats,
       },
@@ -269,20 +269,24 @@ export class OrganizationMembersController {
 
     // Send welcome email with credentials (fire-and-forget, don't block response)
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    this.getOrganizationName(organizationId).then((orgName) => {
-      this.organizationsService.sendWelcomeEmailToMember({
-        email: result.data.email,
-        password: result.data.password || '',
-        displayName: result.data.displayName,
-        organizationName: orgName,
-        loginUrl: `${frontendUrl}/login`,
-        role: result.data.role,
-      }).catch((err) => {
-        console.error('Failed to send welcome email:', err);
+    this.getOrganizationName(organizationId)
+      .then((orgName) => {
+        this.organizationsService
+          .sendWelcomeEmailToMember({
+            email: result.data.email,
+            password: result.data.password || '',
+            displayName: result.data.displayName,
+            organizationName: orgName,
+            loginUrl: `${frontendUrl}/login`,
+            role: result.data.role,
+          })
+          .catch((err) => {
+            console.error('Failed to send welcome email:', err);
+          });
+      })
+      .catch((err) => {
+        console.error('Failed to get organization name for email:', err);
       });
-    }).catch((err) => {
-      console.error('Failed to get organization name for email:', err);
-    });
 
     return {
       ...result,

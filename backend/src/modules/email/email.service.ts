@@ -34,7 +34,9 @@ export class EmailService {
       this.logger.log('✅ Resend initialized');
     } else {
       this.resend = null;
-      this.logger.warn('⚠️ RESEND_API_KEY not configured - emails will only be logged in development mode');
+      this.logger.warn(
+        '⚠️ RESEND_API_KEY not configured - emails will only be logged in development mode',
+      );
     }
   }
 

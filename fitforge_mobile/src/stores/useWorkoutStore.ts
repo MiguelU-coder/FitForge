@@ -306,7 +306,12 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
       const programs = response.data as any[];
       for (const prog of programs) {
         const routines = prog.routines || [];
-        allTemplates.push(...routines);
+        // Ensure each routine has items array
+        const normalizedRoutines = routines.map((r: any) => ({
+          ...r,
+          items: r.items || [],
+        }));
+        allTemplates.push(...normalizedRoutines);
       }
       set({ templates: allTemplates, isLoading: false });
     } catch (e: any) {

@@ -28,15 +28,15 @@ export class StripeService {
   async createCustomer(params: {
     email: string;
     name: string;
-    userId: string;       // your internal user ID as metadata
+    userId: string; // your internal user ID as metadata
     orgId?: string;
   }): Promise<string> {
     const customer = await this.stripe.customers.create({
-      email:    params.email,
-      name:     params.name,
+      email: params.email,
+      name: params.name,
       metadata: {
         userId: params.userId,
-        orgId:  params.orgId ?? '',
+        orgId: params.orgId ?? '',
       },
     });
     this.logger.log(`Stripe customer created: ${customer.id} for user ${params.userId}`);
@@ -51,9 +51,9 @@ export class StripeService {
    * Returns the Stripe Price ID — store this on your Plan entity.
    */
   async syncPlan(params: {
-    planId:   string;   // your DB plan ID
-    name:     string;   // e.g. "Gold", "Enterprise"
-    amount:   number;   // in dollars (will be converted to cents)
+    planId: string; // your DB plan ID
+    name: string; // e.g. "Gold", "Enterprise"
+    amount: number; // in dollars (will be converted to cents)
     interval: 'month' | 'year';
   }): Promise<string> {
     // Check if product already exists using metadata search
@@ -67,7 +67,7 @@ export class StripeService {
       productId = existingProducts.data[0].id;
     } else {
       const product = await this.stripe.products.create({
-        name:     params.name,
+        name: params.name,
         metadata: { planId: params.planId },
       });
       productId = product.id;
@@ -76,20 +76,20 @@ export class StripeService {
     // Check if price already exists for this product
     const existingPrices = await this.stripe.prices.list({
       product: productId,
-      active:  true,
+      active: true,
     });
 
     if (existingPrices.data.length > 0) {
-      return existingPrices.data[0].id;  // reuse existing price
+      return existingPrices.data[0].id; // reuse existing price
     }
 
     // Create new recurring price
     const price = await this.stripe.prices.create({
-      product:        productId,
-      unit_amount:    Math.round(params.amount * 100),  // cents
-      currency:       'usd',
-      recurring:      { interval: params.interval },
-      metadata:       { planId: params.planId },
+      product: productId,
+      unit_amount: Math.round(params.amount * 100), // cents
+      currency: 'usd',
+      recurring: { interval: params.interval },
+      metadata: { planId: params.planId },
     });
 
     this.logger.log(`Stripe price synced: ${price.id} for plan ${params.planId}`);
@@ -103,28 +103,28 @@ export class StripeService {
    */
   async createShortCheckoutLink(params: {
     stripeCustomerId: string;
-    stripePriceId:    string;
-    userId:           string;
-    planId:           string;
-    organizationId?:  string;
+    stripePriceId: string;
+    userId: string;
+    planId: string;
+    organizationId?: string;
   }): Promise<string> {
     const appUrl = this.config.get<string>('APP_URL') ?? 'http://localhost:3000';
     const baseUrl = appUrl.replace(/\/$/, '');
 
     const session = await this.stripe.checkout.sessions.create({
       payment_method_types: ['card'],
-      customer:    params.stripeCustomerId,
-      mode:        'subscription',
-      line_items:  [{ price: params.stripePriceId, quantity: 1 }],
+      customer: params.stripeCustomerId,
+      mode: 'subscription',
+      line_items: [{ price: params.stripePriceId, quantity: 1 }],
       success_url: `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url:  `${baseUrl}/payment/cancel`,
+      cancel_url: `${baseUrl}/payment/cancel`,
       metadata: {
         userId: params.userId,
         planId: params.planId,
         orgId: params.organizationId ?? '',
       },
-      customer_update:       { name: 'auto', address: 'auto' },
-      subscription_data:     { metadata: { userId: params.userId, planId: params.planId } },
+      customer_update: { name: 'auto', address: 'auto' },
+      subscription_data: { metadata: { userId: params.userId, planId: params.planId } },
       allow_promotion_codes: true,
     });
 
@@ -135,7 +135,7 @@ export class StripeService {
       data: {
         shortId,
         url: session.url!,
-      }
+      },
     });
 
     return `${baseUrl}/c/${shortId}`;
@@ -147,28 +147,29 @@ export class StripeService {
    */
   async createCheckoutSession(params: {
     stripeCustomerId: string;
-    stripePriceId:    string;
-    userId:           string;
-    successUrl?:      string;
-    cancelUrl?:       string;
+    stripePriceId: string;
+    userId: string;
+    successUrl?: string;
+    cancelUrl?: string;
   }): Promise<{ sessionId: string; checkoutUrl: string }> {
     const appUrl = this.config.get<string>('APP_URL') ?? 'http://localhost:3000';
 
     const session = await this.stripe.checkout.sessions.create({
       payment_method_types: ['card'],
-      customer:    params.stripeCustomerId,
-      mode:        'subscription',
-      line_items:  [{ price: params.stripePriceId, quantity: 1 }],
-      success_url: params.successUrl ?? `${appUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url:  params.cancelUrl  ?? `${appUrl}/payment/cancel`,
-      metadata:    { userId: params.userId },
-      customer_update:       { name: 'auto', address: 'auto' },
-      subscription_data:     { metadata: { userId: params.userId } },
+      customer: params.stripeCustomerId,
+      mode: 'subscription',
+      line_items: [{ price: params.stripePriceId, quantity: 1 }],
+      success_url:
+        params.successUrl ?? `${appUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: params.cancelUrl ?? `${appUrl}/payment/cancel`,
+      metadata: { userId: params.userId },
+      customer_update: { name: 'auto', address: 'auto' },
+      subscription_data: { metadata: { userId: params.userId } },
       allow_promotion_codes: true,
     });
 
     return {
-      sessionId:   session.id,
+      sessionId: session.id,
       checkoutUrl: session.url!,
     };
   }
@@ -181,8 +182,8 @@ export class StripeService {
   async hasActiveSubscription(stripeCustomerId: string): Promise<boolean> {
     const subscriptions = await this.stripe.subscriptions.list({
       customer: stripeCustomerId,
-      status:   'active',
-      limit:    1,
+      status: 'active',
+      limit: 1,
     });
     return subscriptions.data.length > 0;
   }
@@ -205,9 +206,9 @@ export class StripeService {
   async getSubscription(stripeCustomerId: string): Promise<Stripe.Subscription | null> {
     const list = await this.stripe.subscriptions.list({
       customer: stripeCustomerId,
-      status:   'all',
-      limit:    1,
-      expand:   ['data.items.data.price.product'],
+      status: 'all',
+      limit: 1,
+      expand: ['data.items.data.price.product'],
     });
     return list.data[0] ?? null;
   }

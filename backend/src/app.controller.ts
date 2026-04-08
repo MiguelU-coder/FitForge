@@ -17,7 +17,7 @@ export class AppController {
   @Get('c/:shortId')
   async redirectCheckout(@Param('shortId') shortId: string, @Res() res: Response) {
     const link = await this.prisma.checkoutLink.findUnique({
-      where: { shortId }
+      where: { shortId },
     });
     if (!link) {
       throw new NotFoundException('Invalid or expired checkout link');
@@ -29,26 +29,28 @@ export class AppController {
   @Public()
   @Get('payment/success')
   handlePaymentSuccess(@Res() res: Response) {
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL') ||
-                        this.configService.get<string>('CORS_ORIGINS')?.split(',')[0] ||
-                        'http://localhost:5173';
-    
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') ||
+      this.configService.get<string>('CORS_ORIGINS')?.split(',')[0] ||
+      'http://localhost:5173';
+
     const targetUrl = `${frontendUrl.replace(/\/$/, '')}/login?payment_success=true`;
     this.logger.log(`Redirecting SUCCESS to: ${targetUrl}`);
-    
+
     return res.redirect(302, targetUrl);
   }
 
   @Public()
   @Get('payment/cancel')
   handlePaymentCancel(@Res() res: Response) {
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL') ||
-                        this.configService.get<string>('CORS_ORIGINS')?.split(',')[0] ||
-                        'http://localhost:5173';
-    
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') ||
+      this.configService.get<string>('CORS_ORIGINS')?.split(',')[0] ||
+      'http://localhost:5173';
+
     const targetUrl = `${frontendUrl.replace(/\/$/, '')}/login?payment_canceled=true`;
     this.logger.log(`Redirecting CANCEL to: ${targetUrl}`);
-    
+
     return res.redirect(302, targetUrl);
   }
 }

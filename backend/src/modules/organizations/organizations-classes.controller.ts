@@ -18,10 +18,7 @@ export class OrganizationClassesController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get(':id/classes')
-  async getClasses(
-    @Param('id') organizationId: string,
-    @Request() req: any,
-  ) {
+  async getClasses(@Param('id') organizationId: string, @Request() req: any) {
     const classes = await this.prisma.gymClass.findMany({
       where: { organizationId },
       include: {
@@ -230,10 +227,7 @@ export class OrganizationClassesController {
   }
 
   @Get(':id/trainers')
-  async getTrainers(
-    @Param('id') organizationId: string,
-    @Request() req: any,
-  ) {
+  async getTrainers(@Param('id') organizationId: string, @Request() req: any) {
     const trainers = await this.prisma.userOrganization.findMany({
       where: {
         organizationId,

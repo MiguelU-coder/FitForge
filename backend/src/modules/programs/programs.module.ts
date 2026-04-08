@@ -122,8 +122,8 @@ export class ProgramsService {
   }
 
   async getProgram(userId: string, programId: string, organizationId?: string) {
-    const where: any = organizationId 
-      ? { id: programId, organizationId } 
+    const where: any = organizationId
+      ? { id: programId, organizationId }
       : { id: programId, userId };
 
     const program = await this.prisma.program.findFirst({
@@ -331,13 +331,13 @@ export class ProgramsController {
 
   @Get()
   getPrograms(
-    @CurrentUser() user: AuthUser, 
+    @CurrentUser() user: AuthUser,
     @Query('includeActive') includeActive?: string,
-    @Query('organizationId') organizationId?: string
+    @Query('organizationId') organizationId?: string,
   ) {
     // If organizationId is provided, check if user belongs to it
     const targetOrgId = organizationId;
-    if (targetOrgId && !user.organizations.some(o => o.id === targetOrgId)) {
+    if (targetOrgId && !user.organizations.some((o) => o.id === targetOrgId)) {
       throw new NotFoundException('Organization not found or access denied');
     }
 

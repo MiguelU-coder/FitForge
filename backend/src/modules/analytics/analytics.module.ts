@@ -1,12 +1,5 @@
 // src/modules/analytics/analytics.module.ts
-import {
-  Module,
-  Injectable,
-  Controller,
-  Get,
-  Query,
-  Logger,
-} from '@nestjs/common';
+import { Module, Injectable, Controller, Get, Query, Logger } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
@@ -33,7 +26,7 @@ export class AnalyticsService {
    */
   async getVolumeSummary(userId: string, weeks: number) {
     const startDate = new Date();
-    startDate.setDate(startDate.getDate() - (weeks * 7));
+    startDate.setDate(startDate.getDate() - weeks * 7);
 
     const summaries = await this.prisma.weeklyVolumeSummary.findMany({
       where: {
@@ -46,9 +39,10 @@ export class AnalyticsService {
     // Calculate totals
     const totalVolume = summaries.reduce((sum, s) => sum + Number(s.totalVolumeKg), 0);
     const totalSets = summaries.reduce((sum, s) => sum + s.totalSets, 0);
-    const avgRir = summaries.length > 0
-      ? summaries.reduce((sum, s) => sum + Number(s.avgRir || 0), 0) / summaries.length
-      : null;
+    const avgRir =
+      summaries.length > 0
+        ? summaries.reduce((sum, s) => sum + Number(s.avgRir || 0), 0) / summaries.length
+        : null;
 
     // Group by muscle
     const byMuscle: Record<string, { sets: number; volume: number }> = {};
@@ -124,13 +118,17 @@ export class AnalyticsService {
       sessionDate.setHours(0, 0, 0, 0);
 
       if (!lastDate) {
-        const daysDiff = Math.floor((today.getTime() - sessionDate.getTime()) / (1000 * 60 * 60 * 24));
+        const daysDiff = Math.floor(
+          (today.getTime() - sessionDate.getTime()) / (1000 * 60 * 60 * 24),
+        );
         if (daysDiff <= 1) {
           tempStreak = 1;
           currentStreak = 1;
         }
       } else {
-        const daysDiff = Math.floor((lastDate.getTime() - sessionDate.getTime()) / (1000 * 60 * 60 * 24));
+        const daysDiff = Math.floor(
+          (lastDate.getTime() - sessionDate.getTime()) / (1000 * 60 * 60 * 24),
+        );
         if (daysDiff === 1) {
           tempStreak++;
           if (currentStreak > 0) currentStreak = tempStreak;
@@ -157,7 +155,7 @@ export class AnalyticsService {
    */
   async getTrainingFrequency(userId: string, weeks: number = 4) {
     const startDate = new Date();
-    startDate.setDate(startDate.getDate() - (weeks * 7));
+    startDate.setDate(startDate.getDate() - weeks * 7);
 
     const sessions = await this.prisma.workoutSession.findMany({
       where: {
@@ -209,10 +207,7 @@ export class AnalyticsController {
   }
 
   @Get('personal-records')
-  getPersonalRecords(
-    @CurrentUser() user: AuthUser,
-    @Query('exerciseId') exerciseId?: string,
-  ) {
+  getPersonalRecords(@CurrentUser() user: AuthUser, @Query('exerciseId') exerciseId?: string) {
     return this.analyticsService.getPersonalRecords(user.id, exerciseId);
   }
 
@@ -222,10 +217,7 @@ export class AnalyticsController {
   }
 
   @Get('frequency')
-  getTrainingFrequency(
-    @CurrentUser() user: AuthUser,
-    @Query('weeks') weeks?: string,
-  ) {
+  getTrainingFrequency(@CurrentUser() user: AuthUser, @Query('weeks') weeks?: string) {
     const weeksNum = weeks ? parseInt(weeks, 10) : 4;
     return this.analyticsService.getTrainingFrequency(user.id, weeksNum);
   }

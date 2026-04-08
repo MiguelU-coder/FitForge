@@ -1,5 +1,6 @@
 // src/components/onboarding/GenderSelector.tsx
 import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/colors';
 import type { Gender } from '../../stores/useOnboardingStore';
 
@@ -8,11 +9,13 @@ interface GenderSelectorProps {
   onSelect: (gender: Gender) => void;
 }
 
-const GENDERS: Array<{ value: Gender; label: string; icon: string; description: string }> = [
-  { value: 'MALE', label: 'Masculino', icon: '♂️', description: 'Biomecánica masculina' },
-  { value: 'FEMALE', label: 'Femenino', icon: '♀️', description: 'Biomecánica femenina' },
-  { value: 'NON_BINARY', label: 'No binario', icon: '⚧️', description: 'Otro' },
-  { value: 'OTHER', label: 'Otro', icon: '🧑', description: 'Prefiero no decir' },
+type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
+
+const GENDERS: Array<{ value: Gender; label: string; icon: IoniconName; description: string }> = [
+  { value: 'MALE', label: 'Masculino', icon: 'male-outline', description: 'Biomecánica masculina' },
+  { value: 'FEMALE', label: 'Femenino', icon: 'female-outline', description: 'Biomecánica femenina' },
+  { value: 'NON_BINARY', label: 'No binario', icon: 'transgender-outline', description: 'Otro' },
+  { value: 'OTHER', label: 'Otro', icon: 'person-circle-outline', description: 'Prefiero no decir' },
 ];
 
 export function GenderSelector({ selected, onSelect }: GenderSelectorProps) {
@@ -29,10 +32,23 @@ export function GenderSelector({ selected, onSelect }: GenderSelectorProps) {
           return (
             <Pressable
               key={gender.value}
-              style={[styles.card, isSelected && styles.cardSelected]}
+              style={({ pressed }) => [
+                styles.card,
+                pressed && styles.cardPressed,
+                isSelected && styles.cardSelected,
+              ]}
               onPress={() => onSelect(gender.value)}
+              accessibilityRole="radio"
+              accessibilityLabel={gender.label}
+              accessibilityState={{ selected: isSelected }}
             >
-              <Text style={styles.icon}>{gender.icon}</Text>
+              <View style={[styles.iconWrap, isSelected && styles.iconWrapSelected]}>
+                <Ionicons
+                  name={gender.icon}
+                  size={28}
+                  color={isSelected ? Colors.primary : Colors.textSecondary}
+                />
+              </View>
               <Text style={[styles.label, isSelected && styles.labelSelected]}>
                 {gender.label}
               </Text>
@@ -51,17 +67,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontFamily: 'BebasNeue',
+    fontSize: 32,
     color: Colors.textPrimary,
     marginBottom: 8,
     textAlign: 'center',
+    letterSpacing: 0.5,
   },
   subtitle: {
-    fontSize: 16,
+    fontFamily: 'DMSans-Regular',
+    fontSize: 15,
     color: Colors.textSecondary,
     textAlign: 'center',
     marginBottom: 32,
+    lineHeight: 22,
   },
   grid: {
     flexDirection: 'row',
@@ -78,20 +97,29 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent',
   },
+  cardPressed: {
+    backgroundColor: Colors.elevated,
+    opacity: 0.85,
+  },
   cardSelected: {
     borderColor: Colors.primary,
     backgroundColor: `${Colors.primary}1A`,
   },
-  cardPressed: {
-    backgroundColor: Colors.elevated,
-  },
-  icon: {
-    fontSize: 40,
+  iconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: `${Colors.elevated}80`,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 12,
   },
+  iconWrapSelected: {
+    backgroundColor: `${Colors.primary}1A`,
+  },
   label: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'DMSans-SemiBold',
+    fontSize: 15,
     color: Colors.textPrimary,
     marginBottom: 4,
   },
@@ -99,6 +127,7 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
   description: {
+    fontFamily: 'DMSans-Regular',
     fontSize: 12,
     color: Colors.textTertiary,
     textAlign: 'center',

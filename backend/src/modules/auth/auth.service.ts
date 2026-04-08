@@ -68,7 +68,7 @@ export class AuthService {
       ...user,
       hasCompletedOnboarding: !!user.gender,
       isGlobalAdmin: user.isGlobalAdmin,
-      organizations: user.organizations.map(org => ({
+      organizations: user.organizations.map((org) => ({
         id: org.organizationId,
         role: org.role,
       })),
@@ -112,7 +112,9 @@ export class AuthService {
     }
 
     if (!user.isActive) {
-      throw new UnauthorizedException('Your account is inactive. Please complete your payment or contact support.');
+      throw new UnauthorizedException(
+        'Your account is inactive. Please complete your payment or contact support.',
+      );
     }
 
     return this.generateTokenPair({

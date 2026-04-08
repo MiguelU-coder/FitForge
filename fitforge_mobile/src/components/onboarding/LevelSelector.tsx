@@ -1,5 +1,6 @@
 // src/components/onboarding/LevelSelector.tsx
 import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/colors';
 import type { TrainingLevel } from '../../stores/useOnboardingStore';
 
@@ -59,17 +60,31 @@ export function LevelSelector({ selected, onSelect }: LevelSelectorProps) {
           return (
             <Pressable
               key={level.value}
-              style={[styles.card, isSelected && styles.cardSelected]}
+              style={({ pressed }) => [
+                styles.card,
+                pressed && styles.cardPressed,
+                isSelected && styles.cardSelected,
+              ]}
               onPress={() => onSelect(level.value)}
+              accessibilityRole="radio"
+              accessibilityLabel={`${level.label} — ${level.description}`}
+              accessibilityState={{ selected: isSelected }}
             >
               <View style={styles.cardHeader}>
                 <Text style={[styles.label, isSelected && styles.labelSelected]}>
                   {level.label}
                 </Text>
-                <Text style={styles.frequency}>{level.frequency}</Text>
+                <View style={styles.frequencyBadge}>
+                  <Text style={styles.frequency}>{level.frequency}</Text>
+                </View>
               </View>
               <Text style={styles.description}>{level.description}</Text>
               <Text style={styles.details}>{level.details}</Text>
+              {isSelected && (
+                <View style={styles.checkBadge}>
+                  <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
+                </View>
+              )}
             </Pressable>
           );
         })}
@@ -84,17 +99,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontFamily: 'BebasNeue',
+    fontSize: 32,
     color: Colors.textPrimary,
     marginBottom: 8,
     textAlign: 'center',
+    letterSpacing: 0.5,
   },
   subtitle: {
-    fontSize: 16,
+    fontFamily: 'DMSans-Regular',
+    fontSize: 15,
     color: Colors.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
+    lineHeight: 22,
   },
   list: {
     gap: 12,
@@ -105,6 +123,10 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 2,
     borderColor: 'transparent',
+  },
+  cardPressed: {
+    backgroundColor: Colors.elevated,
+    opacity: 0.85,
   },
   cardSelected: {
     borderColor: Colors.primary,
@@ -117,30 +139,39 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   label: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontFamily: 'DMSans-Bold',
+    fontSize: 17,
     color: Colors.textPrimary,
   },
   labelSelected: {
     color: Colors.primary,
   },
-  frequency: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Colors.primary,
+  frequencyBadge: {
     backgroundColor: `${Colors.primary}1A`,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
   },
+  frequency: {
+    fontFamily: 'DMSans-Medium',
+    fontSize: 13,
+    color: Colors.primary,
+  },
   description: {
-    fontSize: 14,
+    fontFamily: 'DMSans-Regular',
+    fontSize: 13,
     color: Colors.textSecondary,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   details: {
+    fontFamily: 'DMSans-Regular',
     fontSize: 12,
     color: Colors.textTertiary,
-    fontFamily: 'monospace',
+    letterSpacing: 0.2,
+  },
+  checkBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
   },
 });

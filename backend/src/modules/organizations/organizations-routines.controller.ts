@@ -8,10 +8,7 @@ export class OrganizationRoutinesController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get(':id/routines')
-  async getRoutines(
-    @Param('id') organizationId: string,
-    @Request() req: any,
-  ) {
+  async getRoutines(@Param('id') organizationId: string, @Request() req: any) {
     const routines = await this.prisma.routine.findMany({
       where: { organizationId },
       orderBy: { createdAt: 'desc' },

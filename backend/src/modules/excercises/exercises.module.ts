@@ -426,7 +426,11 @@ export class ExercisesService {
     return exercise;
   }
 
-  async createCustom(userId: string, dto: CreateExerciseDto, organizationId?: string): Promise<unknown> {
+  async createCustom(
+    userId: string,
+    dto: CreateExerciseDto,
+    organizationId?: string,
+  ): Promise<unknown> {
     const exercise = await this.prisma.exercise.create({
       data: {
         createdBy: userId,
@@ -568,7 +572,7 @@ export class ExercisesController {
     @Query('organizationId') organizationId?: string,
   ): Promise<unknown> {
     // If organizationId is provided, check if user belongs to it and has permission
-    if (organizationId && !user.organizations.some(o => o.id === organizationId)) {
+    if (organizationId && !user.organizations.some((o) => o.id === organizationId)) {
       throw new NotFoundException('Organization not found or access denied');
     }
     return this.exercisesService.createCustom(user.id, dto, organizationId);

@@ -11,7 +11,16 @@ export class SupportController {
   constructor(private readonly supportService: SupportService) {}
 
   @Post('tickets')
-  async createTicket(@Req() req: any, @Body() body: { subject: string; message: string; priority?: SupportTicketPriority; organizationId?: string }) {
+  async createTicket(
+    @Req() req: any,
+    @Body()
+    body: {
+      subject: string;
+      message: string;
+      priority?: SupportTicketPriority;
+      organizationId?: string;
+    },
+  ) {
     return this.supportService.createTicket(req.user.id, body);
   }
 

@@ -189,6 +189,17 @@ model UserPlate {
   @@map("user_plates")
 }
 
+enum ExerciseType {
+  COMPOUND
+  ISOLATION
+}
+
+enum FatigueLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
 model Exercise {
   id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   createdBy        String?          @map("created_by") @db.Uuid
@@ -200,6 +211,9 @@ model Exercise {
   movementPattern  MovementPattern? @map("movement_pattern")
   isUnilateral     Boolean          @default(false) @map("is_unilateral")
   isCustom         Boolean          @default(false) @map("is_custom")
+  isCompound       Boolean          @default(false) @map("is_compound")
+  exerciseType     ExerciseType?    @map("exercise_type")
+  fatigueLevel     FatigueLevel?    @map("fatigue_level")
   instructions     String?
   videoUrl         String?          @map("video_url")
   imageUrl         String?          @map("image_url")
@@ -233,6 +247,8 @@ model Program {
   createdAt           DateTime                @default(now()) @map("created_at")
   updatedAt           DateTime                @updatedAt @map("updated_at")
   organizationId      String?                 @map("organization_id") @db.Uuid
+  progressionModel    String?                 @map("progression_model") @db.VarChar(50)
+  currentPhase        ProgramPhase?           @map("current_phase") @default(HYPERTROPHY)
   organization        Organization?           @relation(fields: [organizationId], references: [id])
   user                User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
   routines            Routine[]
@@ -563,6 +579,11 @@ enum TrainingLevel {
   IRREGULAR
   MEDIUM
   ADVANCED
+}
+
+enum ProgramPhase {
+  HYPERTROPHY
+  INTENSITY
 }
 
 enum ActivityInterest {

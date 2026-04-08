@@ -1,13 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Param,
-  UseGuards,
-  Request,
-  Patch,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Request, Patch } from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PrismaService } from '../../database/prisma.service';
 import { PaymentStatus } from '@prisma/client';
@@ -192,10 +183,7 @@ export class OrganizationPaymentsController {
   }
 
   @Get(':id/payments/stats/monthly')
-  async getMonthlyPaymentStats(
-    @Param('id') organizationId: string,
-    @Request() req: any,
-  ) {
+  async getMonthlyPaymentStats(@Param('id') organizationId: string, @Request() req: any) {
     const now = new Date();
     const monthlyData = [];
 

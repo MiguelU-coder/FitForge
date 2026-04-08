@@ -1,6 +1,6 @@
-import { 
-  Injectable, 
-  NotFoundException, 
+import {
+  Injectable,
+  NotFoundException,
   Controller,
   Get,
   Patch,
@@ -19,7 +19,7 @@ import {
   Headers,
   Req,
   RawBodyRequest,
-  BadRequestException
+  BadRequestException,
 } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { PrismaService } from '../../database/prisma.service';
@@ -700,10 +700,13 @@ export class StripeWebhookController {
           if (userId) {
             await this.usersService.activateSubscription(userId, {
               stripeSubscriptionId: session.subscription as string,
-              subscriptionStatus:   'active',
+              subscriptionStatus: 'active',
             });
             this.logger.log(`User ${userId} subscription activated`);
-            await this.logEvent(userId, event.type, { sessionId: session.id, subscriptionId: session.subscription });
+            await this.logEvent(userId, event.type, {
+              sessionId: session.id,
+              subscriptionId: session.subscription,
+            });
           }
         }
         break;
@@ -711,28 +714,43 @@ export class StripeWebhookController {
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice;
         const customerId = invoice.customer as string;
-        const user = await this.prisma.user.findUnique({ where: { stripeCustomerId: customerId }, select: { id: true } });
+        const user = await this.prisma.user.findUnique({
+          where: { stripeCustomerId: customerId },
+          select: { id: true },
+        });
         if (user) {
           await this.usersService.updateSubscriptionStatus(customerId, 'active');
-          await this.logEvent(user.id, event.type, { amount: invoice.amount_paid, invoiceId: invoice.id });
+          await this.logEvent(user.id, event.type, {
+            amount: invoice.amount_paid,
+            invoiceId: invoice.id,
+          });
         }
         break;
       }
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice;
         const customerId = invoice.customer as string;
-        const user = await this.prisma.user.findUnique({ where: { stripeCustomerId: customerId }, select: { id: true } });
+        const user = await this.prisma.user.findUnique({
+          where: { stripeCustomerId: customerId },
+          select: { id: true },
+        });
         if (user) {
           await this.usersService.updateSubscriptionStatus(customerId, 'past_due');
           this.logger.warn(`Payment failed for customer ${customerId}`);
-          await this.logEvent(user.id, event.type, { amount: invoice.amount_due, invoiceId: invoice.id });
+          await this.logEvent(user.id, event.type, {
+            amount: invoice.amount_due,
+            invoiceId: invoice.id,
+          });
         }
         break;
       }
       case 'customer.subscription.deleted': {
         const sub = event.data.object as Stripe.Subscription;
         const customerId = sub.customer as string;
-        const user = await this.prisma.user.findUnique({ where: { stripeCustomerId: customerId }, select: { id: true } });
+        const user = await this.prisma.user.findUnique({
+          where: { stripeCustomerId: customerId },
+          select: { id: true },
+        });
         if (user) {
           await this.usersService.updateSubscriptionStatus(customerId, 'canceled');
           await this.logEvent(user.id, event.type, { subscriptionId: sub.id });

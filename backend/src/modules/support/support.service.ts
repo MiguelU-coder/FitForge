@@ -6,7 +6,15 @@ import { SupportTicketStatus, SupportTicketPriority } from '@prisma/client';
 export class SupportService {
   constructor(private prisma: PrismaService) {}
 
-  async createTicket(userId: string, data: { subject: string; message: string; priority?: SupportTicketPriority; organizationId?: string }) {
+  async createTicket(
+    userId: string,
+    data: {
+      subject: string;
+      message: string;
+      priority?: SupportTicketPriority;
+      organizationId?: string;
+    },
+  ) {
     return this.prisma.supportTicket.create({
       data: {
         userId,
@@ -16,8 +24,8 @@ export class SupportService {
         organizationId: data.organizationId,
       },
       include: {
-        user: { select: { displayName: true, email: true } }
-      }
+        user: { select: { displayName: true, email: true } },
+      },
     });
   }
 
@@ -26,8 +34,8 @@ export class SupportService {
       orderBy: { createdAt: 'desc' },
       include: {
         user: { select: { displayName: true, email: true } },
-        _count: { select: { replies: true } }
-      }
+        _count: { select: { replies: true } },
+      },
     });
   }
 
@@ -38,9 +46,9 @@ export class SupportService {
         user: { select: { displayName: true, email: true } },
         replies: {
           orderBy: { createdAt: 'asc' },
-          include: { user: { select: { displayName: true, email: true } } }
-        }
-      }
+          include: { user: { select: { displayName: true, email: true } } },
+        },
+      },
     });
 
     if (!ticket) throw new NotFoundException('Ticket not found');
@@ -59,7 +67,7 @@ export class SupportService {
     // Update ticket status to IN_PROGRESS if it was OPEN
     await this.prisma.supportTicket.update({
       where: { id: ticketId },
-      data: { status: SupportTicketStatus.IN_PROGRESS }
+      data: { status: SupportTicketStatus.IN_PROGRESS },
     });
 
     return reply;
@@ -68,7 +76,7 @@ export class SupportService {
   async updateTicketStatus(id: string, status: SupportTicketStatus) {
     return this.prisma.supportTicket.update({
       where: { id },
-      data: { status }
+      data: { status },
     });
   }
 
@@ -79,7 +87,7 @@ export class SupportService {
         message,
         type,
         userId: null, // null means global
-      }
+      },
     });
   }
 

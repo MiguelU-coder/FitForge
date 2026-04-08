@@ -176,9 +176,11 @@ export class AiRecommendProcessor extends WorkerHost {
 
       recommendation = {
         suggestedWeightKg,
-        suggestedReps: typeof data?.suggested_reps === 'number' ? data.suggested_reps : lastSet.reps,
+        suggestedReps:
+          typeof data?.suggested_reps === 'number' ? data.suggested_reps : lastSet.reps,
         suggestedRir: typeof data?.suggested_rir === 'number' ? data.suggested_rir : 2,
-        rationale: typeof data?.reasoning === 'string' ? data.reasoning : 'AI suggestion generated.',
+        rationale:
+          typeof data?.reasoning === 'string' ? data.reasoning : 'AI suggestion generated.',
         confidence: typeof data?.confidence === 'number' ? data.confidence : 0.7,
         strategy: 'progressive_overload',
         generatedAt: new Date().toISOString(),

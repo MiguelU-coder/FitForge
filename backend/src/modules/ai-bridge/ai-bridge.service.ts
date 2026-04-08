@@ -22,7 +22,7 @@ import {
 export class AiBridgeService {
   private readonly logger = new Logger(AiBridgeService.name);
   private readonly aiBaseUrl: string;
-  private readonly aiCoachUrl: string;    // Phase 3 — port 8001
+  private readonly aiCoachUrl: string; // Phase 3 — port 8001
   private readonly aiServiceSecret: string; // Service-to-service auth token
   private readonly requestTimeout = 180000; // 3 min for AI Coach LLM responses
 
@@ -31,10 +31,10 @@ export class AiBridgeService {
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
   ) {
-    this.aiBaseUrl   = config.get<string>('AI_SERVICE_URL',   'http://localhost:8000');
-    this.aiCoachUrl  = config.get<string>('AI_COACH_URL',     'http://localhost:8001');
+    this.aiBaseUrl = config.get<string>('AI_SERVICE_URL', 'http://localhost:8000');
+    this.aiCoachUrl = config.get<string>('AI_COACH_URL', 'http://localhost:8001');
     this.aiServiceSecret = config.get<string>('AI_SERVICE_SECRET', '');
-    
+
     if (!this.aiServiceSecret) {
       this.logger.warn('AI_SERVICE_SECRET is not configured. AI service calls may fail.');
     }
@@ -109,12 +109,16 @@ export class AiBridgeService {
   /**
    * Generate and save a personalized workout routine based on user profile.
    * Called from onboarding flow when user taps "Generate Plan".
-   * 
+   *
    * Strategy:
    * 1. Try AI Coach service first (if available)
    * 2. Fall back to local rule-based generation if AI fails
    */
-  async generateAndSaveRoutine(userId: string, dto: CoachRoutineRequestDto, authToken?: string): Promise<any> {
+  async generateAndSaveRoutine(
+    userId: string,
+    dto: CoachRoutineRequestDto,
+    authToken?: string,
+  ): Promise<any> {
     this.logger.log(`Generating routine for user ${userId} with goal ${dto.goal}`);
 
     // 1. Fetch available exercises from DB (load full catalogue for name-based lookup)
@@ -161,7 +165,7 @@ export class AiBridgeService {
       const createdRoutines = [];
       for (let i = 0; i < sessions.length; i++) {
         const session = sessions[i];
-        
+
         const routine = await tx.routine.create({
           data: {
             userId,
@@ -172,9 +176,9 @@ export class AiBridgeService {
             routineItems: {
               create: session.exercises.map((ex: any, exIdx: number) => {
                 // Find exercise in DB by name or use first available
-                const match = dbExercises.find(
-                  (dbEx) => dbEx.name.toLowerCase() === ex.name?.toLowerCase()
-                ) || dbExercises[Math.floor(Math.random() * Math.min(dbExercises.length, 10))];
+                const match =
+                  dbExercises.find((dbEx) => dbEx.name.toLowerCase() === ex.name?.toLowerCase()) ||
+                  dbExercises[Math.floor(Math.random() * Math.min(dbExercises.length, 10))];
 
                 return {
                   exerciseId: match.id,
@@ -200,10 +204,12 @@ export class AiBridgeService {
       return { program, routines: createdRoutines };
     });
 
-    this.logger.log(`Routine created: ${routineName} (${generatedBy}) with ${result.routines.length} templates`);
+    this.logger.log(
+      `Routine created: ${routineName} (${generatedBy}) with ${result.routines.length} templates`,
+    );
 
     // Get template names for description
-    const templateNames = sessions.map(s => s.day_label).join(', ');
+    const templateNames = sessions.map((s) => s.day_label).join(', ');
 
     // 4. Format response for Flutter
     return {
@@ -211,9 +217,10 @@ export class AiBridgeService {
         routineId: result.routines[0]?.id ?? result.program.id,
         routineName,
         name: routineName,
-        description: generatedBy === 'ai' 
-          ? `An AI-powered personalized plan with ${templateCount} workout templates.`
-          : `A personalized ${daysPerWeek}-day workout plan with templates: ${templateNames}.`,
+        description:
+          generatedBy === 'ai'
+            ? `An AI-powered personalized plan with ${templateCount} workout templates.`
+            : `A personalized ${daysPerWeek}-day workout plan with templates: ${templateNames}.`,
         generatedBy,
         schedule: {
           daysPerWeek: templateCount,
@@ -252,23 +259,30 @@ export class AiBridgeService {
     daysPerWeek: number,
     goal?: string,
     level?: string,
-  ): { day_label: string; exercises: { name: string; sets: number; reps: number; rir: number; rest_seconds: number }[] }[] {
+  ): {
+    day_label: string;
+    exercises: { name: string; sets: number; reps: number; rir: number; rest_seconds: number }[];
+  }[] {
     const trainingLevel = this.normalizeLevel(level);
     const dayPlans = this.getScienceBasedDayPlans(daysPerWeek, trainingLevel);
 
     return dayPlans.map((day) => {
       const usedIds = new Set<string>();
-      const dayExercises: { name: string; sets: number; reps: number; rir: number; rest_seconds: number }[] = [];
+      const dayExercises: {
+        name: string;
+        sets: number;
+        reps: number;
+        rir: number;
+        rest_seconds: number;
+      }[] = [];
 
       for (let i = 0; i < day.exercises.length; i++) {
         const exEntry = day.exercises[i];
         const scheme = this.getScheme(goal, level, i);
-        
+
         // 1. Name-based substring match (case-insensitive, first unused hit)
         let match = exercises.find(
-          (e) =>
-            !usedIds.has(e.id) &&
-            e.name.toLowerCase().includes(exEntry.search.toLowerCase()),
+          (e) => !usedIds.has(e.id) && e.name.toLowerCase().includes(exEntry.search.toLowerCase()),
         );
 
         // 2. Fallback: any unused exercise that trains the target muscle group
@@ -277,7 +291,7 @@ export class AiBridgeService {
             (e) =>
               !usedIds.has(e.id) &&
               (e.primaryMuscles?.includes(exEntry.muscle) ||
-               e.secondaryMuscles?.includes(exEntry.muscle)),
+                e.secondaryMuscles?.includes(exEntry.muscle)),
           );
         }
 
@@ -328,81 +342,81 @@ export class AiBridgeService {
     // ── Push Day ────────────────────────────────────────────────────────────
     const pushDay = {
       beginner: [
-        { search: 'Machine Chest Press',     muscle: 'CHEST' },     // stable, no balance demand
-        { search: 'Incline Machine Press',    muscle: 'CHEST' },     // upper chest volume
-        { search: 'Pec Deck',                 muscle: 'CHEST' },     // safe chest isolation
-        { search: 'Machine Lateral Raise',    muscle: 'SHOULDERS' }, // guided ROM
-        { search: 'Tricep Pushdown',          muscle: 'TRICEPS' },   // cable, elbow-friendly
+        { search: 'Machine Chest Press', muscle: 'CHEST' }, // stable, no balance demand
+        { search: 'Incline Machine Press', muscle: 'CHEST' }, // upper chest volume
+        { search: 'Pec Deck', muscle: 'CHEST' }, // safe chest isolation
+        { search: 'Machine Lateral Raise', muscle: 'SHOULDERS' }, // guided ROM
+        { search: 'Tricep Pushdown', muscle: 'TRICEPS' }, // cable, elbow-friendly
       ],
       intermediate: [
-        { search: 'Incline Dumbbell Press',   muscle: 'CHEST' },     // free weight, more ROM
-        { search: 'Machine Chest Press',      muscle: 'CHEST' },     // mechanical tension
-        { search: 'Pec Deck',                 muscle: 'CHEST' },     // peak contraction
-        { search: 'Lateral Raise',            muscle: 'SHOULDERS' }, // dumbbell, proprioception
-        { search: 'Cable Overhead Extension', muscle: 'TRICEPS' },   // long head, constant tension
+        { search: 'Incline Dumbbell Press', muscle: 'CHEST' }, // free weight, more ROM
+        { search: 'Machine Chest Press', muscle: 'CHEST' }, // mechanical tension
+        { search: 'Pec Deck', muscle: 'CHEST' }, // peak contraction
+        { search: 'Lateral Raise', muscle: 'SHOULDERS' }, // dumbbell, proprioception
+        { search: 'Cable Overhead Extension', muscle: 'TRICEPS' }, // long head, constant tension
       ],
       advanced: [
-        { search: 'Incline Dumbbell Press',   muscle: 'CHEST' },
-        { search: 'Machine Chest Press',      muscle: 'CHEST' },
-        { search: 'Pec Deck',                 muscle: 'CHEST' },
-        { search: 'Cable Lateral Raise',      muscle: 'SHOULDERS' }, // constant tension curve
-        { search: 'Cable Overhead Extension', muscle: 'TRICEPS' },   // long head emphasis
-        { search: 'Rope Pushdown',            muscle: 'TRICEPS' },   // lateral head volume
+        { search: 'Incline Dumbbell Press', muscle: 'CHEST' },
+        { search: 'Machine Chest Press', muscle: 'CHEST' },
+        { search: 'Pec Deck', muscle: 'CHEST' },
+        { search: 'Cable Lateral Raise', muscle: 'SHOULDERS' }, // constant tension curve
+        { search: 'Cable Overhead Extension', muscle: 'TRICEPS' }, // long head emphasis
+        { search: 'Rope Pushdown', muscle: 'TRICEPS' }, // lateral head volume
       ],
     };
 
     // ── Pull Day ────────────────────────────────────────────────────────────
     const pullDay = {
       beginner: [
-        { search: 'Lat Pulldown',            muscle: 'LATS' },       // vertical pull, guided
-        { search: 'Seated Cable Row',        muscle: 'BACK' },       // horizontal pull, cable
-        { search: 'Straight-Arm Pulldown',   muscle: 'LATS' },       // cable pullover motion
-        { search: 'Cable Face Pull',         muscle: 'SHOULDERS' },  // rear delt + shoulder health
-        { search: 'Cable Curl',              muscle: 'BICEPS' },     // cable, constant tension
+        { search: 'Lat Pulldown', muscle: 'LATS' }, // vertical pull, guided
+        { search: 'Seated Cable Row', muscle: 'BACK' }, // horizontal pull, cable
+        { search: 'Straight-Arm Pulldown', muscle: 'LATS' }, // cable pullover motion
+        { search: 'Cable Face Pull', muscle: 'SHOULDERS' }, // rear delt + shoulder health
+        { search: 'Cable Curl', muscle: 'BICEPS' }, // cable, constant tension
       ],
       intermediate: [
-        { search: 'Wide-Grip Lat Pulldown',  muscle: 'LATS' },       // wider lat activation
-        { search: 'Barbell Row',             muscle: 'BACK' },       // free weight compound
-        { search: 'Straight-Arm Pulldown',   muscle: 'LATS' },       // lat isolation / pullover equiv
-        { search: 'Cable Face Pull',         muscle: 'SHOULDERS' },
-        { search: 'High Cable Curl',         muscle: 'BICEPS' },     // Bayesian curl equiv
+        { search: 'Wide-Grip Lat Pulldown', muscle: 'LATS' }, // wider lat activation
+        { search: 'Barbell Row', muscle: 'BACK' }, // free weight compound
+        { search: 'Straight-Arm Pulldown', muscle: 'LATS' }, // lat isolation / pullover equiv
+        { search: 'Cable Face Pull', muscle: 'SHOULDERS' },
+        { search: 'High Cable Curl', muscle: 'BICEPS' }, // Bayesian curl equiv
       ],
       advanced: [
-        { search: 'Pull-Up',                 muscle: 'LATS' },       // bodyweight vertical
-        { search: 'Barbell Row',             muscle: 'BACK' },       // horizontal compound
-        { search: 'Wide-Grip Lat Pulldown',  muscle: 'LATS' },       // additional lat volume
-        { search: 'Straight-Arm Pulldown',   muscle: 'LATS' },       // lat isolation
-        { search: 'Cable Face Pull',         muscle: 'SHOULDERS' },
-        { search: 'High Cable Curl',         muscle: 'BICEPS' },     // Bayesian curl equiv
+        { search: 'Pull-Up', muscle: 'LATS' }, // bodyweight vertical
+        { search: 'Barbell Row', muscle: 'BACK' }, // horizontal compound
+        { search: 'Wide-Grip Lat Pulldown', muscle: 'LATS' }, // additional lat volume
+        { search: 'Straight-Arm Pulldown', muscle: 'LATS' }, // lat isolation
+        { search: 'Cable Face Pull', muscle: 'SHOULDERS' },
+        { search: 'High Cable Curl', muscle: 'BICEPS' }, // Bayesian curl equiv
       ],
     };
 
     // ── Legs Day ────────────────────────────────────────────────────────────
     const legsDay = {
       beginner: [
-        { search: 'Leg Press',               muscle: 'QUADS' },      // machine squat pattern
-        { search: 'Hack Squat Machine',      muscle: 'QUADS' },      // guided squat ROM
-        { search: 'Leg Extension',           muscle: 'QUADS' },      // quad isolation
-        { search: 'Seated Leg Curl',         muscle: 'HAMSTRINGS' }, // hamstring isolation
-        { search: 'Hip Thrust Machine',      muscle: 'GLUTES' },     // glute isolation, safe
-        { search: 'Standing Calf Raise',     muscle: 'CALVES' },
+        { search: 'Leg Press', muscle: 'QUADS' }, // machine squat pattern
+        { search: 'Hack Squat Machine', muscle: 'QUADS' }, // guided squat ROM
+        { search: 'Leg Extension', muscle: 'QUADS' }, // quad isolation
+        { search: 'Seated Leg Curl', muscle: 'HAMSTRINGS' }, // hamstring isolation
+        { search: 'Hip Thrust Machine', muscle: 'GLUTES' }, // glute isolation, safe
+        { search: 'Standing Calf Raise', muscle: 'CALVES' },
       ],
       intermediate: [
-        { search: 'Hack Squat Machine',      muscle: 'QUADS' },      // quad emphasis squat
-        { search: 'Leg Extension',           muscle: 'QUADS' },
-        { search: 'Seated Leg Curl',         muscle: 'HAMSTRINGS' },
-        { search: 'Hip Thrust',              muscle: 'GLUTES' },     // barbell, higher load
-        { search: 'Hip Abduction Machine',   muscle: 'GLUTES' },     // glute med / abductor
-        { search: 'Standing Calf Raise',     muscle: 'CALVES' },
+        { search: 'Hack Squat Machine', muscle: 'QUADS' }, // quad emphasis squat
+        { search: 'Leg Extension', muscle: 'QUADS' },
+        { search: 'Seated Leg Curl', muscle: 'HAMSTRINGS' },
+        { search: 'Hip Thrust', muscle: 'GLUTES' }, // barbell, higher load
+        { search: 'Hip Abduction Machine', muscle: 'GLUTES' }, // glute med / abductor
+        { search: 'Standing Calf Raise', muscle: 'CALVES' },
       ],
       advanced: [
-        { search: 'Barbell Squat',           muscle: 'QUADS' },      // free weight compound
-        { search: 'Hack Squat Machine',      muscle: 'QUADS' },      // additional quad volume
-        { search: 'Leg Extension',           muscle: 'QUADS' },
-        { search: 'Seated Leg Curl',         muscle: 'HAMSTRINGS' },
-        { search: 'Hip Thrust',              muscle: 'GLUTES' },
-        { search: 'Hip Abduction Machine',   muscle: 'GLUTES' },
-        { search: 'Standing Calf Raise',     muscle: 'CALVES' },
+        { search: 'Barbell Squat', muscle: 'QUADS' }, // free weight compound
+        { search: 'Hack Squat Machine', muscle: 'QUADS' }, // additional quad volume
+        { search: 'Leg Extension', muscle: 'QUADS' },
+        { search: 'Seated Leg Curl', muscle: 'HAMSTRINGS' },
+        { search: 'Hip Thrust', muscle: 'GLUTES' },
+        { search: 'Hip Abduction Machine', muscle: 'GLUTES' },
+        { search: 'Standing Calf Raise', muscle: 'CALVES' },
       ],
     };
 
@@ -410,81 +424,81 @@ export class AiBridgeService {
     // Balanced push/pull — compound first, isolation after, arms last
     const upperDay = {
       beginner: [
-        { search: 'Machine Chest Press',    muscle: 'CHEST' },
-        { search: 'Lat Pulldown',           muscle: 'LATS' },
-        { search: 'Pec Deck',              muscle: 'CHEST' },
-        { search: 'Seated Cable Row',       muscle: 'BACK' },
-        { search: 'Machine Lateral Raise',  muscle: 'SHOULDERS' },
-        { search: 'Tricep Pushdown',        muscle: 'TRICEPS' },
-        { search: 'Cable Curl',             muscle: 'BICEPS' },
+        { search: 'Machine Chest Press', muscle: 'CHEST' },
+        { search: 'Lat Pulldown', muscle: 'LATS' },
+        { search: 'Pec Deck', muscle: 'CHEST' },
+        { search: 'Seated Cable Row', muscle: 'BACK' },
+        { search: 'Machine Lateral Raise', muscle: 'SHOULDERS' },
+        { search: 'Tricep Pushdown', muscle: 'TRICEPS' },
+        { search: 'Cable Curl', muscle: 'BICEPS' },
       ],
       intermediate: [
         { search: 'Incline Dumbbell Press', muscle: 'CHEST' },
-        { search: 'Barbell Row',            muscle: 'BACK' },
-        { search: 'Pec Deck',              muscle: 'CHEST' },
+        { search: 'Barbell Row', muscle: 'BACK' },
+        { search: 'Pec Deck', muscle: 'CHEST' },
         { search: 'Wide-Grip Lat Pulldown', muscle: 'LATS' },
-        { search: 'High Cable Curl',        muscle: 'BICEPS' },      // Bayesian equiv
-        { search: 'Rope Pushdown',          muscle: 'TRICEPS' },
-        { search: 'Lateral Raise',          muscle: 'SHOULDERS' },
+        { search: 'High Cable Curl', muscle: 'BICEPS' }, // Bayesian equiv
+        { search: 'Rope Pushdown', muscle: 'TRICEPS' },
+        { search: 'Lateral Raise', muscle: 'SHOULDERS' },
       ],
       advanced: [
-        { search: 'Incline Dumbbell Press',  muscle: 'CHEST' },
-        { search: 'Barbell Row',             muscle: 'BACK' },
-        { search: 'Pec Deck',               muscle: 'CHEST' },
-        { search: 'Wide-Grip Lat Pulldown',  muscle: 'LATS' },
-        { search: 'High Cable Curl',         muscle: 'BICEPS' },
+        { search: 'Incline Dumbbell Press', muscle: 'CHEST' },
+        { search: 'Barbell Row', muscle: 'BACK' },
+        { search: 'Pec Deck', muscle: 'CHEST' },
+        { search: 'Wide-Grip Lat Pulldown', muscle: 'LATS' },
+        { search: 'High Cable Curl', muscle: 'BICEPS' },
         { search: 'Cable Overhead Extension', muscle: 'TRICEPS' },
-        { search: 'Cable Lateral Raise',     muscle: 'SHOULDERS' },
+        { search: 'Cable Lateral Raise', muscle: 'SHOULDERS' },
       ],
     };
 
     // ── Full Body A (2-day split) ────────────────────────────────────────────
     const fullBodyA = {
       beginner: [
-        { search: 'Leg Press',              muscle: 'QUADS' },
-        { search: 'Machine Chest Press',    muscle: 'CHEST' },
-        { search: 'Lat Pulldown',           muscle: 'LATS' },
-        { search: 'Seated Overhead Press',  muscle: 'SHOULDERS' },
-        { search: 'Seated Leg Curl',        muscle: 'HAMSTRINGS' },
+        { search: 'Leg Press', muscle: 'QUADS' },
+        { search: 'Machine Chest Press', muscle: 'CHEST' },
+        { search: 'Lat Pulldown', muscle: 'LATS' },
+        { search: 'Seated Overhead Press', muscle: 'SHOULDERS' },
+        { search: 'Seated Leg Curl', muscle: 'HAMSTRINGS' },
       ],
       intermediate: [
-        { search: 'Hack Squat Machine',     muscle: 'QUADS' },
+        { search: 'Hack Squat Machine', muscle: 'QUADS' },
         { search: 'Incline Dumbbell Press', muscle: 'CHEST' },
-        { search: 'Barbell Row',            muscle: 'BACK' },
-        { search: 'Overhead Press',         muscle: 'SHOULDERS' },
-        { search: 'Seated Leg Curl',        muscle: 'HAMSTRINGS' },
+        { search: 'Barbell Row', muscle: 'BACK' },
+        { search: 'Overhead Press', muscle: 'SHOULDERS' },
+        { search: 'Seated Leg Curl', muscle: 'HAMSTRINGS' },
       ],
       advanced: [
-        { search: 'Barbell Squat',          muscle: 'QUADS' },
+        { search: 'Barbell Squat', muscle: 'QUADS' },
         { search: 'Incline Dumbbell Press', muscle: 'CHEST' },
-        { search: 'Barbell Row',            muscle: 'BACK' },
-        { search: 'Overhead Press',         muscle: 'SHOULDERS' },
-        { search: 'Seated Leg Curl',        muscle: 'HAMSTRINGS' },
+        { search: 'Barbell Row', muscle: 'BACK' },
+        { search: 'Overhead Press', muscle: 'SHOULDERS' },
+        { search: 'Seated Leg Curl', muscle: 'HAMSTRINGS' },
       ],
     };
 
     // ── Full Body B (2-day split) ────────────────────────────────────────────
     const fullBodyB = {
       beginner: [
-        { search: 'Hip Thrust Machine',     muscle: 'GLUTES' },
-        { search: 'Machine Chest Press',    muscle: 'CHEST' },
-        { search: 'Seated Cable Row',       muscle: 'BACK' },
-        { search: 'Machine Lateral Raise',  muscle: 'SHOULDERS' },
-        { search: 'Leg Extension',          muscle: 'QUADS' },
+        { search: 'Hip Thrust Machine', muscle: 'GLUTES' },
+        { search: 'Machine Chest Press', muscle: 'CHEST' },
+        { search: 'Seated Cable Row', muscle: 'BACK' },
+        { search: 'Machine Lateral Raise', muscle: 'SHOULDERS' },
+        { search: 'Leg Extension', muscle: 'QUADS' },
       ],
       intermediate: [
-        { search: 'Hip Thrust',             muscle: 'GLUTES' },
-        { search: 'Machine Chest Press',    muscle: 'CHEST' },
+        { search: 'Hip Thrust', muscle: 'GLUTES' },
+        { search: 'Machine Chest Press', muscle: 'CHEST' },
         { search: 'Wide-Grip Lat Pulldown', muscle: 'LATS' },
-        { search: 'Lateral Raise',          muscle: 'SHOULDERS' },
-        { search: 'Leg Extension',          muscle: 'QUADS' },
+        { search: 'Lateral Raise', muscle: 'SHOULDERS' },
+        { search: 'Leg Extension', muscle: 'QUADS' },
       ],
       advanced: [
-        { search: 'Hip Thrust',             muscle: 'GLUTES' },
-        { search: 'Machine Chest Press',    muscle: 'CHEST' },
+        { search: 'Hip Thrust', muscle: 'GLUTES' },
+        { search: 'Machine Chest Press', muscle: 'CHEST' },
         { search: 'Wide-Grip Lat Pulldown', muscle: 'LATS' },
-        { search: 'Cable Lateral Raise',    muscle: 'SHOULDERS' },
-        { search: 'Leg Extension',          muscle: 'QUADS' },
+        { search: 'Cable Lateral Raise', muscle: 'SHOULDERS' },
+        { search: 'Leg Extension', muscle: 'QUADS' },
       ],
     };
 
@@ -505,20 +519,20 @@ export class AiBridgeService {
 
       case 4:
         return [
-          { name: 'Push Day',  exercises: pushDay[level] },
-          { name: 'Pull Day',  exercises: pullDay[level] },
-          { name: 'Legs Day',  exercises: legsDay[level] },
+          { name: 'Push Day', exercises: pushDay[level] },
+          { name: 'Pull Day', exercises: pullDay[level] },
+          { name: 'Legs Day', exercises: legsDay[level] },
           { name: 'Upper Day', exercises: upperDay[level] },
         ];
 
       case 5:
       case 6:
         return [
-          { name: 'Push Day',         exercises: pushDay[level] },
-          { name: 'Pull Day',         exercises: pullDay[level] },
-          { name: 'Legs Day',         exercises: legsDay[level] },
-          { name: 'Upper Day',        exercises: upperDay[level] },
-          { name: 'Legs Hypertrophy', exercises: legsDay[level] },  // second leg stimulus
+          { name: 'Push Day', exercises: pushDay[level] },
+          { name: 'Pull Day', exercises: pullDay[level] },
+          { name: 'Legs Day', exercises: legsDay[level] },
+          { name: 'Upper Day', exercises: upperDay[level] },
+          { name: 'Legs Hypertrophy', exercises: legsDay[level] }, // second leg stimulus
         ];
 
       default:
@@ -541,45 +555,55 @@ export class AiBridgeService {
 
   private getDaysPerWeek(level?: string): number {
     switch (level) {
-      case 'BEGINNER':   return 3;
-      case 'IRREGULAR':  return 2;
-      case 'MEDIUM':     return 4;
-      case 'ADVANCED':   return 5;
-      default:           return 3;
+      case 'BEGINNER':
+        return 3;
+      case 'IRREGULAR':
+        return 2;
+      case 'MEDIUM':
+        return 4;
+      case 'ADVANCED':
+        return 5;
+      default:
+        return 3;
     }
   }
 
   private getRoutineName(goal?: string): string {
     switch (goal) {
-      case 'LOSE_WEIGHT':       return 'Fat Burn Program';
-      case 'KEEP_FIT':          return 'Fitness Maintenance Plan';
-      case 'GET_STRONGER':      return 'Strength Builder Program';
-      case 'GAIN_MUSCLE_MASS':  return 'Muscle Hypertrophy Plan';
-      default:                  return 'AI Generated Routine';
+      case 'LOSE_WEIGHT':
+        return 'Fat Burn Program';
+      case 'KEEP_FIT':
+        return 'Fitness Maintenance Plan';
+      case 'GET_STRONGER':
+        return 'Strength Builder Program';
+      case 'GAIN_MUSCLE_MASS':
+        return 'Muscle Hypertrophy Plan';
+      default:
+        return 'AI Generated Routine';
     }
   }
 
   /**
    * Returns training scheme based on scientific recommendations.
-   * 
+   *
    * STRENGTH (1-6 reps):
    * - Lower reps, higher intensity
    * - 4-6 sets per exercise for neural adaptation
    * - RIR 1-2 (close to failure)
    * - Longer rest (2-3 min) for ATP-PCr recovery
-   * 
+   *
    * HYPERTROPHY (6-12 reps):
    * - Moderate reps with mechanical tension
    * - 3-4 sets per exercise
    * - RIR 2-3
    * - 60-90s rest for metabolic stress
-   * 
+   *
    * BODY COMPOSITION (8-15 reps):
    * - Higher reps for metabolic stress + calorie burn
    * - 2-3 sets per exercise
    * - RIR 3-4
    * - Shorter rest for cardiovascular effect
-   * 
+   *
    * Volume adjustments by level:
    * - Beginner: Lower volume, focus on motor learning
    * - Intermediate: Moderate volume, growing适应性
@@ -590,36 +614,36 @@ export class AiBridgeService {
     const isIrregular = level === 'IRREGULAR';
     const isAdvanced = level === 'ADVANCED';
     const isNovice = isBeginner || isIrregular;
-    
+
     // First 3 exercises are "compounds", the rest are "isolations"
     const isCompound = index < 3;
 
     switch (goal) {
       case 'GET_STRONGER':
         if (isCompound) {
-          return isNovice 
-            ? { sets: 3, reps: 8, rir: 3, rest: 120 } 
+          return isNovice
+            ? { sets: 3, reps: 8, rir: 3, rest: 120 }
             : { sets: 3, reps: 6, rir: 1, rest: 180 };
         } else {
           return { sets: 2, reps: 10, rir: 2, rest: 90 };
         }
-      
+
       case 'GAIN_MUSCLE_MASS':
         if (isCompound) {
-          return isNovice 
-            ? { sets: 3, reps: 10, rir: 3, rest: 90 } 
+          return isNovice
+            ? { sets: 3, reps: 10, rir: 3, rest: 90 }
             : { sets: 3, reps: 8, rir: 2, rest: 90 };
         } else {
           return { sets: 2, reps: 12, rir: 2, rest: 60 };
         }
-      
+
       case 'LOSE_WEIGHT':
         if (isCompound) {
           return { sets: 3, reps: 10, rir: 3, rest: 60 };
         } else {
           return { sets: 2, reps: 15, rir: 3, rest: 45 };
         }
-      
+
       default: // KEEP_FIT
         if (isCompound) {
           return { sets: 3, reps: 10, rir: 2, rest: 90 };
@@ -637,7 +661,7 @@ export class AiBridgeService {
   private async _callCoachService(url: string, dto: any, authToken?: string): Promise<any | null> {
     // Use service token if no user token provided
     const serviceToken = authToken || this.aiServiceSecret;
-    
+
     if (!serviceToken) {
       this.logger.warn('No authentication token available for AI Coach service');
       return null;
@@ -645,7 +669,7 @@ export class AiBridgeService {
 
     try {
       this.logger.debug(`Calling AI Coach at ${url}`);
-      
+
       const response = await firstValueFrom(
         this.http
           .post(url, dto, {
@@ -664,10 +688,10 @@ export class AiBridgeService {
             }),
           ),
       );
-      
+
       // If response is null (from catchError), return null
       if (!response) return null;
-      
+
       return (response as any).data;
     } catch (err: any) {
       this.logger.warn(`AI Coach request failed: ${err?.message || 'Unknown error'}`);

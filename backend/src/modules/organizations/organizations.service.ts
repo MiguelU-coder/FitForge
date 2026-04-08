@@ -1,4 +1,12 @@
-import { Injectable, ConflictException, NotFoundException, Logger, BadRequestException, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+  Logger,
+  BadRequestException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { UserRole } from '@prisma/client';
 import { StripeService } from '../stripe/stripe.service';
@@ -17,7 +25,7 @@ export class OrganizationsService {
     @Inject(forwardRef(() => StripeService))
     private readonly stripeService: StripeService,
     private readonly emailService: EmailService,
-    private readonly config: ConfigService
+    private readonly config: ConfigService,
   ) {}
 
   /**
@@ -66,7 +74,7 @@ export class OrganizationsService {
     if (!plan) throw new NotFoundException(`Plan ${data.planId} not found`);
 
     // Generate password if not provided
-    const generatedPassword = data.adminPassword || (randomBytes(4).toString('hex') + 'f!g');
+    const generatedPassword = data.adminPassword || randomBytes(4).toString('hex') + 'f!g';
 
     // Sync plan to Stripe
     const stripePriceId = await this.stripeService.syncPlan({
@@ -167,7 +175,8 @@ export class OrganizationsService {
         password: pendingOrg.adminPassword!,
         email_confirm: true,
         user_metadata: {
-          display_name: `${pendingOrg.adminFirstName || ''} ${pendingOrg.adminLastName || ''}`.trim(),
+          display_name:
+            `${pendingOrg.adminFirstName || ''} ${pendingOrg.adminLastName || ''}`.trim(),
         },
       });
 
@@ -280,7 +289,6 @@ export class OrganizationsService {
     });
   }
 
-
   async findAll() {
     return this.prisma.organization.findMany({
       include: {
@@ -305,7 +313,10 @@ export class OrganizationsService {
     });
   }
 
-  async update(id: string, data: { name?: string; slug?: string; logoUrl?: string; planId?: string }) {
+  async update(
+    id: string,
+    data: { name?: string; slug?: string; logoUrl?: string; planId?: string },
+  ) {
     const org = await this.prisma.organization.findUnique({ where: { id } });
     if (!org) {
       throw new NotFoundException('Organization not found');
@@ -334,13 +345,13 @@ export class OrganizationsService {
   async remove(id: string) {
     const org = await this.prisma.organization.findUnique({
       where: { id },
-      include: { users: true }
+      include: { users: true },
     });
     if (!org) {
       throw new NotFoundException('Organization not found');
     }
 
-    const userIds = org.users.map(u => u.userId);
+    const userIds = org.users.map((u) => u.userId);
 
     const deletedOrg = await this.prisma.organization.delete({
       where: { id },
@@ -350,8 +361,8 @@ export class OrganizationsService {
       await this.prisma.user.deleteMany({
         where: {
           id: { in: userIds },
-          isGlobalAdmin: false
-        }
+          isGlobalAdmin: false,
+        },
       });
     }
 
@@ -420,7 +431,9 @@ export class OrganizationsService {
 
     // 2. HEALING: If no explicit owner is found, pick the first user and promote them
     if (!orgUser) {
-      this.logger.warn(`No ORG_ADMIN found for org ${organizationId}. Attempting to elect an owner...`);
+      this.logger.warn(
+        `No ORG_ADMIN found for org ${organizationId}. Attempting to elect an owner...`,
+      );
       const anyUser = await this.prisma.userOrganization.findFirst({
         where: { organizationId },
         include: { user: true },
@@ -428,7 +441,9 @@ export class OrganizationsService {
       });
 
       if (!anyUser) {
-        throw new NotFoundException('This organization is empty. No user found to act as billing owner.');
+        throw new NotFoundException(
+          'This organization is empty. No user found to act as billing owner.',
+        );
       }
 
       // Promote to ORG_ADMIN automatically
@@ -538,7 +553,11 @@ export class OrganizationsService {
 </html>
     `;
 
-    return await this.emailService.sendNotification(email, `Welcome to ${organizationName}`, htmlContent);
+    return await this.emailService.sendNotification(
+      email,
+      `Welcome to ${organizationName}`,
+      htmlContent,
+    );
   }
 
   async registerMember(
@@ -551,7 +570,7 @@ export class OrganizationsService {
       phoneNumber?: string;
       dateOfBirth?: string;
       membershipPlanId?: string;
-    }
+    },
   ) {
     // Validate organizationId is a valid UUID and not "undefined"
     if (!organizationId || organizationId === 'undefined' || organizationId.length < 32) {
@@ -591,13 +610,15 @@ export class OrganizationsService {
 
         if (authError && authError.message !== 'User already registered') {
           this.logger.error(`Error creating Supabase member: ${authError.message}`);
-          throw new BadRequestException(`Could not create authentication account: ${authError.message}`);
+          throw new BadRequestException(
+            `Could not create authentication account: ${authError.message}`,
+          );
         } else if (authData?.user) {
           authUserId = authData.user.id;
         } else {
           // If user already registered in Supabase but not in our DB
           const { data: existingAuth, error: findError } = await supabase.auth.admin.listUsers();
-          const found = existingAuth?.users.find(u => u.email === data.email.toLowerCase());
+          const found = existingAuth?.users.find((u) => u.email === data.email.toLowerCase());
           if (found) authUserId = found.id;
         }
       }
@@ -641,7 +662,7 @@ export class OrganizationsService {
 
     if (data.membershipPlanId) {
       const plan = await this.prisma.membershipPlan.findUnique({
-        where: { id: data.membershipPlanId }
+        where: { id: data.membershipPlanId },
       });
       if (plan) {
         amount = plan.price.toNumber();
@@ -772,7 +793,11 @@ export class OrganizationsService {
 </html>
     `;
 
-    return await this.emailService.sendNotification(email, `Payment Confirmed - ${organizationName}`, htmlContent);
+    return await this.emailService.sendNotification(
+      email,
+      `Payment Confirmed - ${organizationName}`,
+      htmlContent,
+    );
   }
 
   /**
@@ -828,7 +853,11 @@ export class OrganizationsService {
 </html>
     `;
 
-    return await this.emailService.sendNotification(email, `Payment Reminder - ${organizationName}`, htmlContent);
+    return await this.emailService.sendNotification(
+      email,
+      `Payment Reminder - ${organizationName}`,
+      htmlContent,
+    );
   }
 
   // ── Membership Plans ───────────────────────────────────────────────────────
@@ -840,13 +869,16 @@ export class OrganizationsService {
     });
   }
 
-  async createMembershipPlan(organizationId: string, data: {
-    name: string;
-    description?: string;
-    price: number;
-    currency?: string;
-    frequency: 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
-  }) {
+  async createMembershipPlan(
+    organizationId: string,
+    data: {
+      name: string;
+      description?: string;
+      price: number;
+      currency?: string;
+      frequency: 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
+    },
+  ) {
     return this.prisma.membershipPlan.create({
       data: {
         organizationId,

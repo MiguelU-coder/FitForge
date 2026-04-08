@@ -17,8 +17,17 @@ import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import type { AuthUser } from '../auth/strategies/jwt.strategy';
 import { z } from 'zod';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-
-// ── DTOs ──────────────────────────────────────────────────────────────────────
+import {
+  ProgramPhase,
+  PROGRESSION_NOTE,
+  LEVEL_SPLIT_MAP,
+  getPhaseForWeek,
+  PERIODIZATION_CONFIG,
+  TrainingLevel,
+  SplitConfig,
+  DayConfig,
+} from './config/training.config';
+import { ExerciseSelectionService, ExerciseWithMeta } from './services/exercise-selection.service';
 
 const GenerateInitialRoutineSchema = z.object({
   gender: z.enum(['FEMALE', 'MALE', 'NON_BINARY', 'OTHER']).optional(),
@@ -27,164 +36,89 @@ const GenerateInitialRoutineSchema = z.object({
 });
 export type GenerateInitialRoutineDto = z.infer<typeof GenerateInitialRoutineSchema>;
 
-// ── Constantes: Ejercicios Preferidos por Grupo Muscular ──────────────────
-
-const STABLE_EXERCISES: Record<string, string[]> = {
-  CHEST: [
-    'Machine Chest Press',
-    'Incline Dumbbell Press',
-    'Cable Flyes',
-  ],
-  BACK: [
-    'Lat Pulldown (Machine)',
-    'Seated Cable Row',
-    'Machine Row',
-  ],
-  SHOULDERS: [
-    'Machine Shoulder Press',
-    'Lateral Raise',
-  ],
-  BICEPS: [
-    'Dumbbell Curl',
-    'Cable Curl',
-  ],
-  TRICEPS: [
-    'Tricep Pushdown',
-    'Machine Overhead Extension',
-  ],
-  QUADS: [
-    'Leg Extension',
-    'Hack Squat Machine',
-    'Leg Press',
-  ],
-  HAMSTRINGS: [
-    'Lying Leg Curl',
-    'Seated Leg Curl',
-  ],
-  GLUTES: [
-    'Hip Thrust Machine',
-    'Glute Machine',
-  ],
-  CALVES: [
-    'Standing Calf Raise',
-    'Seated Calf Raise',
-  ],
-  ABS: [
-    'Cable Crunch',
-    'Plank',
-  ],
-};
-
-// ── Configuración por Nivel ─────────────────────────────────────────────
-
 const LEVEL_CONFIG = {
-  BEGINNER: {
-    frequency: 2,
-    sets: 2,
-    reps: '10-12',
-    rir: { min: 2, max: 3 },
-    restSeconds: 150,
-    split: 'FULL_BODY',
-  },
-  IRREGULAR: {
-    frequency: 3,
-    sets: 3,
-    reps: '8-10',
-    rir: { min: 2, max: 2 },
-    restSeconds: 150,
-    split: 'UPPER_LOWER',
-  },
-  MEDIUM: {
-    frequency: 4,
-    sets: 3,
-    reps: '8-12',
-    rir: { min: 1, max: 2 },
-    restSeconds: 150,
-    split: 'PUSH_PULL_LEGS',
-  },
-  ADVANCED: {
-    frequency: 5,
-    sets: 4,
-    reps: '6-10',
-    rir: { min: 0, max: 1 },
-    restSeconds: 150,
-    split: 'PPL_PLUS',
-  },
+  BEGINNER: { frequency: 2, split: 'FULL_BODY' },
+  IRREGULAR: { frequency: 3, split: 'UPPER_LOWER' },
+  MEDIUM: { frequency: 4, split: 'PUSH_PULL_LEGS' },
+  ADVANCED: { frequency: 6, split: 'PPL_AB' },
 };
 
-// ── Rutinaskeleton por Split ────────────────────────────────────────────
-
-const SPLIT_ROUTINES: Record<string, Array<{ dayName: string; muscles: string[] }>> = {
-  FULL_BODY: [
-    { dayName: 'Full Body A', muscles: ['CHEST', 'BACK', 'QUADS', 'ABS'] },
-    { dayName: 'Full Body B', muscles: ['SHOULDERS', 'GLUTES', 'HAMSTRINGS', 'CALVES'] },
-  ],
-  UPPER_LOWER: [
-    { dayName: 'Upper A', muscles: ['CHEST', 'BACK', 'SHOULDERS', 'BICEPS', 'TRICEPS'] },
-    { dayName: 'Lower A', muscles: ['QUADS', 'HAMSTRINGS', 'GLUTES', 'CALVES'] },
-    { dayName: 'Upper B', muscles: ['CHEST', 'BACK', 'SHOULDERS', 'BICEPS', 'TRICEPS'] },
-  ],
-  PUSH_PULL_LEGS: [
-    { dayName: 'Push', muscles: ['CHEST', 'SHOULDERS', 'TRICEPS'] },
-    { dayName: 'Pull', muscles: ['BACK', 'BICEPS', 'ABS'] },
-    { dayName: 'Legs', muscles: ['QUADS', 'HAMSTRINGS', 'GLUTES', 'CALVES'] },
-    { dayName: 'Upper', muscles: ['CHEST', 'BACK', 'SHOULDERS', 'BICEPS', 'TRICEPS'] },
-  ],
-  PPL_PLUS: [
-    { dayName: 'Push A', muscles: ['CHEST', 'SHOULDERS', 'TRICEPS'] },
-    { dayName: 'Pull A', muscles: ['BACK', 'BICEPS'] },
-    { dayName: 'Legs', muscles: ['QUADS', 'HAMSTRINGS', 'GLUTES', 'CALVES'] },
-    { dayName: 'Push B', muscles: ['CHEST', 'SHOULDERS', 'TRICEPS'] },
-    { dayName: 'Pull B', muscles: ['BACK', 'BICEPS', 'ABS'] },
-  ],
-};
-
-// ── Service ───────────────────────────────────────────────────────────────────
+function materializeDays(splitConfig: SplitConfig): DayConfig[] {
+  const { days, daysPerWeek, rotationMode } = splitConfig;
+  
+  if (rotationMode === 'AB' && daysPerWeek > days.length) {
+    const result: DayConfig[] = [];
+    let dayIndex = 0;
+    for (let i = 0; i < daysPerWeek; i++) {
+      result.push(days[dayIndex % days.length]);
+      dayIndex++;
+    }
+    return result;
+  }
+  
+  return days;
+}
 
 @Injectable()
 export class RoutinesService {
   private readonly logger = new Logger(RoutinesService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly exerciseSelectionService: ExerciseSelectionService,
+  ) {}
 
-  async generateInitialRoutine(
-    userId: string,
-    dto: GenerateInitialRoutineDto,
-  ) {
-    const { trainingLevel, gender, mainGoal } = dto;
-    const config = LEVEL_CONFIG[trainingLevel];
-    const splitRoutines = SPLIT_ROUTINES[config.split];
+  async generateInitialRoutine(userId: string, dto: GenerateInitialRoutineDto) {
+    const { trainingLevel, mainGoal } = dto;
+    this.logger.log(`Generating scientific routine for user ${userId}, level: ${trainingLevel}`);
 
-    // Get exercises from DB
-    const exercises = await this.prisma.exercise.findMany({
-      where: { isActive: true },
-      select: { id: true, name: true, primaryMuscles: true },
-    });
+    const splitConfig = LEVEL_SPLIT_MAP[trainingLevel as TrainingLevel];
+    const phase = getPhaseForWeek(1, trainingLevel as TrainingLevel);
+    const totalWeeks = trainingLevel === 'ADVANCED' ? 9 : 8;
 
-    // Build exercise map
-    const exerciseMap = new Map<string, string>();
-    for (const ex of exercises) {
-      for (const muscle of ex.primaryMuscles) {
-        if (!exerciseMap.has(muscle)) {
-          exerciseMap.set(muscle, ex.id);
-        }
-      }
+    const dbExercises = await this.prisma.$queryRaw<Array<{
+      id: string;
+      name: string;
+      primary_muscles: string;
+      secondary_muscles: string;
+      is_compound: boolean;
+      movement_pattern: string | null;
+    }>>`SELECT id, name, primary_muscles, secondary_muscles, is_compound, movement_pattern FROM exercises WHERE is_active = true`;
+
+    const exercises = dbExercises.map((e) => ({
+      id: e.id,
+      name: e.name,
+      primaryMuscles: e.primary_muscles ? JSON.parse(e.primary_muscles) : [],
+      secondaryMuscles: e.secondary_muscles ? JSON.parse(e.secondary_muscles) : [],
+      isCompound: e.is_compound,
+      movementPattern: e.movement_pattern,
+      exerciseType: null,
+      fatigueLevel: null,
+    }));
+
+    this.logger.log(`Found ${exercises.length} exercises in database`);
+
+    if (exercises.length === 0) {
+      const config = LEVEL_CONFIG[trainingLevel as keyof typeof LEVEL_CONFIG];
+      return this.createPlaceholderProgram(userId, trainingLevel, config, splitConfig);
     }
 
-    // Create Program
-    const program = await this.prisma.program.create({
-      data: {
-        userId,
-        name: `${trainingLevel.charAt(0) + trainingLevel.slice(1).toLowerCase()} Initial Program`,
-        goal: mainGoal || trainingLevel,
-        weeks: 8,
-        daysPerWeek: config.frequency,
-        isActive: true,
-        startedAt: new Date(),
-      },
-    });
+    const exercisesMeta: ExerciseWithMeta[] = exercises.map((e) => ({
+      id: e.id,
+      name: e.name,
+      primaryMuscles: e.primaryMuscles as string[],
+      secondaryMuscles: e.secondaryMuscles as string[],
+      exerciseType: e.exerciseType as 'COMPOUND' | 'ISOLATION' | null,
+      fatigueLevel: e.fatigueLevel as 'LOW' | 'MEDIUM' | 'HIGH' | null,
+      isCompound: e.isCompound,
+      movementPattern: e.movementPattern,
+    }));
 
-    // Create Routines
+    const program = await this.prisma.$queryRaw<{ id: string; name: string }>`INSERT INTO programs (id, user_id, name, goal, weeks, days_per_week, is_active, started_at, progression_model, current_phase, created_at, updated_at)
+      VALUES (gen_random_uuid(), ${userId}, ${`${trainingLevel.charAt(0) + trainingLevel.slice(1).toLowerCase()} Program`}, ${mainGoal || trainingLevel}, ${totalWeeks}, ${splitConfig.daysPerWeek}, true, ${new Date()}, ${phase.progressionStrategy}, ${phase.label}, ${new Date()}, ${new Date()})
+      RETURNING id, name`;
+
+    const materializedDays = materializeDays(splitConfig);
     const createdRoutines: Array<{
       id: string;
       name: string;
@@ -192,11 +126,13 @@ export class RoutinesService {
         exerciseName: string;
         targetSets: number;
         targetReps: string;
+        targetRir: number;
         restSeconds: number;
+        notes: string;
       }>;
     }> = [];
 
-    for (const [dayIndex, day] of splitRoutines.entries()) {
+    for (const [dayIndex, day] of materializedDays.entries()) {
       const routine = await this.prisma.routine.create({
         data: {
           userId,
@@ -207,66 +143,127 @@ export class RoutinesService {
         },
       });
 
-      // Add exercises for each muscle group
-      const routineItems = [];
-      for (const muscle of day.muscles) {
-        const exerciseId = exerciseMap.get(muscle);
-        if (!exerciseId) continue;
+      const usedExerciseIds = new Set<string>();
+      const routineItems: Array<{
+        routineId: string;
+        exerciseId: string;
+        sortOrder: number;
+        targetSets: number;
+        targetReps: number;
+        targetRir: number;
+        restSeconds: number;
+        notes: string;
+      }> = [];
 
-        // Get preferred exercise name for this muscle
-        const preferredExercises = STABLE_EXERCISES[muscle] || [];
-        let targetExerciseId = exerciseId;
+      for (const [slotIndex, slot] of day.slots.entries()) {
+        const exerciseId = this.exerciseSelectionService.selectExerciseForSlot(
+          slot,
+          exercisesMeta,
+          usedExerciseIds,
+        );
 
-        // Try to find a preferred exercise
-        for (const prefName of preferredExercises) {
-          const found = exercises.find(e => e.name === prefName);
-          if (found) {
-            targetExerciseId = found.id;
-            break;
-          }
+        if (!exerciseId) {
+          this.logger.warn(`No exercise found for slot ${slotIndex} in ${day.dayName}`);
+          continue;
         }
+
+        usedExerciseIds.add(exerciseId);
+        const ex = exercises.find((e) => e.id === exerciseId);
 
         routineItems.push({
           routineId: routine.id,
-          exerciseId: targetExerciseId,
-          sortOrder: routineItems.length,
-          targetSets: config.sets,
-          targetReps: parseInt(config.reps.split('-')[0]),
-          restSeconds: config.restSeconds,
-          notes: `RIR: ${config.rir.min}-${config.rir.max}`,
+          exerciseId,
+          sortOrder: slotIndex,
+          targetSets: slot.sets,
+          targetReps: slot.repsMin,
+          targetRir: phase.rirTarget[trainingLevel as TrainingLevel],
+          restSeconds: slot.restSeconds,
+          notes: slot.notes || phase.notes || PROGRESSION_NOTE,
         });
       }
 
-      // Bulk create routine items
       if (routineItems.length > 0) {
         await this.prisma.routineItem.createMany({ data: routineItems });
       }
 
+      const itemsWithSlots = day.slots.map((slot, idx) => ({ slot, item: routineItems[idx] }));
+      
       createdRoutines.push({
         id: routine.id,
         name: day.dayName,
-        items: routineItems.map(item => ({
-          exerciseName: exercises.find(e => e.id === item.exerciseId)?.name || 'Unknown',
-          targetSets: item.targetSets,
-          targetReps: item.targetReps.toString(),
-          restSeconds: item.restSeconds,
-        })),
+        items: routineItems.map((item, idx) => {
+          const ex = exercises.find((e) => e.id === item.exerciseId);
+          const slot = itemsWithSlots[idx]?.slot;
+          return {
+            exerciseName: ex?.name || 'Unknown',
+            targetSets: item.targetSets,
+            targetReps: slot ? `${slot.repsMin}-${slot.repsMax}` : `${phase.repsMin}-${phase.repsMax}`,
+            targetRir: item.targetRir,
+            restSeconds: item.restSeconds,
+            notes: item.notes,
+          };
+        }),
       });
     }
+
+    const slotSets = materializedDays.flatMap((d) => d.slots).reduce((sum, s) => sum + s.sets, 0);
+    const avgSetsPerDay = Math.round(slotSets / materializedDays.length);
+
+    return {
+      program: {
+        id: program.id,
+        name: program.name,
+        daysPerWeek: splitConfig.daysPerWeek,
+        split: splitConfig.splitName,
+        progressionModel: phase.progressionStrategy,
+        currentPhase: phase.label,
+      },
+      routines: createdRoutines,
+      config: {
+        sets: avgSetsPerDay,
+        reps: `${phase.repsMin}-${phase.repsMax}`,
+        rir: phase.rirTarget[trainingLevel as TrainingLevel],
+        restSeconds: 150,
+      },
+      periodization: {
+        phase: phase.label,
+        strategy: phase.progressionStrategy,
+        weeks: phase.weeks,
+      },
+    };
+  }
+
+  private async createPlaceholderProgram(
+    userId: string,
+    trainingLevel: string,
+    config: { frequency: number; split: string },
+    splitConfig: SplitConfig,
+  ) {
+    const program = await this.prisma.$queryRaw<{ id: string; name: string }>`INSERT INTO programs (id, user_id, name, goal, weeks, days_per_week, is_active, started_at, progression_model, current_phase, created_at, updated_at)
+      VALUES (gen_random_uuid(), ${userId}, ${`${trainingLevel.charAt(0) + trainingLevel.slice(1).toLowerCase()} Program`}, ${trainingLevel}, 8, ${config.frequency}, true, ${new Date()}, 'SET_INCREMENT', 'HYPERTROPHY', ${new Date()}, ${new Date()})
+      RETURNING id, name`;
+
+    const materializedDays = materializeDays(splitConfig);
 
     return {
       program: {
         id: program.id,
         name: program.name,
         daysPerWeek: config.frequency,
-        split: config.split,
+        split: splitConfig.splitName,
+        progressionModel: 'SET_INCREMENT',
+        currentPhase: 'HYPERTROPHY',
       },
-      routines: createdRoutines,
+      routines: materializedDays.map((day, idx) => ({
+        id: `pending-${idx}`,
+        name: day.dayName,
+        items: [],
+      })),
       config: {
-        sets: config.sets,
-        reps: config.reps,
-        rir: config.rir,
-        restSeconds: config.restSeconds,
+        sets: 3,
+        reps: '8-12',
+        rir: 2,
+        restSeconds: 150,
       },
     };
   }
@@ -285,8 +282,6 @@ export class RoutinesService {
   }
 }
 
-// ── Controller ────────────────────────────────────────────────────────────────
-
 @Controller('routines')
 @UseGuards(JwtAuthGuard)
 export class RoutinesController {
@@ -302,18 +297,14 @@ export class RoutinesController {
   }
 
   @Get('program/:programId')
-  getRoutinesByProgram(
-    @CurrentUser() user: AuthUser,
-  ) {
+  getRoutinesByProgram(@CurrentUser() user: AuthUser) {
     return this.routinesService.getRoutinesByProgram(user.id, user.id);
   }
 }
 
-// ── Module ────────────────────────────────────────────────────────────────────
-
 @Module({
   controllers: [RoutinesController],
-  providers: [RoutinesService],
+  providers: [RoutinesService, ExerciseSelectionService],
   exports: [RoutinesService],
 })
 export class RoutinesModule {}

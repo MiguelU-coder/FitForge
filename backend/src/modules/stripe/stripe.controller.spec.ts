@@ -66,11 +66,7 @@ describe('StripeController - customer.updated', () => {
       send: jest.fn(),
     } as any;
 
-    await controller.handleWebhook(
-      'test-signature',
-      mockRequest,
-      mockResponse,
-    );
+    await controller.handleWebhook('test-signature', mockRequest, mockResponse);
 
     expect(prisma.user.update).toHaveBeenCalledWith({
       where: { id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' },
@@ -112,11 +108,7 @@ describe('StripeController - customer.updated', () => {
       send: jest.fn(),
     } as any;
 
-    await controller.handleWebhook(
-      'test-signature',
-      mockRequest,
-      mockResponse,
-    );
+    await controller.handleWebhook('test-signature', mockRequest, mockResponse);
 
     expect(prisma.user.update).not.toHaveBeenCalled();
     expect(mockResponse.status).toHaveBeenCalledWith(200);

@@ -10,11 +10,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectQueue }        from '@nestjs/bullmq';
-import { Queue }              from 'bullmq';
-import { HttpService }        from '@nestjs/axios';
-import { randomUUID }         from 'crypto';
-import { firstValueFrom }     from 'rxjs';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { HttpService } from '@nestjs/axios';
+import { randomUUID } from 'crypto';
+import { firstValueFrom } from 'rxjs';
 import { RedisService, RedisDb } from '../../shared/redis.service';
 
 import {
@@ -32,20 +32,20 @@ import { PrismaService } from '../../database/prisma.service';
 // ─── Queue → Event routing table ─────────────────────────────────────────────
 
 const EVENT_QUEUE_MAP: Record<FitForgeEvent, string> = {
-  [FitForgeEvent.SET_RECORDED]:    QUEUE.SET_ANALYSIS,
-  [FitForgeEvent.WORKOUT_STARTED]: QUEUE.SET_ANALYSIS,    // light job — session init
+  [FitForgeEvent.SET_RECORDED]: QUEUE.SET_ANALYSIS,
+  [FitForgeEvent.WORKOUT_STARTED]: QUEUE.SET_ANALYSIS, // light job — session init
   [FitForgeEvent.WORKOUT_COMPLETED]: QUEUE.WORKOUT_COMPLETED,
-  [FitForgeEvent.PR_DETECTED]:     QUEUE.PR_DETECTED,
+  [FitForgeEvent.PR_DETECTED]: QUEUE.PR_DETECTED,
   [FitForgeEvent.FATIGUE_THRESHOLD]: QUEUE.FATIGUE_CHECK,
 };
 
 // ─── n8n webhook URLs (one per event type) ───────────────────────────────────
 
 const N8N_WEBHOOK_MAP: Record<FitForgeEvent, string> = {
-  [FitForgeEvent.SET_RECORDED]:      `${process.env.N8N_BASE_URL}/webhook/set-recorded`,
-  [FitForgeEvent.WORKOUT_STARTED]:   `${process.env.N8N_BASE_URL}/webhook/workout-started`,
+  [FitForgeEvent.SET_RECORDED]: `${process.env.N8N_BASE_URL}/webhook/set-recorded`,
+  [FitForgeEvent.WORKOUT_STARTED]: `${process.env.N8N_BASE_URL}/webhook/workout-started`,
   [FitForgeEvent.WORKOUT_COMPLETED]: `${process.env.N8N_BASE_URL}/webhook/workout-completed`,
-  [FitForgeEvent.PR_DETECTED]:       `${process.env.N8N_BASE_URL}/webhook/pr-detected`,
+  [FitForgeEvent.PR_DETECTED]: `${process.env.N8N_BASE_URL}/webhook/pr-detected`,
   [FitForgeEvent.FATIGUE_THRESHOLD]: `${process.env.N8N_BASE_URL}/webhook/fatigue-threshold`,
 };
 
@@ -56,57 +56,67 @@ export class EventProducerService {
   private readonly logger = new Logger(EventProducerService.name);
 
   constructor(
-    @InjectQueue(QUEUE.SET_ANALYSIS)      private setAnalysisQueue:      Queue,
+    @InjectQueue(QUEUE.SET_ANALYSIS) private setAnalysisQueue: Queue,
     @InjectQueue(QUEUE.WORKOUT_COMPLETED) private workoutCompletedQueue: Queue,
-    @InjectQueue(QUEUE.PR_DETECTED)       private prDetectedQueue:       Queue,
-    @InjectQueue(QUEUE.FATIGUE_CHECK)     private fatigueCheckQueue:     Queue,
-    private readonly prisma:              PrismaService,
-    private readonly redis:               RedisService,
-    private readonly httpService:         HttpService,
+    @InjectQueue(QUEUE.PR_DETECTED) private prDetectedQueue: Queue,
+    @InjectQueue(QUEUE.FATIGUE_CHECK) private fatigueCheckQueue: Queue,
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+    private readonly httpService: HttpService,
   ) {}
 
   // ─── Public API ────────────────────────────────────────────────────────────
 
-  async emitSetRecorded(payload: Omit<SetRecordedPayload, 'eventId' | 'eventType' | 'timestamp'>): Promise<void> {
+  async emitSetRecorded(
+    payload: Omit<SetRecordedPayload, 'eventId' | 'eventType' | 'timestamp'>,
+  ): Promise<void> {
     await this.publish({
       ...payload,
-      eventId:   randomUUID(),
+      eventId: randomUUID(),
       eventType: FitForgeEvent.SET_RECORDED,
       timestamp: new Date().toISOString(),
     } as SetRecordedPayload);
   }
 
-  async emitWorkoutStarted(payload: Omit<WorkoutStartedPayload, 'eventId' | 'eventType' | 'timestamp'>): Promise<void> {
+  async emitWorkoutStarted(
+    payload: Omit<WorkoutStartedPayload, 'eventId' | 'eventType' | 'timestamp'>,
+  ): Promise<void> {
     await this.publish({
       ...payload,
-      eventId:   randomUUID(),
+      eventId: randomUUID(),
       eventType: FitForgeEvent.WORKOUT_STARTED,
       timestamp: new Date().toISOString(),
     } as WorkoutStartedPayload);
   }
 
-  async emitWorkoutCompleted(payload: Omit<WorkoutCompletedPayload, 'eventId' | 'eventType' | 'timestamp'>): Promise<void> {
+  async emitWorkoutCompleted(
+    payload: Omit<WorkoutCompletedPayload, 'eventId' | 'eventType' | 'timestamp'>,
+  ): Promise<void> {
     await this.publish({
       ...payload,
-      eventId:   randomUUID(),
+      eventId: randomUUID(),
       eventType: FitForgeEvent.WORKOUT_COMPLETED,
       timestamp: new Date().toISOString(),
     } as WorkoutCompletedPayload);
   }
 
-  async emitPRDetected(payload: Omit<PRDetectedPayload, 'eventId' | 'eventType' | 'timestamp'>): Promise<void> {
+  async emitPRDetected(
+    payload: Omit<PRDetectedPayload, 'eventId' | 'eventType' | 'timestamp'>,
+  ): Promise<void> {
     await this.publish({
       ...payload,
-      eventId:   randomUUID(),
+      eventId: randomUUID(),
       eventType: FitForgeEvent.PR_DETECTED,
       timestamp: new Date().toISOString(),
     } as PRDetectedPayload);
   }
 
-  async emitFatigueThreshold(payload: Omit<FatigueThresholdPayload, 'eventId' | 'eventType' | 'timestamp'>): Promise<void> {
+  async emitFatigueThreshold(
+    payload: Omit<FatigueThresholdPayload, 'eventId' | 'eventType' | 'timestamp'>,
+  ): Promise<void> {
     await this.publish({
       ...payload,
-      eventId:   randomUUID(),
+      eventId: randomUUID(),
       eventType: FitForgeEvent.FATIGUE_THRESHOLD,
       timestamp: new Date().toISOString(),
     } as FatigueThresholdPayload);
@@ -142,11 +152,11 @@ export class EventProducerService {
     try {
       await this.prisma.eventLog.create({
         data: {
-          id:        event.eventId,
-          userId:    event.userId,
+          id: event.eventId,
+          userId: event.userId,
           eventType: event.eventType,
-          payload:   event as any,
-          source:    'backend',
+          payload: event as any,
+          source: 'backend',
           createdAt: new Date(event.timestamp),
         },
       });
@@ -164,12 +174,12 @@ export class EventProducerService {
 
   private async enqueueJob(event: AnyEventPayload): Promise<void> {
     const queueName = EVENT_QUEUE_MAP[event.eventType];
-    const queue     = this.resolveQueue(queueName);
-    const jobOpts   = QUEUE_JOB_OPTIONS[queueName as keyof typeof QUEUE_JOB_OPTIONS];
+    const queue = this.resolveQueue(queueName);
+    const jobOpts = QUEUE_JOB_OPTIONS[queueName as keyof typeof QUEUE_JOB_OPTIONS];
 
     await queue.add(event.eventType, event, {
       ...jobOpts,
-      jobId: event.eventId,  // idempotency — duplicate events are deduped
+      jobId: event.eventId, // idempotency — duplicate events are deduped
     });
 
     this.logger.debug(`Enqueued ${event.eventType} → queue:${queueName}`);
@@ -198,7 +208,7 @@ export class EventProducerService {
     await firstValueFrom(
       this.httpService.post(url, event, {
         headers: {
-          'Content-Type':      'application/json',
+          'Content-Type': 'application/json',
           'x-fitforge-secret': process.env.N8N_WEBHOOK_SECRET ?? '',
         },
         timeout: 5000,
@@ -212,10 +222,10 @@ export class EventProducerService {
 
   private resolveQueue(name: string): Queue {
     const map: Record<string, Queue> = {
-      [QUEUE.SET_ANALYSIS]:      this.setAnalysisQueue,
+      [QUEUE.SET_ANALYSIS]: this.setAnalysisQueue,
       [QUEUE.WORKOUT_COMPLETED]: this.workoutCompletedQueue,
-      [QUEUE.PR_DETECTED]:       this.prDetectedQueue,
-      [QUEUE.FATIGUE_CHECK]:     this.fatigueCheckQueue,
+      [QUEUE.PR_DETECTED]: this.prDetectedQueue,
+      [QUEUE.FATIGUE_CHECK]: this.fatigueCheckQueue,
     };
     const queue = map[name];
     if (!queue) throw new Error(`No queue registered for name: ${name}`);

@@ -84,7 +84,7 @@ export class OrganizationDashboardController {
     const monthlyRevenue = monthlyRevenueResult._sum.amount?.toNumber() || 0;
 
     // Get recent activity (events from users in this organization)
-    const orgUserIds = organization.users.map(u => u.userId);
+    const orgUserIds = organization.users.map((u) => u.userId);
     const recentActivity = await this.prisma.eventLog.findMany({
       where: {
         userId: { in: orgUserIds },
@@ -107,7 +107,7 @@ export class OrganizationDashboardController {
       _count: { role: true },
     });
 
-    const membershipDistribution = membershipDistributionRaw.map(item => ({
+    const membershipDistribution = membershipDistributionRaw.map((item) => ({
       name: item.role,
       value: item._count.role,
     }));
@@ -160,9 +160,8 @@ export class OrganizationDashboardController {
       },
     });
 
-    const retentionRate = members30DaysAgo > 0
-      ? Math.round((membersStillActive / members30DaysAgo) * 100)
-      : 100;
+    const retentionRate =
+      members30DaysAgo > 0 ? Math.round((membersStillActive / members30DaysAgo) * 100) : 100;
 
     return {
       success: true,
@@ -183,7 +182,7 @@ export class OrganizationDashboardController {
           exercisesCount,
         },
         revenueChart: revenueData,
-        recentActivity: recentActivity.map(event => ({
+        recentActivity: recentActivity.map((event) => ({
           id: event.id,
           eventType: event.eventType,
           createdAt: event.createdAt,

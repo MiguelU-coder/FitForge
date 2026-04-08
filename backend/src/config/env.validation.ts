@@ -18,9 +18,7 @@ const envSchema = z.object({
   REDIS_URL: z.string().min(1),
 
   // JWT - Seguridad aumentada: Validar que no sean strings genéricos
-  JWT_ACCESS_SECRET: z
-    .string()
-    .min(32, 'JWT_ACCESS_SECRET must be at least 32 characters'),
+  JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET must be at least 32 characters'),
   JWT_REFRESH_SECRET: z
     .string()
     .min(64, 'JWT_REFRESH_SECRET must be at least 64 characters (512 bits)'),

@@ -55,26 +55,30 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     const jwksUri = supabaseUrl ? `${supabaseUrl}/auth/v1/.well-known/jwks.json` : null;
 
     // Supabase secrets are base64 encoded strings that must be parsed into a Buffer
-    const localSecretKey = supabaseSecret 
-      ? Buffer.from(supabaseSecret, 'base64') 
+    const localSecretKey = supabaseSecret
+      ? Buffer.from(supabaseSecret, 'base64')
       : config.get('JWT_ACCESS_SECRET');
 
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKeyProvider: (req: Request, rawJwtToken: string, done: (err: any, secret: any) => void) => {
+      secretOrKeyProvider: (
+        req: Request,
+        rawJwtToken: string,
+        done: (err: any, secret: any) => void,
+      ) => {
         try {
           // Inspect the token header to determine the algorithm
           const decoded = this.jwtService.decode(rawJwtToken, { complete: true }) as any;
           const header = decoded?.header;
           const payload = decoded?.payload;
-          
+
           // 1. If it's a Supabase token (has Supabase issuer or aud)
           if (payload && (payload.iss?.includes('supabase') || payload.aud === 'authenticated')) {
             // Use shared secret ONLY if it's HS256 and we have the secret
             if (header?.alg === 'HS256' && supabaseSecret) {
               return done(null, Buffer.from(supabaseSecret, 'base64'));
             }
-            
+
             // For asymmetric algorithms (ES256, RS256) or if HS256 secret is missing, use JWKS
             if (jwksUri) {
               return passportJwtSecret({
@@ -87,7 +91,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 
             // Fallback for local dev if internet is down but shared secret is set
             if (supabaseSecret) {
-               return done(null, Buffer.from(supabaseSecret, 'base64'));
+              return done(null, Buffer.from(supabaseSecret, 'base64'));
             }
           }
 
@@ -111,9 +115,11 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 
       if (token) {
         try {
-          // Fallback: If Redis is unreachable (e.g. connection limits), 
+          // Fallback: If Redis is unreachable (e.g. connection limits),
           // we proceed since Supabase already validated the JWT signature.
-          const isBlacklisted = await this.redis.getClient(RedisDb.SESSIONS).exists(`at:bl:${token}`);
+          const isBlacklisted = await this.redis
+            .getClient(RedisDb.SESSIONS)
+            .exists(`at:bl:${token}`);
 
           if (isBlacklisted) {
             throw new UnauthorizedException('Token has been revoked');
@@ -151,7 +157,8 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
             data: {
               id: payload.sub,
               email: email,
-              displayName: payload.user_metadata?.display_name || this.extractDisplayNameFromEmail(email),
+              displayName:
+                payload.user_metadata?.display_name || this.extractDisplayNameFromEmail(email),
               isActive: true,
               unitSystem: 'METRIC',
             },
@@ -180,8 +187,10 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 
             // If a user exists with the SAME email but DIFFERENT ID, we have a "recreated account" scenario
             if (existingByEmail && existingByEmail.id !== payload.sub) {
-              console.warn(`JIT provisioning conflict: User recreated in Supabase with new sub ${payload.sub} for email ${email}. Deleting stale user ${existingByEmail.id}`);
-              
+              console.warn(
+                `JIT provisioning conflict: User recreated in Supabase with new sub ${payload.sub} for email ${email}. Deleting stale user ${existingByEmail.id}`,
+              );
+
               // Delete old user (Cascade should clean up linked data)
               await this.prisma.user.delete({ where: { id: existingByEmail.id } });
 
@@ -190,7 +199,8 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
                 data: {
                   id: payload.sub,
                   email: email,
-                  displayName: payload.user_metadata?.display_name || this.extractDisplayNameFromEmail(email),
+                  displayName:
+                    payload.user_metadata?.display_name || this.extractDisplayNameFromEmail(email),
                   isActive: true,
                   unitSystem: 'METRIC',
                 },
@@ -246,7 +256,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
         displayName: user.displayName,
         hasCompletedOnboarding: !!user.gender,
         isGlobalAdmin: user.isGlobalAdmin,
-        organizations: user.organizations.map(org => ({
+        organizations: user.organizations.map((org) => ({
           id: org.organizationId,
           role: org.role,
         })),
@@ -267,7 +277,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     return localPart
       .replace(/[._-]/g, ' ')
       .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ');
   }
 }

@@ -20,7 +20,8 @@ export class OrganizationsMembershipPlansController {
   @Roles(UserRole.ORG_ADMIN, UserRole.GLOBAL_ADMIN)
   async create(
     @Param('id') organizationId: string,
-    @Body() body: {
+    @Body()
+    body: {
       name: string;
       description?: string;
       price: number;
@@ -45,11 +46,10 @@ export class OrganizationsMembershipPlansController {
 
   @Delete(':planId')
   @Roles(UserRole.ORG_ADMIN, UserRole.GLOBAL_ADMIN)
-  async remove(
-    @Param('id') organizationId: string,
-    @Param('planId') planId: string,
-  ) {
-    await this.organizationsService.updateMembershipPlan(organizationId, planId, { isActive: false });
+  async remove(@Param('id') organizationId: string, @Param('planId') planId: string) {
+    await this.organizationsService.updateMembershipPlan(organizationId, planId, {
+      isActive: false,
+    });
     return { success: true, message: 'Plan deactivated successfully' };
   }
 }

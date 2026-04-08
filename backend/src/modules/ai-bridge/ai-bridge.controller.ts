@@ -107,11 +107,11 @@ export class AiBridgeController {
   ) {
     console.log('--- AI COACH ROUTINE REQUEST START ---');
     console.log(`User: ${user?.id}, Goal: ${dto.goal}`);
-    
+
     // Pass user token for AI service to identify the user
     const userToken = this.extractToken(req);
     const result = await this.aiBridgeService.generateAndSaveRoutine(user.id, dto, userToken);
-    
+
     console.log('--- AI COACH ROUTINE REQUEST END ---');
     return result;
   }
