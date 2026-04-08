@@ -1,14 +1,24 @@
 // src/components/PlateCalculator.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, Modal } from 'react-native';
 import { Colors } from '../theme/colors';
 
 const AVAILABLE_PLATES = [25, 20, 15, 10, 5, 2.5, 1.25];
 const BAR_WEIGHT = 20;
 
-export default function PlateCalculator() {
-  const [visible, setVisible] = useState(false);
-  const [targetWeight, setTargetWeight] = useState('');
+interface PlateCalculatorProps {
+  visible: boolean;
+  onClose: () => void;
+  initialWeight?: string;
+}
+
+export default function PlateCalculator({ visible, onClose, initialWeight }: PlateCalculatorProps) {
+  const [targetWeight, setTargetWeight] = useState(initialWeight || '');
+
+  // Update target weight if initialWeight changes
+  useEffect(() => {
+    if (initialWeight) setTargetWeight(initialWeight);
+  }, [initialWeight]);
 
   // Calculates plates for ONE side of the bar
   const calculatePlates = (target: number) => {
@@ -30,21 +40,17 @@ export default function PlateCalculator() {
 
   return (
     <>
-      <Pressable style={styles.fab} onPress={() => setVisible(true)}>
-        <Text style={styles.fabText}>🧮</Text>
-      </Pressable>
-
       <Modal
         visible={visible}
         transparent
         animationType="slide"
-        onRequestClose={() => setVisible(false)}
+        onRequestClose={onClose}
       >
         <View style={styles.modalBg}>
           <View style={styles.modalContent}>
             <View style={styles.header}>
               <Text style={styles.title}>PLATE CALCULATOR</Text>
-              <Pressable onPress={() => setVisible(false)} style={styles.closeBtn}>
+              <Pressable onPress={onClose} style={styles.closeBtn}>
                 <Text style={styles.closeBtnText}>✕</Text>
               </Pressable>
             </View>
@@ -89,25 +95,6 @@ export default function PlateCalculator() {
 }
 
 const styles = StyleSheet.create({
-  fab: {
-    position: 'absolute',
-    left: 20,
-    bottom: 100, // Above tabs and rest timer
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: `${Colors.elevated}E6`,
-    borderWidth: 1,
-    borderColor: `${Colors.primary}4D`,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  fabText: { fontSize: 20 },
   modalBg: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',

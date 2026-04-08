@@ -92,8 +92,8 @@ export type ReorderBlocksDto = z.infer<typeof ReorderBlocksSchema>;
 
 export const AddSetSchema = z.object({
   setNumber: z.number().int().min(1),
-  weightKg: z.number().min(0),
-  reps: z.number().int().min(1).max(200),
+  weightKg: z.number().min(0).optional(),
+  reps: z.number().int().min(0).max(200).optional(),
   rpe: z.number().min(1).max(10).optional(),
   rir: z.number().int().min(0).max(10).optional(),
   setType: z.enum(['WARMUP', 'WORKING', 'DROP', 'MYOREP']).default('WORKING'),
@@ -375,8 +375,10 @@ export class WorkoutsService {
     });
 
     // ── PR detection (solo para sets de trabajo no fallidos) ─────────────────
+    const weightKg = dto.weightKg ?? 0;
+    const reps = dto.reps ?? 0;
     const shouldCheckPR =
-      dto.setType === 'WORKING' && !dto.isFailed && dto.weightKg > 0 && dto.reps > 0;
+      dto.setType === 'WORKING' && !dto.isFailed && weightKg > 0 && reps > 0;
     let prResult: Awaited<ReturnType<typeof this.checkAndUpdatePR>> | null = null;
 
     if (shouldCheckPR) {
@@ -384,8 +386,8 @@ export class WorkoutsService {
         id: newSet.id,
         exerciseId: block.exercise.id,
         volumeLoad,
-        weightKg: dto.weightKg,
-        reps: dto.reps,
+        weightKg,
+        reps,
       });
     }
 

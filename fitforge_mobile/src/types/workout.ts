@@ -29,6 +29,7 @@ export interface ExerciseBlock {
   sortOrder: number;
   sets: SetLog[];
   imageUrl?: string;
+  restSeconds?: number;
 }
 
 export interface WorkoutSession {

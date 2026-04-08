@@ -49,7 +49,7 @@ function SettingsRow({ icon, label, value, onPress, isLast }: SettingsRowProps) 
 }
 
 export default function ProfileScreen() {
-  const { user, logout } = useAuthStore();
+  const { user, logout, updateProfile } = useAuthStore();
   const { history } = useWorkoutStore();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -168,7 +168,7 @@ export default function ProfileScreen() {
               'Weight Unit',
               ['kg', 'lbs'],
               user?.weightUnit ?? 'kg',
-              () => {}
+              (val) => updateProfile({ weightUnit: val })
             )
           }
         />
@@ -181,7 +181,7 @@ export default function ProfileScreen() {
               'Height Unit',
               ['cm', 'in'],
               user?.heightUnit ?? 'cm',
-              () => {}
+              (val) => updateProfile({ heightUnit: val })
             )
           }
         />
@@ -192,9 +192,9 @@ export default function ProfileScreen() {
           onPress={() =>
             showSelectionDialog(
               'Default Rest',
-              ['30s', '60s', '90s', '120s', '180s', '240s'],
-              `${user?.defaultRestSeconds ?? 90}s`,
-              () => {}
+              ['30', '60', '90', '120', '180', '240'],
+              `${user?.defaultRestSeconds ?? 90}`,
+              (val) => updateProfile({ defaultRestSeconds: parseInt(val, 10) })
             )
           }
         />
@@ -240,7 +240,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  content: { paddingBottom: 20 },
+  content: { paddingBottom: 100 },
 
   // Header
   headerBar: {

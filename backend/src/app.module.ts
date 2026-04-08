@@ -35,6 +35,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { EmailModule } from './modules/email/email.module';
 import { SupportModule } from './modules/support/support.module';
 import { AuditModule } from './modules/audit/audit.module';
+import { RoutinesModule } from './modules/routines/routines.module';
 
 // Guards, filters, interceptors
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -109,6 +110,7 @@ import { AppController } from './app.controller';
     EmailModule,
     SupportModule,
     AuditModule,
+    RoutinesModule,
   ],
 
   providers: [

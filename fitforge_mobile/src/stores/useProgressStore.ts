@@ -7,6 +7,7 @@ import { BodyMetric, WeeklyTotal, PersonalRecord } from '../types/progress';
 interface ProgressStore {
   metrics: BodyMetric[];
   volumeHistory: WeeklyTotal[];
+  rawVolumeHistory: WeeklyTotal[];
   prs: PersonalRecord[];
   
   isLoadingMetrics: boolean;
@@ -23,6 +24,7 @@ interface ProgressStore {
 export const useProgressStore = create<ProgressStore>((set, get) => ({
   metrics: [],
   volumeHistory: [],
+  rawVolumeHistory: [],
   prs: [],
   isLoadingMetrics: false,
   isLoadingVolume: false,
@@ -33,9 +35,24 @@ export const useProgressStore = create<ProgressStore>((set, get) => ({
     set({ isLoadingMetrics: true, error: null });
     try {
       const response = await apiClient.get('/users/me/metrics?limit=30');
-      // The backend returns latest first, flutter app reversed it to show oldest to newest?
-      // "data.map(...).reverse()"
-      const data = (response.data as BodyMetric[]).reverse();
+      const rawData = response.data as any[];
+      
+      // Explicitly parse numbers to handle Prisma Decimals coming as strings
+      const data = rawData.map(m => ({
+        ...m,
+        weightKg: m.weightKg != null ? Number(m.weightKg) : undefined,
+        bodyFatPct: m.bodyFatPct != null ? Number(m.bodyFatPct) : undefined,
+        waistCm: m.waistCm != null ? Number(m.waistCm) : undefined,
+        hipsCm: m.hipsCm != null ? Number(m.hipsCm) : undefined,
+        chestCm: m.chestCm != null ? Number(m.chestCm) : undefined,
+        armsCm: m.armsCm != null ? Number(m.armsCm) : undefined,
+        thighsCm: m.thighsCm != null ? Number(m.thighsCm) : undefined,
+        bmi: m.bmi != null ? Number(m.bmi) : undefined,
+        bodyWaterPct: m.bodyWaterPct != null ? Number(m.bodyWaterPct) : undefined,
+        boneMassKg: m.boneMassKg != null ? Number(m.boneMassKg) : undefined,
+        visceralFatRating: m.visceralFatRating != null ? Number(m.visceralFatRating) : undefined,
+      })).reverse();
+
       set({ metrics: data, isLoadingMetrics: false });
     } catch (e: any) {
       set({ isLoadingMetrics: false, error: e.message });
@@ -79,7 +96,7 @@ export const useProgressStore = create<ProgressStore>((set, get) => ({
 
       const list = Object.values(map).sort((a, b) => new Date(a.weekStart).getTime() - new Date(b.weekStart).getTime());
       
-      set({ volumeHistory: list, isLoadingVolume: false });
+      set({ volumeHistory: list, rawVolumeHistory: rawVolumes as WeeklyTotal[], isLoadingVolume: false });
     } catch (e: any) {
       set({ isLoadingVolume: false, error: e.message });
     }

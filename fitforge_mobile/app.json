@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "FitForge",
-    "slug": "fitforge-mobile",
+    "slug": "fitforge-i4w2lq",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -32,14 +32,20 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-font"
+      "expo-font",
+      "@react-native-community/datetimepicker"
     ],
     "extra": {
       "SUPABASE_URL": "https://ilkdhwvmtdgobuoqcfbv.supabase.co",
       "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlsa2Rod3ZtdGRnb2J1b3FjZmJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwNzc0NjgsImV4cCI6MjA4ODY1MzQ2OH0.mqQs_Nly2v11FvIR3aaudpEw48K_lvqYFQnMLmllb1A",
       "BACKEND_API_URL": "https://fitforge-backend-e3l0.onrender.com/api/v1",
       "AI_MICROSERVICES_URL": "https://fitforge-ia-microservices.onrender.com",
-      "AI_COACH_URL": "https://fitforge-ia-coach.onrender.com"
-    }
+      "AI_COACH_URL": "https://fitforge-ia-coach.onrender.com",
+      "router": {},
+      "eas": {
+        "projectId": "dbe5e9d4-40f8-42c6-b6e0-d6075eab4bc9"
+      }
+    },
+    "owner": "fitforge-organization"
   }
 }

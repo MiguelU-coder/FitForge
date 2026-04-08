@@ -111,26 +111,17 @@ export const Gradients = {
 export const Shadows = {
   /// Primary glow for buttons
   primaryGlow: {
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
+    boxShadow: '0px 4px 12px 0px rgba(24, 185, 122, 0.3)',
     elevation: 4,
   },
   /// Card shadow
   card: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.6,
-    shadowRadius: 20,
+    boxShadow: '0px 8px 20px 0px rgba(0, 0, 0, 0.6)',
     elevation: 8,
   },
   /// Violet glow for AI features
   violetGlow: {
-    shadowColor: Colors.secondary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
+    boxShadow: '0px 4px 20px 0px rgba(109, 40, 217, 0.25)',
     elevation: 4,
   },
 } as const;

@@ -23,7 +23,7 @@ interface WorkoutStore {
   // ── Actions: Active Session ──
   checkForActiveSession: () => Promise<void>;
   startSession: (name?: string, routineId?: string) => Promise<void>;
-  addExercise: (exerciseId: string) => Promise<void>;
+  addExercise: (exerciseId: string, exerciseName?: string) => Promise<void>;
   logSet: (params: { blockId: string; setId?: string; setNumber: number; weightKg?: number; reps?: number; rir?: number; isFailed?: boolean; setType?: string; }) => Promise<void>;
   deleteSet: (blockId: string, setId: string) => Promise<void>;
   unlogSet: (blockId: string, setId: string) => Promise<void>;
@@ -32,13 +32,14 @@ interface WorkoutStore {
   cancelSession: () => Promise<void>;
   reorderExercises: (oldIndex: number, newIndex: number) => Promise<void>;
   fetchLastPerformance: (exerciseId: string) => Promise<void>;
+  fetchSessionById: (id: string) => Promise<WorkoutSession | null>;
 
   // ── Actions: History ──
   fetchHistory: (page?: number) => Promise<void>;
 
   // ── Actions: Routines ──
   fetchTemplates: () => Promise<void>;
-  createRoutine: (programName: string, routineName: string, goal?: string, weeks?: number) => Promise<void>;
+  createRoutine: (programName: string, routineName: string, goal?: string, weeks?: number) => Promise<string>;
   deleteRoutine: (routineId: string) => Promise<void>;
   addExerciseToRoutine: (routineId: string, exerciseId: string, sets: number, reps: number, rir: number) => Promise<void>;
 
@@ -88,7 +89,7 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
     }
   },
 
-  addExercise: async (exerciseId) => {
+  addExercise: async (exerciseId, exerciseName) => {
     const session = get().activeSession;
     if (!session) return;
     try {
@@ -98,6 +99,12 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
         blockType: 'NORMAL',
       });
       const newBlock = response.data as ExerciseBlock;
+      
+      // Ensure exerciseName is present even if API response is minimal
+      if (!newBlock.exerciseName && exerciseName) {
+        newBlock.exerciseName = exerciseName;
+      }
+
       set({
         activeSession: {
           ...session,
@@ -276,6 +283,18 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
     }
   },
 
+  fetchSessionById: async (id: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await apiClient.get(`/workouts/sessions/${id}`);
+      set({ isLoading: false });
+      return response.data as WorkoutSession;
+    } catch (e: any) {
+      set({ isLoading: false, error: e.message });
+      return null;
+    }
+  },
+
   // ── Routines ──
   fetchTemplates: async () => {
     // Ported from RoutineTemplatesNotifier
@@ -305,10 +324,15 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
       const progRes = await apiClient.post('/programs', progBody);
       const progId = progRes.data.id;
 
-      await apiClient.post('/programs/routines', { programId: progId, name: routineName });
+      const routineRes = await apiClient.post('/programs/routines', { programId: progId, name: routineName });
+      const routineId = routineRes.data.id;
+
       await get().fetchTemplates();
+      set({ isLoading: false });
+      return routineId;
     } catch (e: any) {
       set({ isLoading: false, error: e.message });
+      throw e;
     }
   },
 

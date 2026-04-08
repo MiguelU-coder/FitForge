@@ -68,15 +68,8 @@ const AddSetBaseSchema = z.object({
   notes: z.string().max(300).optional(),
 });
 
-// Schema completo con validación cruzada (para POST — crear set)
-export const AddSetSchema = AddSetBaseSchema.refine(
-  (d) =>
-    d.weightKg !== undefined ||
-    d.reps !== undefined ||
-    d.durationSeconds !== undefined ||
-    d.distanceM !== undefined,
-  { message: 'Provide at least one of: weightKg, reps, durationSeconds, distanceM' },
-);
+// Schema completo (para POST — crear set)
+export const AddSetSchema = AddSetBaseSchema;
 
 // Schema parcial para PATCH — sin .refine() para que .partial() funcione
 export const UpdateSetSchema = AddSetBaseSchema.partial();

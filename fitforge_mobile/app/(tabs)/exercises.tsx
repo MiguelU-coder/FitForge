@@ -16,10 +16,12 @@ import {
 import { useRouter } from 'expo-router';
 import { Colors, Shadows } from '../../src/theme/colors';
 import { useExerciseStore } from '../../src/stores/useExerciseStore';
-import { MUSCLE_GROUPS, formatLabel } from '../../src/types/exercise';
+import { MUSCLE_GROUPS, EQUIPMENT_LIST, formatLabel } from '../../src/types/exercise';
 import ExerciseCard from '../../src/components/ExerciseCard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { getMuscleColor } from '../../src/utils/muscleColors';
+import { ScrollView } from 'react-native';
 
 export default function ExercisesScreen() {
   const router = useRouter();
@@ -110,41 +112,7 @@ export default function ExercisesScreen() {
           )}
         </View>
 
-        {/* Filter Chips */}
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={['ALL', ...MUSCLE_GROUPS]}
-          contentContainerStyle={styles.filterChipsContainer}
-          keyExtractor={(item) => item}
-          renderItem={({ item }) => {
-            const isSelected =
-              item === 'ALL' ? !filters.muscle : filters.muscle === item;
-            return (
-              <Pressable
-                style={[
-                  styles.filterChip,
-                  isSelected && styles.filterChipSelected,
-                ]}
-                onPress={() => {
-                  setFilters({
-                    muscle: item === 'ALL' ? undefined : item,
-                  });
-                }}
-              >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    isSelected && styles.filterChipTextSelected,
-                  ]}
-                >
-                  {item === 'ALL' ? 'ALL' : formatLabel(item)}
-                </Text>
-              </Pressable>
-            );
-          }}
-        />
-      </View>
+        </View>
 
       {/* ── Exercise Grid ── */}
       {isLoading && (!page || page.exercises.length === 0) ? (
@@ -194,26 +162,77 @@ export default function ExercisesScreen() {
         />
       )}
 
-      {/* ── Filter Modal (placeholder) ── */}
+      {/* ── Advanced Filters Modal ── */}
       <Modal visible={showFilters} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <Pressable style={styles.modalOverlay} onPress={() => setShowFilters(false)}>
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHandle} />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>ADVANCED FILTERS</Text>
-              <Pressable onPress={() => setShowFilters(false)}>
-                <Text style={styles.modalClose}>Close</Text>
+              <Pressable onPress={clearFilters}>
+                <Text style={styles.modalResetText}>Reset</Text>
               </Pressable>
             </View>
-            {/* Filter options would go here */}
-            <Pressable
-              style={styles.applyFiltersBtn}
-              onPress={() => setShowFilters(false)}
-            >
-              <Text style={styles.applyFiltersBtnText}>APPLY FILTERS</Text>
-            </Pressable>
-          </View>
-        </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+              {/* Muscle Group */}
+              <View style={styles.filterSection}>
+                <Text style={styles.sectionTitle}>MUSCLE GROUP</Text>
+                <View style={styles.chipWrap}>
+                  <Pressable
+                    style={[styles.muscleChip, !filters.muscle && styles.muscleChipActive]}
+                    onPress={() => setFilters({ muscle: undefined })}
+                  >
+                    <Ionicons name="apps" size={16} color={getMuscleColor('ALL')} />
+                    <Text style={[styles.muscleChipText, !filters.muscle && { color: '#FFF' }]}>All</Text>
+                  </Pressable>
+                  {MUSCLE_GROUPS.map(muscle => {
+                    const isActive = filters.muscle === muscle;
+                    return (
+                      <Pressable
+                        key={muscle}
+                        style={[styles.muscleChip, isActive && styles.muscleChipActive]}
+                        onPress={() => setFilters({ muscle: isActive ? undefined : muscle })}
+                      >
+                        <Ionicons name="body" size={16} color={getMuscleColor(muscle)} />
+                        <Text style={[styles.muscleChipText, isActive ? { color: '#FFF' } : null]}>
+                          {formatLabel(muscle)}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* Equipment */}
+              <View style={styles.filterSection}>
+                <Text style={styles.sectionTitle}>EQUIPMENT</Text>
+                <View style={styles.chipWrap}>
+                  <Pressable
+                    style={[styles.equipChip, !filters.equipment && styles.equipChipActive]}
+                    onPress={() => setFilters({ equipment: undefined })}
+                  >
+                    <Text style={[styles.equipChipText, !filters.equipment && styles.equipChipTextActive]}>All</Text>
+                  </Pressable>
+                  {EQUIPMENT_LIST.map(eq => {
+                    const isActive = filters.equipment === eq;
+                    return (
+                      <Pressable
+                        key={eq}
+                        style={[styles.equipChip, isActive && styles.equipChipActive]}
+                        onPress={() => setFilters({ equipment: isActive ? undefined : eq })}
+                      >
+                        <Text style={[styles.equipChipText, isActive ? styles.equipChipTextActive : null]}>
+                          {formatLabel(eq)}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            </ScrollView>
+          </Pressable>
+        </Pressable>
       </Modal>
     </View>
   );
@@ -235,16 +254,15 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: 'BebasNeue',
-    fontSize: 30,
-    color: Colors.textPrimary,
+    fontSize: 34,
     letterSpacing: 2,
+    color: Colors.textPrimary,
   },
   subtitle: {
     fontFamily: 'DMSans-Regular',
     fontSize: 12,
-    fontWeight: '300',
     color: Colors.textSecondary,
-    marginTop: 2,
+    marginTop: 1,
   },
   headerActions: {
     flexDirection: 'row',
@@ -369,11 +387,11 @@ const styles = StyleSheet.create({
   // Exercise List
   exerciseList: {
     paddingHorizontal: 16,
-    paddingBottom: 100,
+    paddingBottom: 90,
   },
   exerciseRow: {
-    justifyContent: 'space-between',
-    marginBottom: 14,
+    gap: 16,
+    marginBottom: 16,
   },
 
   // Empty
@@ -421,18 +439,18 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
 
-  // Modal (placeholder)
+  // Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.85)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: Colors.background,
+    backgroundColor: '#161616',
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     padding: 20,
-    paddingBottom: 40,
+    maxHeight: '85%',
   },
   modalHandle: {
     width: 40,
@@ -452,26 +470,98 @@ const styles = StyleSheet.create({
     fontFamily: 'DMSans-Bold',
     fontSize: 12,
     fontWeight: '800',
-    color: Colors.textMuted,
+    color: Colors.textTertiary,
     letterSpacing: 1.5,
   },
-  modalClose: {
+  modalResetText: {
     fontFamily: 'DMSans-SemiBold',
     fontSize: 13,
     color: Colors.primary,
   },
-  applyFiltersBtn: {
-    backgroundColor: Colors.primary,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 20,
+  filterSection: { // Add general section spacing
+    marginBottom: 28,
   },
-  applyFiltersBtnText: {
-    fontFamily: 'DMSans-Bold',
-    fontSize: 14,
-    letterSpacing: 1.5,
-    color: '#FFF',
+  sectionTitle: {
+    fontFamily: 'DMSans-Medium',
+    fontSize: 12,
+    color: Colors.textPrimary,
+    marginBottom: 12,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  chipWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  
+  // Source Chips
+  sourceChip: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.card,
+  },
+  sourceChipActive: {
+    borderColor: Colors.primary,
+    backgroundColor: `${Colors.primary}15`,
+  },
+  sourceChipText: {
+    fontFamily: 'DMSans-Regular',
+    fontSize: 13,
+    color: Colors.textSecondary,
+  },
+  sourceChipTextActive: {
+    color: Colors.primary,
+    fontFamily: 'DMSans-Medium',
+  },
+
+  // Muscle Chips
+  muscleChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.card,
+    gap: 8,
+  },
+  muscleChipActive: {
+    borderColor: Colors.primary,
+    backgroundColor: `${Colors.primary}10`,
+  },
+  muscleChipText: {
+    fontFamily: 'DMSans-Medium',
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
+
+  // Equipment Chips
+  equipChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.card,
+  },
+  equipChipActive: {
+    borderColor: Colors.primary,
+    backgroundColor: `${Colors.primary}15`,
+  },
+  equipChipText: {
+    fontFamily: 'DMSans-Regular',
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
+  equipChipTextActive: {
+    color: Colors.primary,
   },
 });
 

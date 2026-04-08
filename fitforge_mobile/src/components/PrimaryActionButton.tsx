@@ -4,6 +4,7 @@
 
 import { ReactNode } from 'react';
 import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Shadows } from '../theme/colors';
 import { Typography } from '../theme/typography';
 
@@ -26,30 +27,73 @@ export default function PrimaryActionButton({
 }: PrimaryActionButtonProps) {
   return (
     <Pressable
-      style={[styles.button, { minHeight }, variant === 'secondary' && styles.buttonSecondary, variant === 'outline' && styles.buttonOutline, isLoading && styles.buttonDisabled]}
+      style={[styles.pressable, { minHeight }, isLoading && styles.buttonDisabled]}
       onPress={isLoading ? undefined : onPress}
       disabled={isLoading}
     >
-      {isLoading ? (
-        <ActivityIndicator color={variant === 'outline' ? Colors.textPrimary : Colors.textOnPrimary} size="small" />
-      ) : (
-        <View style={styles.content}>
-          {icon && <View style={styles.iconWrap}>{icon}</View>}
-          <Text style={[styles.label, variant === 'outline' && styles.labelOutline]}>{label}</Text>
-        </View>
-      )}
+      {({ pressed }) => {
+        if (variant === 'primary') {
+          return (
+            <LinearGradient
+              colors={pressed ? [Colors.primaryDark, Colors.primary] : [Colors.primary, Colors.primaryBright]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[styles.gradient, { minHeight }]}
+            >
+              {isLoading ? (
+                <ActivityIndicator color={Colors.textOnPrimary} size="small" />
+              ) : (
+                <View style={styles.content}>
+                  {icon && <View style={styles.iconWrap}>{icon}</View>}
+                  <Text style={styles.label}>{label}</Text>
+                </View>
+              )}
+            </LinearGradient>
+          );
+        }
+        return (
+          <View
+            style={[
+              styles.button,
+              { minHeight },
+              variant === 'secondary' && styles.buttonSecondary,
+              variant === 'outline' && styles.buttonOutline,
+              pressed && styles.buttonPressed,
+            ]}
+          >
+            {isLoading ? (
+              <ActivityIndicator color={variant === 'outline' ? Colors.textPrimary : Colors.textOnPrimary} size="small" />
+            ) : (
+              <View style={styles.content}>
+                {icon && <View style={styles.iconWrap}>{icon}</View>}
+                <Text style={[styles.label, variant === 'outline' && styles.labelOutline]}>{label}</Text>
+              </View>
+            )}
+          </View>
+        );
+      }}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  pressable: {
+    width: '100%',
+    borderRadius: 14,
+    overflow: 'hidden',
+    ...Shadows.primaryGlow,
+  },
+  gradient: {
+    width: '100%',
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   button: {
     width: '100%',
     borderRadius: 14,
-    backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    ...Shadows.primaryGlow,
   },
   buttonSecondary: {
     backgroundColor: Colors.secondary,
@@ -59,11 +103,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: Colors.border,
-    shadowColor: 'transparent',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    elevation: 0,
+  },
+  buttonPressed: {
+    opacity: 0.85,
   },
   buttonDisabled: {
     opacity: 0.6,

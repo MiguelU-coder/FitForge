@@ -1,14 +1,28 @@
 // app/(auth)/onboarding.tsx
-import { useState, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, Dimensions, FlatList, Animated } from 'react-native';
+import { useState, useRef, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  Dimensions,
+  FlatList,
+  Animated,
+  ActivityIndicator,
+  SafeAreaView,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../src/theme/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Image } from 'expo-image';
+import { useOnboardingStore, type Gender, type TrainingLevel, type UserGoal } from '../../src/stores/useOnboardingStore';
+import { GenderSelector } from '../../src/components/onboarding/GenderSelector';
+import { LevelSelector } from '../../src/components/onboarding/LevelSelector';
+import { GoalSelector } from '../../src/components/onboarding/GoalSelector';
+import { RoutinePreview } from '../../src/components/onboarding/RoutinePreview';
 
 const { width } = Dimensions.get('window');
 
-const SLIDES = [
+const WELCOME_SLIDES = [
   {
     id: '1',
     title: 'TRACK EVERY REP',
@@ -26,34 +40,93 @@ const SLIDES = [
     title: 'SMASH YOUR PRS',
     subtitle: 'Track your body metrics and volume. Watch your strength skyrocket over time.',
     icon: '🚀',
-  }
+  },
 ];
 
 export default function OnboardingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [currentIndex, setCurrentIndex] = useState(0);
+  
+  const {
+    currentStep,
+    gender,
+    trainingLevel,
+    mainGoal,
+    generatedProgram,
+    isLoading,
+    setStep,
+    nextStep,
+    prevStep,
+    setGender,
+    setTrainingLevel,
+    setMainGoal,
+    savePreferences,
+    generateRoutine,
+  } = useOnboardingStore();
+
+  const [welcomeIndex, setWelcomeIndex] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
   const slidesRef = useRef<FlatList>(null);
 
   const viewableItemsChanged = useRef(({ viewableItems }: any) => {
-    setCurrentIndex(viewableItems[0]?.index ?? 0);
+    setWelcomeIndex(viewableItems[0]?.index ?? 0);
   }).current;
 
   const viewConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
 
   const scrollToNext = () => {
-    if (currentIndex < SLIDES.length - 1) {
-      slidesRef.current?.scrollToIndex({ index: currentIndex + 1 });
+    if (welcomeIndex < WELCOME_SLIDES.length - 1) {
+      slidesRef.current?.scrollToIndex({ index: welcomeIndex + 1 });
     } else {
-      router.replace('/(tabs)');
+      nextStep();
     }
   };
 
-  return (
-    <View style={styles.container}>
+  const handleGenderSelect = (g: Gender) => {
+    setGender(g);
+    nextStep();
+  };
+
+  const handleLevelSelect = (l: TrainingLevel) => {
+    setTrainingLevel(l);
+    nextStep();
+  };
+
+  const handleGoalSelect = async (g: UserGoal) => {
+    setMainGoal(g);
+    try {
+      await savePreferences();
+      await generateRoutine();
+      nextStep();
+    } catch (e) {
+      console.error('Onboarding error:', e);
+    }
+  };
+
+  const handleGoalSkip = async () => {
+    try {
+      await savePreferences();
+      await generateRoutine();
+      nextStep();
+    } catch (e) {
+      console.error('Onboarding error:', e);
+    }
+  };
+
+  const handleGenerateAndFinish = async () => {
+    try {
+      await savePreferences();
+      await generateRoutine();
+      router.replace('/(tabs)');
+    } catch (e) {
+      console.error('Onboarding error:', e);
+    }
+  };
+
+  const renderWelcomeStep = () => (
+    <>
       <FlatList
-        data={SLIDES}
+        data={WELCOME_SLIDES}
         ref={slidesRef}
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -80,7 +153,7 @@ export default function OnboardingScreen() {
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
         <View style={styles.paginator}>
-          {SLIDES.map((_, i) => {
+          {WELCOME_SLIDES.map((_, i) => {
             const inputRange = [(i - 1) * width, i * width, (i + 1) * width];
             const dotWidth = scrollX.interpolate({
               inputRange,
@@ -100,14 +173,84 @@ export default function OnboardingScreen() {
 
         <Pressable style={styles.btn} onPress={scrollToNext}>
           <Text style={styles.btnText}>
-            {currentIndex === SLIDES.length - 1 ? "LET'S TRAIN" : 'NEXT'}
+            {welcomeIndex === WELCOME_SLIDES.length - 1 ? "LET'S GO" : 'NEXT'}
           </Text>
         </Pressable>
-
-        <Pressable style={styles.skipBtn} onPress={() => router.replace('/(tabs)')}>
-          <Text style={styles.skipText}>SKIP</Text>
-        </Pressable>
       </View>
+    </>
+  );
+
+  const renderOnboardingStep = () => (
+    <View style={[styles.onboardingContainer, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 20 }]}>
+      <View style={styles.stepIndicator}>
+        <Pressable onPress={prevStep} style={styles.backButton}>
+          <Text style={styles.backText}>←</Text>
+        </Pressable>
+        <View style={styles.stepDots}>
+          {[1, 2, 3, 4].map((step) => (
+            <View
+              key={step}
+              style={[
+                styles.stepDot,
+                currentStep >= step && styles.stepDotActive,
+              ]}
+            />
+          ))}
+        </View>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <View style={styles.stepContent}>
+        {currentStep === 1 && (
+          <GenderSelector selected={gender} onSelect={handleGenderSelect} />
+        )}
+        {currentStep === 2 && (
+          <LevelSelector selected={trainingLevel} onSelect={handleLevelSelect} />
+        )}
+        {currentStep === 3 && (
+          <GoalSelector selected={mainGoal} onSelect={handleGoalSelect} onSkip={handleGoalSkip} />
+        )}
+        {currentStep === 4 && generatedProgram && (
+          <RoutinePreview
+            program={generatedProgram}
+            isLoading={isLoading}
+            onConfirm={handleGenerateAndFinish}
+            onBack={prevStep}
+          />
+        )}
+        {currentStep === 4 && !generatedProgram && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+            <Text style={styles.loadingText}>Generando tu programa...</Text>
+          </View>
+        )}
+      </View>
+
+      {currentStep < 4 && currentStep > 0 && (
+        <View style={styles.footerOnboarding}>
+          <Pressable
+            style={[styles.btn, (!gender || !trainingLevel) && styles.btnDisabled]}
+            onPress={() => {
+              if (currentStep === 1 && gender) nextStep();
+              if (currentStep === 2 && trainingLevel) nextStep();
+              if (currentStep === 3) nextStep();
+            }}
+            disabled={currentStep === 1 && !gender || currentStep === 2 && !trainingLevel}
+          >
+            {isLoading ? (
+              <ActivityIndicator color={Colors.textOnPrimary} />
+            ) : (
+              <Text style={styles.btnText}>CONTINUAR</Text>
+            )}
+          </Pressable>
+        </View>
+      )}
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      {currentStep === 0 ? renderWelcomeStep() : renderOnboardingStep()}
     </View>
   );
 }
@@ -142,14 +285,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   title: {
-    fontFamily: 'BebasNeue',
     fontSize: 48,
+    fontWeight: '700',
     color: Colors.primary,
     marginBottom: 16,
     textAlign: 'center',
   },
   subtitle: {
-    fontFamily: 'DMSans-Medium',
     fontSize: 16,
     color: Colors.textSecondary,
     textAlign: 'center',
@@ -181,21 +323,73 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 4,
-    marginBottom: 16,
+  },
+  btnDisabled: {
+    backgroundColor: Colors.textTertiary,
+    shadowOpacity: 0,
   },
   btnText: {
-    fontFamily: 'DMSans-Bold',
     fontSize: 16,
+    fontWeight: '700',
     letterSpacing: 2,
-    color: '#FFF',
+    color: Colors.textOnPrimary,
   },
   skipBtn: {
     padding: 10,
   },
   skipText: {
-    fontFamily: 'DMSans-Bold',
     fontSize: 14,
+    fontWeight: '600',
     color: Colors.textTertiary,
     letterSpacing: 1,
-  }
+  },
+  onboardingContainer: {
+    flex: 1,
+    paddingHorizontal: 24,
+  },
+  stepIndicator: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backText: {
+    fontSize: 24,
+    color: Colors.primary,
+  },
+  stepDots: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  stepDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: Colors.border,
+  },
+  stepDotActive: {
+    backgroundColor: Colors.primary,
+  },
+  stepContent: {
+    flex: 1,
+  },
+  footerOnboarding: {
+    paddingTop: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+  },
 });

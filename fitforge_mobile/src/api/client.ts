@@ -28,17 +28,35 @@ function createApiClient(): AxiosInstance {
       return config;
     }
 
-    let session = (await supabase.auth.getSession()).data.session;
+    let session;
+    try {
+      session = (await supabase.auth.getSession()).data.session;
+    } catch (err) {
+      console.log('[ApiClient] Error getting session:', err);
+      // Continue without session - will get 401
+      return config;
+    }
 
     // Refresh if expired or expiring soon (< 60s)
     if (session) {
       const expiresAt = session.expires_at ?? 0;
       const expiresDate = new Date(expiresAt * 1000);
       const buffer = new Date(Date.now() + 60_000);
+      
       if (expiresDate < buffer) {
         console.log('[ApiClient] Token expiring, refreshing...');
-        const { data } = await supabase.auth.refreshSession();
-        session = data.session;
+        try {
+          const { data, error } = await supabase.auth.refreshSession();
+          if (error) {
+            console.log('[ApiClient] Refresh error:', error.message);
+            // Don't throw, continue with existing session or let 401 handle it
+          } else {
+            session = data.session;
+          }
+        } catch (refreshErr) {
+          console.log('[ApiClient] Refresh exception:', refreshErr);
+          // Continue - will get 401 if needed
+        }
       }
     }
 
@@ -60,23 +78,35 @@ function createApiClient(): AxiosInstance {
     },
     async (error: AxiosError) => {
       const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+      const path = originalRequest?.url ?? '';
 
+      // Don't retry on auth errors if it's a refresh token issue
       if (error.response?.status === 401 && !originalRequest._retry && !isRefreshing) {
-        originalRequest._retry = true;
-        isRefreshing = true;
+        // Check if this is not already a refresh token request
+        const isAuthRequest = path.includes('/auth/');
+        
+        if (!isAuthRequest) {
+          originalRequest._retry = true;
+          isRefreshing = true;
 
-        try {
-          const { data } = await supabase.auth.refreshSession();
-          if (data.session) {
+          try {
+            const { data, error: refreshError } = await supabase.auth.refreshSession();
+            
+            if (refreshError || !data.session) {
+              console.log('[ApiClient] Refresh failed, signing out:', refreshError?.message);
+              await supabase.auth.signOut();
+              return Promise.reject(new Error('SESSION_EXPIRED'));
+            }
+            
             originalRequest.headers.Authorization = `Bearer ${data.session.access_token}`;
             return client(originalRequest);
-          } else {
+          } catch (refreshErr) {
+            console.log('[ApiClient] Refresh error:', refreshErr);
             await supabase.auth.signOut();
+            return Promise.reject(new Error('SESSION_EXPIRED'));
+          } finally {
+            isRefreshing = false;
           }
-        } catch {
-          // Refresh failed
-        } finally {
-          isRefreshing = false;
         }
       }
 
