@@ -154,10 +154,22 @@ export class ExerciseSelectionService {
       if (narrowedPool.length > 0) {
         pool = narrowedPool;
       } else if (slot.movementPattern !== null) {
-        // Fallback: use pattern-only filter if narrowing failed
-        pool = allExercises.filter(
-          (e) => !usedIds.has(e.id) && e.movementPattern === slot.movementPattern,
+        // Fallback: try to find exercises by muscle target ignoring pattern
+        // This helps when exercises don't have movement patterns assigned
+        const muscleFallbackPool = this.applyMuscleTargetNarrowing(
+          slot.muscleTarget,
+          allExercises.filter((e) => !usedIds.has(e.id)),
+          null,
         );
+        if (muscleFallbackPool.length > 0) {
+          pool = muscleFallbackPool;
+        }
+        // Note: we intentionally do NOT fall back to pattern-only
+        // as that would select wrong exercises (e.g., leg curl for tricep slot)
+      } else {
+        // slot.movementPattern is null and no muscle match found
+        // Cannot select appropriate exercise
+        pool = [];
       }
     }
 
@@ -203,6 +215,13 @@ export class ExerciseSelectionService {
       deadlift: [/deadlift/i],
       leg_press: [/leg press/i],
       hack_squat: [/hack squat/i],
+      tricep: [/tricep pushdown/i, /tricep extension/i, /tricep dip/i, /overhead extension/i, /rope pushdown/i],
+      bicep: [/bicep curl/i, /cable curl/i, /hammer curl/i, /preacher curl/i, /bayesian curl/i],
+      lateral: [/lateral raise/i, /cable lateral/i],
+      quad_isolation: [/leg extension/i],
+      hamstring_isolation: [/leg curl/i],
+      hamstring_curl: [/leg curl/i, /seated leg curl/i, /lying leg curl/i],
+      calf: [/calf raise/i],
     };
 
     // Check name rules first

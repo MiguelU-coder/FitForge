@@ -488,6 +488,146 @@ export class ExercisesService {
     return { deleted: true };
   }
 
+  /**
+   * Infer movement pattern from exercise data (muscle groups, name, equipment)
+   */
+  private inferMovementPattern(
+    name: string,
+    primaryMuscles: string[],
+    equipment?: string,
+  ): string | null {
+    const nameLower = name.toLowerCase();
+    const primary = primaryMuscles[0] || '';
+
+    // PUSH HORIZONTAL: chest-focused pressing movements
+    if (
+      primary === 'CHEST' ||
+      nameLower.includes('bench press') ||
+      nameLower.includes('chest press') ||
+      nameLower.includes('chest dip') ||
+      nameLower.includes('push-up') ||
+      nameLower.includes('pec deck') ||
+      nameLower.includes('chest fly') ||
+      nameLower.includes('cable fly')
+    ) {
+      if (nameLower.includes('incline') || nameLower.includes('overhead')) {
+        return 'PUSH_VERTICAL';
+      }
+      if (nameLower.includes('press') || nameLower.includes('dip') || nameLower.includes('push')) {
+        return 'PUSH_HORIZONTAL';
+      }
+      // Flyes/isolation are still horizontal push pattern
+      return 'PUSH_HORIZONTAL';
+    }
+
+    // PUSH VERTICAL: shoulder-focused pressing
+    if (
+      primary === 'SHOULDERS' ||
+      nameLower.includes('shoulder press') ||
+      nameLower.includes('overhead press') ||
+      nameLower.includes('military press') ||
+      nameLower.includes('lateral raise') ||
+      nameLower.includes('front raise')
+    ) {
+      if (nameLower.includes('press') || nameLower.includes('push')) {
+        return 'PUSH_VERTICAL';
+      }
+      // Lateral raises are shoulder isolation, map to vertical push pattern
+      if (nameLower.includes('lateral') || nameLower.includes('raise')) {
+        return 'PUSH_VERTICAL';
+      }
+    }
+
+    // PULL VERTICAL: lat-focused pulling
+    if (
+      primary === 'LATS' ||
+      nameLower.includes('pull-up') ||
+      nameLower.includes('chin-up') ||
+      nameLower.includes('lat pulldown') ||
+      nameLower.includes('pullover') ||
+      nameLower.includes('straight-arm pulldown')
+    ) {
+      return 'PULL_VERTICAL';
+    }
+
+    // PULL HORIZONTAL: back-focused rowing
+    if (
+      primary === 'BACK' ||
+      nameLower.includes('row') ||
+      nameLower.includes('cable row') ||
+      nameLower.includes('seated row') ||
+      nameLower.includes('face pull') ||
+      nameLower.includes('reverse fly') ||
+      nameLower.includes('chest-supported')
+    ) {
+      return 'PULL_HORIZONTAL';
+    }
+
+    // HINGE: posterior chain movements
+    if (
+      primary === 'HAMSTRINGS' ||
+      nameLower.includes('deadlift') ||
+      nameLower.includes('rdl') ||
+      nameLower.includes('romanian') ||
+      nameLower.includes('good morning') ||
+      nameLower.includes('hip thrust') ||
+      nameLower.includes('back extension')
+    ) {
+      if (nameLower.includes('leg curl')) {
+        // Leg curls are isolation, not hinge pattern
+        return null;
+      }
+      return 'HINGE';
+    }
+
+    // SQUAT: quad-focused leg movements
+    if (
+      primary === 'QUADS' ||
+      nameLower.includes('squat') ||
+      nameLower.includes('leg press') ||
+      nameLower.includes('hack squat') ||
+      nameLower.includes('leg extension') ||
+      nameLower.includes('goblet squat') ||
+      nameLower.includes('front squat')
+    ) {
+      if (nameLower.includes('leg extension')) {
+        // Leg extensions are isolation, not squat pattern
+        return null;
+      }
+      return 'SQUAT';
+    }
+
+    // LUNGE: unilateral leg movements
+    if (
+      nameLower.includes('lunge') ||
+      nameLower.includes('split squat') ||
+      nameLower.includes('step-up') ||
+      nameLower.includes('bulgarian')
+    ) {
+      return 'LUNGE';
+    }
+
+    // Isolation exercises that don't map to compound patterns
+    if (primary === 'BICEPS' && (nameLower.includes('curl') || nameLower.includes('bayesian'))) {
+      return 'PULL_VERTICAL'; // Bicep work accompanies vertical pull
+    }
+
+    if (primary === 'TRICEPS') {
+      return 'PUSH_HORIZONTAL'; // Tricep work accompanies horizontal push
+    }
+
+    if (primary === 'CALVES' || nameLower.includes('calf')) {
+      return null; // Calves don't fit main patterns
+    }
+
+    if (primary === 'ABS' || primary === 'OBLIQUES') {
+      return 'CORE';
+    }
+
+    // Default to null for isolation exercises
+    return null;
+  }
+
   async importOrUpdateExternalExercise(externalId: string): Promise<string> {
     // 1. Check if already exists in DB
     const existing = await this.prisma.exercise.findUnique({
@@ -512,20 +652,30 @@ export class ExercisesService {
 
     // 3. Map
     const primaryMuscleStr = ex.targetMuscles?.[0] || ex.target;
+    const primaryMuscles = [
+      ex.fitforgeMuscle || EXERCISE_DB_MUSCLE_MAP[primaryMuscleStr] || 'FULL_BODY',
+    ];
     const secondaryMuscles =
       ex.secondaryMuscles?.map((m: string) => EXERCISE_DB_MUSCLE_MAP[m] || 'FULL_BODY') || [];
     const equipmentStr = ex.equipments?.[0] || ex.equipment;
+    const exerciseName = ex.fitforgeName || ex.name;
+
+    // Infer movement pattern from exercise characteristics
+    const movementPattern = this.inferMovementPattern(
+      exerciseName,
+      primaryMuscles,
+      equipmentStr,
+    );
 
     // 4. Create
     const newExercise = await this.prisma.exercise.create({
       data: {
         externalId,
-        name: ex.fitforgeName || ex.name,
-        primaryMuscles: [
-          ex.fitforgeMuscle || EXERCISE_DB_MUSCLE_MAP[primaryMuscleStr] || 'FULL_BODY',
-        ],
+        name: exerciseName,
+        primaryMuscles,
         secondaryMuscles,
         equipment: (EXERCISE_DB_EQUIPMENT_MAP[equipmentStr] as any) || 'OTHER',
+        movementPattern: movementPattern as any,
         instructions: ex.instructions?.join('\n') || '',
         imageUrl: `/api/v1/exercises/image/${externalId}`,
         isCustom: false,
@@ -533,6 +683,44 @@ export class ExercisesService {
     });
 
     return newExercise.id;
+  }
+
+  /**
+   * Re-process all existing external exercises to set movement patterns.
+   * Call this after deploying the movement pattern inference logic.
+   */
+  async updateExistingExercisesWithMovementPatterns(): Promise<{ updated: number; errors: string[] }> {
+    const exercises = await this.prisma.exercise.findMany({
+      where: {
+        isCustom: false,
+        movementPattern: null,
+      },
+    });
+
+    const errors: string[] = [];
+    let updated = 0;
+
+    for (const ex of exercises) {
+      try {
+        const movementPattern = this.inferMovementPattern(
+          ex.name,
+          ex.primaryMuscles as string[],
+          ex.equipment || undefined,
+        );
+
+        if (movementPattern) {
+          await this.prisma.exercise.update({
+            where: { id: ex.id },
+            data: { movementPattern: movementPattern as any },
+          });
+          updated++;
+        }
+      } catch (e: any) {
+        errors.push(`Failed to update ${ex.name}: ${e.message}`);
+      }
+    }
+
+    return { updated, errors };
   }
 }
 
@@ -610,6 +798,15 @@ export class ExercisesController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<{ deleted: boolean }> {
     return this.exercisesService.deleteCustom(user.id, id);
+  }
+
+  // POST /exercises/admin/migrate-movement-patterns
+  // Admin endpoint to update existing exercises with movement patterns
+  @Post('admin/migrate-movement-patterns')
+  @HttpCode(HttpStatus.OK)
+  async migrateMovementPatterns(@CurrentUser() user: AuthUser): Promise<{ updated: number; errors: string[] }> {
+    // Check if user is admin (you may want to add proper admin role check)
+    return this.exercisesService.updateExistingExercisesWithMovementPatterns();
   }
 }
 
