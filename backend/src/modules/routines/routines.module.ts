@@ -128,7 +128,7 @@ export class RoutinesService {
     }));
 
     const program = await this.prisma.$queryRaw<{ id: string; name: string }>`INSERT INTO programs (id, user_id, name, goal, weeks, days_per_week, is_active, started_at, progression_model, current_phase, created_at, updated_at)
-      VALUES (gen_random_uuid(), ${userId}::uuid, ${`${trainingLevel.charAt(0) + trainingLevel.slice(1).toLowerCase()} Program`}, ${mainGoal || trainingLevel}, ${totalWeeks}, ${splitConfig.daysPerWeek}, true, ${new Date()}, ${phase.progressionStrategy}, ${phase.label}, ${new Date()}, ${new Date()})
+      VALUES (gen_random_uuid(), ${userId}::uuid, ${`${trainingLevel.charAt(0) + trainingLevel.slice(1).toLowerCase()} Program`}, ${mainGoal || trainingLevel}, ${totalWeeks}, ${splitConfig.daysPerWeek}, true, ${new Date()}, ${phase.progressionStrategy}, ${phase.label}::"ProgramPhase", ${new Date()}, ${new Date()})
       RETURNING id, name` as unknown as { id: string; name: string };
 
     const materializedDays = materializeDays(splitConfig);
@@ -253,7 +253,7 @@ export class RoutinesService {
     splitConfig: SplitConfig,
   ) {
     const program = await this.prisma.$queryRaw<{ id: string; name: string }>`INSERT INTO programs (id, user_id, name, goal, weeks, days_per_week, is_active, started_at, progression_model, current_phase, created_at, updated_at)
-      VALUES (gen_random_uuid(), ${userId}::uuid, ${`${trainingLevel.charAt(0) + trainingLevel.slice(1).toLowerCase()} Program`}, ${trainingLevel}, 8, ${config.frequency}, true, ${new Date()}, 'SET_INCREMENT', 'HYPERTROPHY', ${new Date()}, ${new Date()})
+      VALUES (gen_random_uuid(), ${userId}::uuid, ${`${trainingLevel.charAt(0) + trainingLevel.slice(1).toLowerCase()} Program`}, ${trainingLevel}, 8, ${config.frequency}, true, ${new Date()}, 'SET_INCREMENT', 'HYPERTROPHY'::"ProgramPhase", ${new Date()}, ${new Date()})
       RETURNING id, name` as unknown as { id: string; name: string };
 
     const materializedDays = materializeDays(splitConfig);
