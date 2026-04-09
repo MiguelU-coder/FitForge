@@ -85,11 +85,24 @@ export class RoutinesService {
       movement_pattern: string | null;
     }>>`SELECT id, name, primary_muscles, secondary_muscles, is_compound, movement_pattern FROM exercises WHERE is_active = true`;
 
+    const parseArrayField = (value: string | string[]): string[] => {
+      if (Array.isArray(value)) return value;
+      if (typeof value === 'string') {
+        try {
+          const parsed = JSON.parse(value);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      }
+      return [];
+    };
+
     const exercises = dbExercises.map((e) => ({
       id: e.id,
       name: e.name,
-      primaryMuscles: e.primary_muscles ? JSON.parse(e.primary_muscles) : [],
-      secondaryMuscles: e.secondary_muscles ? JSON.parse(e.secondary_muscles) : [],
+      primaryMuscles: parseArrayField(e.primary_muscles),
+      secondaryMuscles: parseArrayField(e.secondary_muscles),
       isCompound: e.is_compound,
       movementPattern: e.movement_pattern,
       exerciseType: null,
@@ -116,7 +129,7 @@ export class RoutinesService {
 
     const program = await this.prisma.$queryRaw<{ id: string; name: string }>`INSERT INTO programs (id, user_id, name, goal, weeks, days_per_week, is_active, started_at, progression_model, current_phase, created_at, updated_at)
       VALUES (gen_random_uuid(), ${userId}, ${`${trainingLevel.charAt(0) + trainingLevel.slice(1).toLowerCase()} Program`}, ${mainGoal || trainingLevel}, ${totalWeeks}, ${splitConfig.daysPerWeek}, true, ${new Date()}, ${phase.progressionStrategy}, ${phase.label}, ${new Date()}, ${new Date()})
-      RETURNING id, name`;
+      RETURNING id, name` as unknown as { id: string; name: string };
 
     const materializedDays = materializeDays(splitConfig);
     const createdRoutines: Array<{
@@ -241,7 +254,7 @@ export class RoutinesService {
   ) {
     const program = await this.prisma.$queryRaw<{ id: string; name: string }>`INSERT INTO programs (id, user_id, name, goal, weeks, days_per_week, is_active, started_at, progression_model, current_phase, created_at, updated_at)
       VALUES (gen_random_uuid(), ${userId}, ${`${trainingLevel.charAt(0) + trainingLevel.slice(1).toLowerCase()} Program`}, ${trainingLevel}, 8, ${config.frequency}, true, ${new Date()}, 'SET_INCREMENT', 'HYPERTROPHY', ${new Date()}, ${new Date()})
-      RETURNING id, name`;
+      RETURNING id, name` as unknown as { id: string; name: string };
 
     const materializedDays = materializeDays(splitConfig);
 
