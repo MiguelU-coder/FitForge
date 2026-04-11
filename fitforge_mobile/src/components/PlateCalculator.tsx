@@ -1,8 +1,15 @@
 // src/components/PlateCalculator.tsx
-import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, Modal } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../theme/colors';
+import { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  TextInput,
+  Modal,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { Colors } from "../theme/colors";
 
 const AVAILABLE_PLATES = [25, 20, 15, 10, 5, 2.5, 1.25];
 const BAR_WEIGHT = 20;
@@ -13,8 +20,12 @@ interface PlateCalculatorProps {
   initialWeight?: string;
 }
 
-export default function PlateCalculator({ visible, onClose, initialWeight }: PlateCalculatorProps) {
-  const [targetWeight, setTargetWeight] = useState(initialWeight || '');
+export default function PlateCalculator({
+  visible,
+  onClose,
+  initialWeight,
+}: PlateCalculatorProps) {
+  const [targetWeight, setTargetWeight] = useState(initialWeight || "");
 
   // Update target weight if initialWeight changes
   useEffect(() => {
@@ -49,10 +60,13 @@ export default function PlateCalculator({ visible, onClose, initialWeight }: Pla
       <View style={styles.modalBg}>
         <View style={styles.modalContent}>
           <View style={styles.header}>
-            <Text style={styles.title}>PLATE CALCULATOR</Text>
+            <Text style={styles.title}>CALCULADORA DE DISCOS</Text>
             <Pressable
               onPress={onClose}
-              style={({ pressed }) => [styles.closeBtn, pressed && styles.closeBtnPressed]}
+              style={({ pressed }) => [
+                styles.closeBtn,
+                pressed && styles.closeBtnPressed,
+              ]}
               accessibilityRole="button"
               accessibilityLabel="Cerrar calculadora"
               hitSlop={8}
@@ -62,7 +76,7 @@ export default function PlateCalculator({ visible, onClose, initialWeight }: Pla
           </View>
 
           <View style={styles.inputWrap}>
-            <Text style={styles.label}>TARGET WEIGHT (KG)</Text>
+            <Text style={styles.label}>PESO TOTAL (KG)</Text>
             <TextInput
               style={styles.input}
               keyboardType="numeric"
@@ -73,15 +87,17 @@ export default function PlateCalculator({ visible, onClose, initialWeight }: Pla
               onChangeText={setTargetWeight}
               selectionColor={Colors.primary}
             />
-            <Text style={styles.hint}>Assumes a standard 20kg barbell.</Text>
+            <Text style={styles.hint}>Asume una barra estándar de 20kg.</Text>
           </View>
 
           <View style={styles.resultArea}>
-            <Text style={styles.resultTitle}>PLATES PER SIDE</Text>
+            <Text style={styles.resultTitle}>DISCOS POR LADO</Text>
             {targetWeight && parseFloat(targetWeight) < 20 ? (
-              <Text style={styles.errorText}>Weight is less than the bar (20kg)</Text>
+              <Text style={styles.errorText}>
+                El peso es menor que la barra (20kg)
+              </Text>
             ) : targetWeight && plates.length === 0 ? (
-              <Text style={styles.successText}>Just the bar!</Text>
+              <Text style={styles.successText}>¡Solo la barra!</Text>
             ) : plates.length > 0 ? (
               <View style={styles.platesRow}>
                 {plates.map((p, i) => (
@@ -103,8 +119,8 @@ export default function PlateCalculator({ visible, onClose, initialWeight }: Pla
 const styles = StyleSheet.create({
   modalBg: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "flex-end",
   },
   modalContent: {
     backgroundColor: Colors.surface,
@@ -114,13 +130,13 @@ const styles = StyleSheet.create({
     minHeight: 300,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 24,
   },
   title: {
-    fontFamily: 'BebasNeue',
+    fontFamily: "BebasNeue",
     fontSize: 24,
     letterSpacing: 1,
     color: Colors.textPrimary,
@@ -128,8 +144,8 @@ const styles = StyleSheet.create({
   closeBtn: {
     width: 36,
     height: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: `${Colors.elevated}80`,
     borderRadius: 18,
   },
@@ -139,7 +155,7 @@ const styles = StyleSheet.create({
   },
   inputWrap: { marginBottom: 24 },
   label: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 12,
     color: Colors.textSecondary,
     marginBottom: 8,
@@ -151,20 +167,20 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     borderRadius: 12,
     padding: 16,
-    fontFamily: 'BebasNeue',
+    fontFamily: "BebasNeue",
     fontSize: 32,
     color: Colors.primary,
-    textAlign: 'center',
+    textAlign: "center",
   },
   hint: {
-    fontFamily: 'DMSans-Regular',
+    fontFamily: "DMSans-Regular",
     fontSize: 12,
     color: Colors.textTertiary,
     marginTop: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   resultArea: {
-    alignItems: 'center',
+    alignItems: "center",
     backgroundColor: `${Colors.elevated}4D`,
     padding: 20,
     borderRadius: 16,
@@ -172,16 +188,16 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   resultTitle: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 12,
     color: Colors.textSecondary,
     marginBottom: 16,
     letterSpacing: 1.5,
   },
   platesRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
     gap: 8,
   },
   plate: {
@@ -191,26 +207,26 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primaryDark,
     borderWidth: 2,
     borderColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   plateText: {
-    fontFamily: 'BebasNeue',
+    fontFamily: "BebasNeue",
     fontSize: 24,
-    color: '#FFF',
+    color: "#FFF",
   },
   errorText: {
-    fontFamily: 'DMSans-Medium',
+    fontFamily: "DMSans-Medium",
     fontSize: 14,
     color: Colors.error,
   },
   successText: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 18,
     color: Colors.success,
   },
   emptyText: {
-    fontFamily: 'DMSans-Medium',
+    fontFamily: "DMSans-Medium",
     fontSize: 14,
     color: Colors.textTertiary,
   },

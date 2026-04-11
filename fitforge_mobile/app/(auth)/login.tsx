@@ -2,27 +2,35 @@
 // Port of login_screen.dart — "Industrial Premium Athletic" design
 // Reference: lib/features/auth/presentation/screens/login_screen.dart
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from "react";
 import {
-  View, Text, TextInput, Pressable, ScrollView,
-  KeyboardAvoidingView, Platform, StyleSheet, Animated,
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Animated,
   ActivityIndicator,
-} from 'react-native';
-import { Link, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors, Gradients, Shadows } from '../../src/theme/colors';
-import { Typography } from '../../src/theme/typography';
-import { Spacing, Radius } from '../../src/theme/spacing';
-import { useAuthStore } from '../../src/stores/useAuthStore';
+} from "react-native";
+import { Link, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { Colors, Gradients, Shadows } from "../../src/theme/colors";
+import { Typography } from "../../src/theme/typography";
+import { Spacing, Radius } from "../../src/theme/spacing";
+import { useAuthStore } from "../../src/stores/useAuthStore";
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login, signInWithGoogle, isLoading, error, clearError } = useAuthStore();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const { login, signInWithGoogle, isLoading, error, clearError } =
+    useAuthStore();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [emailError, setEmailError] = useState('');
-  const [passError, setPassError] = useState('');
+  const [emailError, setEmailError] = useState("");
+  const [passError, setPassError] = useState("");
   const passwordRef = useRef<TextInput>(null);
 
   // ── Fade-in animation ──
@@ -31,19 +39,33 @@ export default function LoginScreen() {
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 500, useNativeDriver: true }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }),
     ]).start();
   }, []);
 
   const validate = (): boolean => {
     let valid = true;
-    if (!email.trim()) { setEmailError('Required'); valid = false; }
-    else if (!email.includes('@')) { setEmailError('Invalid email'); valid = false; }
-    else setEmailError('');
+    if (!email.trim()) {
+      setEmailError("Required");
+      valid = false;
+    } else if (!email.includes("@")) {
+      setEmailError("Invalid email");
+      valid = false;
+    } else setEmailError("");
 
-    if (!password) { setPassError('Required'); valid = false; }
-    else setPassError('');
+    if (!password) {
+      setPassError("Required");
+      valid = false;
+    } else setPassError("");
 
     return valid;
   };
@@ -57,14 +79,16 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+        <Animated.View
+          style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
+        >
           {/* ── Brand Mark + Tagline ── */}
           <View style={styles.brandRow}>
             <View style={styles.brandIcon}>
@@ -80,15 +104,18 @@ export default function LoginScreen() {
           <View style={styles.headlineSection}>
             {/* Eyebrow pill */}
             <View style={styles.eyebrowPill}>
-              <Text style={styles.eyebrowText}>WELCOME BACK</Text>
+              <Text style={styles.eyebrowText}>BIENVENIDO DE NUEVO</Text>
             </View>
 
             {/* Main title */}
-            <Text style={styles.heroTitle}>RESUME{'\n'}YOUR{'\n'}TRAINING</Text>
+            <Text style={styles.heroTitle}>
+              REANUDAR{"\n"}TU{"\n"}ENTRENAMIENTO
+            </Text>
 
             {/* Subtitle */}
             <Text style={styles.subtitle}>
-              Sign in to track your progress and continue building strength.
+              Inicia sesión para seguir tu progreso y continuar construyendo
+              fuerza.
             </Text>
           </View>
 
@@ -96,14 +123,27 @@ export default function LoginScreen() {
           <View style={styles.formCard}>
             {/* Email */}
             <Text style={styles.inputLabel}>EMAIL</Text>
-            <View style={[styles.inputContainer, emailError ? styles.inputError : null]}>
-              <Ionicons name="mail-outline" size={18} color={Colors.textTertiary} style={styles.inputIconView} />
+            <View
+              style={[
+                styles.inputContainer,
+                emailError ? styles.inputError : null,
+              ]}
+            >
+              <Ionicons
+                name="mail-outline"
+                size={18}
+                color={Colors.textTertiary}
+                style={styles.inputIconView}
+              />
               <TextInput
                 style={styles.input}
                 placeholder="your@email.com"
                 placeholderTextColor={Colors.textMuted}
                 value={email}
-                onChangeText={(t) => { setEmail(t); setEmailError(''); }}
+                onChangeText={(t) => {
+                  setEmail(t);
+                  setEmailError("");
+                }}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -111,36 +151,59 @@ export default function LoginScreen() {
                 onSubmitEditing={() => passwordRef.current?.focus()}
               />
             </View>
-            {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+            {emailError ? (
+              <Text style={styles.errorText}>{emailError}</Text>
+            ) : null}
 
             {/* Password */}
-            <Text style={[styles.inputLabel, { marginTop: 16 }]}>PASSWORD</Text>
-            <View style={[styles.inputContainer, passError ? styles.inputError : null]}>
-              <Ionicons name="lock-closed-outline" size={18} color={Colors.textTertiary} style={styles.inputIconView} />
+            <Text style={[styles.inputLabel, { marginTop: 16 }]}>
+              CONTRASEÑA
+            </Text>
+            <View
+              style={[
+                styles.inputContainer,
+                passError ? styles.inputError : null,
+              ]}
+            >
+              <Ionicons
+                name="lock-closed-outline"
+                size={18}
+                color={Colors.textTertiary}
+                style={styles.inputIconView}
+              />
               <TextInput
                 ref={passwordRef}
                 style={styles.input}
                 placeholder="Enter your password"
                 placeholderTextColor={Colors.textMuted}
                 value={password}
-                onChangeText={(t) => { setPassword(t); setPassError(''); }}
+                onChangeText={(t) => {
+                  setPassword(t);
+                  setPassError("");
+                }}
                 secureTextEntry={!showPassword}
                 returnKeyType="done"
                 onSubmitEditing={handleSubmit}
               />
-              <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn} hitSlop={8}>
+              <Pressable
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.eyeBtn}
+                hitSlop={8}
+              >
                 <Ionicons
-                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  name={showPassword ? "eye-off-outline" : "eye-outline"}
                   size={20}
                   color={Colors.textTertiary}
                 />
               </Pressable>
             </View>
-            {passError ? <Text style={styles.errorText}>{passError}</Text> : null}
+            {passError ? (
+              <Text style={styles.errorText}>{passError}</Text>
+            ) : null}
 
             {/* Forgot password */}
             <Pressable style={styles.forgotBtn}>
-              <Text style={styles.forgotText}>Forgot password?</Text>
+              <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
             </Pressable>
 
             {/* API Error */}
@@ -160,8 +223,13 @@ export default function LoginScreen() {
                 <ActivityIndicator color="#FFF" size="small" />
               ) : (
                 <View style={styles.signInBtnContent}>
-                  <Text style={styles.signInBtnText}>SIGN IN</Text>
-                  <Ionicons name="arrow-forward" size={18} color="#FFF" style={{ marginLeft: 8 }} />
+                  <Text style={styles.signInBtnText}>INICIAR SESIÓN</Text>
+                  <Ionicons
+                    name="arrow-forward"
+                    size={18}
+                    color="#FFF"
+                    style={{ marginLeft: 8 }}
+                  />
                 </View>
               )}
             </Pressable>
@@ -170,7 +238,7 @@ export default function LoginScreen() {
           {/* ── Social Login ── */}
           <View style={styles.dividerRow}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>OR CONTINUE WITH</Text>
+            <Text style={styles.dividerText}>O CONTINÚA CON</Text>
             <View style={styles.dividerLine} />
           </View>
 
@@ -181,10 +249,10 @@ export default function LoginScreen() {
 
           {/* ── Footer ── */}
           <View style={styles.footerRow}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
+            <Text style={styles.footerText}>¿No tienes una cuenta? </Text>
             <Link href="/(auth)/register" asChild>
               <Pressable style={styles.signUpPill}>
-                <Text style={styles.signUpText}>Sign Up</Text>
+                <Text style={styles.signUpText}>Registrarse</Text>
               </Pressable>
             </Link>
           </View>
@@ -199,137 +267,203 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 28, paddingVertical: 20 },
 
   // Brand
-  brandRow: { flexDirection: 'row', alignItems: 'center', marginTop: 16 },
+  brandRow: { flexDirection: "row", alignItems: "center", marginTop: 16 },
   brandIcon: {
-    width: 48, height: 48, borderRadius: 14,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     backgroundColor: Colors.primary,
-    justifyContent: 'center', alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     ...Shadows.primaryGlow,
   },
   brandName: {
-    fontFamily: 'BebasNeue', fontSize: 24, letterSpacing: 2,
+    fontFamily: "BebasNeue",
+    fontSize: 24,
+    letterSpacing: 2,
     color: Colors.textPrimary,
   },
   brandTagline: {
-    fontFamily: 'DMSans-SemiBold', fontSize: 9, letterSpacing: 3,
+    fontFamily: "DMSans-SemiBold",
+    fontSize: 9,
+    letterSpacing: 3,
     color: Colors.textTertiary,
   },
 
   // Headline
   headlineSection: { marginTop: 32 },
   eyebrowPill: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12, paddingVertical: 6,
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 8,
     backgroundColor: `${Colors.primary}1A`,
-    borderWidth: 1, borderColor: `${Colors.primary}4D`,
+    borderWidth: 1,
+    borderColor: `${Colors.primary}4D`,
   },
   eyebrowText: {
-    fontFamily: 'DMSans-Bold', fontSize: 11, letterSpacing: 2,
+    fontFamily: "DMSans-Bold",
+    fontSize: 11,
+    letterSpacing: 2,
     color: Colors.primary,
   },
   heroTitle: {
-    fontFamily: 'BebasNeue', fontSize: 48, lineHeight: 48 * 0.9,
-    letterSpacing: 1, color: Colors.textPrimary, marginTop: 12,
+    fontFamily: "BebasNeue",
+    fontSize: 48,
+    lineHeight: 48 * 0.9,
+    letterSpacing: 1,
+    color: Colors.textPrimary,
+    marginTop: 12,
   },
   subtitle: {
-    fontFamily: 'DMSans-Regular', fontSize: 14, lineHeight: 21,
-    color: Colors.textSecondary, marginTop: 12,
+    fontFamily: "DMSans-Regular",
+    fontSize: 14,
+    lineHeight: 21,
+    color: Colors.textSecondary,
+    marginTop: 12,
   },
 
   // Form
   formCard: {
-    marginTop: 32, padding: 20, borderRadius: 20,
+    marginTop: 32,
+    padding: 20,
+    borderRadius: 20,
     backgroundColor: `${Colors.elevated}E6`,
-    borderWidth: 1, borderColor: `${Colors.border}CC`,
+    borderWidth: 1,
+    borderColor: `${Colors.border}CC`,
     ...Shadows.card,
   },
   inputLabel: {
-    fontFamily: 'DMSans-Bold', fontSize: 12, letterSpacing: 1.5,
-    color: Colors.textTertiary, marginBottom: 6,
+    fontFamily: "DMSans-Bold",
+    fontSize: 12,
+    letterSpacing: 1.5,
+    color: Colors.textTertiary,
+    marginBottom: 6,
   },
   inputContainer: {
-    flexDirection: 'row', alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: `${Colors.background}80`,
-    borderRadius: 12, borderWidth: 1, borderColor: `${Colors.border}80`,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: `${Colors.border}80`,
     paddingHorizontal: 16,
   },
   inputError: { borderColor: Colors.error },
   inputIcon: { fontSize: 16, color: Colors.textTertiary, marginRight: 8 },
   inputIconView: { marginRight: 8 },
   input: {
-    flex: 1, fontFamily: 'DMSans-Medium', fontSize: 15,
-    color: Colors.textPrimary, paddingVertical: 14,
+    flex: 1,
+    fontFamily: "DMSans-Medium",
+    fontSize: 15,
+    color: Colors.textPrimary,
+    paddingVertical: 14,
   },
   eyeBtn: { padding: 8 },
   errorText: {
-    fontFamily: 'DMSans-Regular', fontSize: 12,
-    color: Colors.error, marginTop: 4,
+    fontFamily: "DMSans-Regular",
+    fontSize: 12,
+    color: Colors.error,
+    marginTop: 4,
   },
-  forgotBtn: { alignSelf: 'flex-end', marginTop: 8, marginBottom: 8 },
+  forgotBtn: { alignSelf: "flex-end", marginTop: 8, marginBottom: 8 },
   forgotText: {
-    fontFamily: 'DMSans-SemiBold', fontSize: 13, color: Colors.textTertiary,
+    fontFamily: "DMSans-SemiBold",
+    fontSize: 13,
+    color: Colors.textTertiary,
   },
   apiError: {
-    backgroundColor: `${Colors.error}1A`, borderRadius: 8,
-    padding: 10, marginBottom: 12,
+    backgroundColor: `${Colors.error}1A`,
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
   },
-  apiErrorText: { fontFamily: 'DMSans-Regular', fontSize: 13, color: Colors.error },
+  apiErrorText: {
+    fontFamily: "DMSans-Regular",
+    fontSize: 13,
+    color: Colors.error,
+  },
 
   // Button
   signInBtn: {
-    height: 52, borderRadius: 14,
+    height: 52,
+    borderRadius: 14,
     backgroundColor: Colors.primary,
-    justifyContent: 'center', alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 4,
     ...Shadows.primaryGlow,
   },
   signInBtnDisabled: { opacity: 0.7 },
-  signInBtnContent: { flexDirection: 'row', alignItems: 'center' },
+  signInBtnContent: { flexDirection: "row", alignItems: "center" },
   signInBtnText: {
-    fontFamily: 'DMSans-Bold', fontSize: 15, letterSpacing: 1.5,
-    color: '#FFF',
+    fontFamily: "DMSans-Bold",
+    fontSize: 15,
+    letterSpacing: 1.5,
+    color: "#FFF",
   },
 
   // Divider
   dividerRow: {
-    flexDirection: 'row', alignItems: 'center',
-    marginTop: 24, marginBottom: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 24,
+    marginBottom: 20,
   },
   dividerLine: { flex: 1, height: 1, backgroundColor: Colors.border },
   dividerText: {
-    fontFamily: 'DMSans-SemiBold', fontSize: 11, letterSpacing: 1,
-    color: Colors.textTertiary, marginHorizontal: 16,
+    fontFamily: "DMSans-SemiBold",
+    fontSize: 11,
+    letterSpacing: 1,
+    color: Colors.textTertiary,
+    marginHorizontal: 16,
   },
 
   // Social
   socialBtn: {
-    height: 44, borderRadius: 12, flexDirection: 'row',
+    height: 44,
+    borderRadius: 12,
+    flexDirection: "row",
     backgroundColor: Colors.elevated,
-    borderWidth: 1, borderColor: Colors.border,
-    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    justifyContent: "center",
+    alignItems: "center",
   },
   socialIcon: {
-    fontFamily: 'DMSans-Bold', fontSize: 18, color: Colors.textPrimary,
+    fontFamily: "DMSans-Bold",
+    fontSize: 18,
+    color: Colors.textPrimary,
   },
   socialLabel: {
-    fontFamily: 'DMSans-SemiBold', fontSize: 14,
-    color: Colors.textPrimary, marginLeft: 8,
+    fontFamily: "DMSans-SemiBold",
+    fontSize: 14,
+    color: Colors.textPrimary,
+    marginLeft: 8,
   },
 
   // Footer
   footerRow: {
-    flexDirection: 'row', justifyContent: 'center',
-    alignItems: 'center', marginTop: 24, marginBottom: 40,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 24,
+    marginBottom: 40,
   },
   footerText: {
-    fontFamily: 'DMSans-Regular', fontSize: 14, color: Colors.textSecondary,
+    fontFamily: "DMSans-Regular",
+    fontSize: 14,
+    color: Colors.textSecondary,
   },
   signUpPill: {
     backgroundColor: `${Colors.primary}1A`,
-    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
   signUpText: {
-    fontFamily: 'DMSans-Bold', fontSize: 14, color: Colors.primary,
+    fontFamily: "DMSans-Bold",
+    fontSize: 14,
+    color: Colors.primary,
   },
 });

@@ -365,6 +365,16 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
     } catch (e: any) {
       set({ isLoading: false, error: e.message });
     }
+  },
+
+  regenerateProgram: async (programId: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      await apiClient.post(`/programs/${programId}/regenerate`);
+      await get().fetchTemplates();
+    } catch (e: any) {
+      set({ isLoading: false, error: e.message });
+    }
   }
 
 }));

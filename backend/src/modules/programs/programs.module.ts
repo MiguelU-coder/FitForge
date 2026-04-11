@@ -15,12 +15,16 @@ import {
   HttpCode,
   HttpStatus,
   Logger,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import type { AuthUser } from '../auth/strategies/jwt.strategy';
 import { z } from 'zod';
+import { RoutinesModule } from '../routines/routines.module';
+import { RoutinesService } from '../routines/routines.module';
 
 // ── DTOs ──────────────────────────────────────────────────────────────────────
 
@@ -77,7 +81,11 @@ type UpdateRoutineItemDto = z.infer<typeof UpdateRoutineItemSchema>;
 export class ProgramsService {
   private readonly logger = new Logger(ProgramsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => RoutinesModule))
+    private readonly routinesService: RoutinesService,
+  ) {}
 
   // ── Programs ────────────────────────────────────────────────────────────────
 
@@ -311,6 +319,44 @@ export class ProgramsService {
     await this.prisma.routineItem.delete({ where: { id: itemId } });
     return { deleted: true };
   }
+
+  async regenerateProgram(userId: string, programId: string) {
+    // Verify program belongs to user
+    const program = await this.prisma.program.findFirst({
+      where: { id: programId, userId },
+    });
+
+    if (!program) throw new NotFoundException('Program not found');
+
+    // Get user for training level
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { trainingLevel: true, mainGoal: true, gender: true },
+    });
+
+    if (!user?.trainingLevel) {
+      throw new NotFoundException('User has no training level set');
+    }
+
+    // Delete existing routines and items
+    const existingRoutines = await this.prisma.routine.findMany({
+      where: { programId },
+      select: { id: true },
+    });
+
+    for (const routine of existingRoutines) {
+      await this.prisma.routineItem.deleteMany({ where: { routineId: routine.id } });
+    }
+    await this.prisma.routine.deleteMany({ where: { programId } });
+
+    // Generate new routines using RoutinesService
+    await this.routinesService.generateInitialRoutine(userId, {
+      trainingLevel: user.trainingLevel,
+      mainGoal: user.mainGoal || 'GAIN_MUSCLE_MASS',
+    });
+
+    return this.getProgram(userId, programId);
+  }
 }
 
 // ── Controller ────────────────────────────────────────────────────────────────
@@ -415,6 +461,15 @@ export class ProgramsController {
   removeExerciseFromRoutine(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.programsService.removeExerciseFromRoutine(user.id, id);
   }
+
+  @Post(':id/regenerate')
+  @HttpCode(HttpStatus.OK)
+  async regenerateProgram(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.programsService.regenerateProgram(user.id, id);
+  }
 }
 
 // ── Module ────────────────────────────────────────────────────────────────────
@@ -422,6 +477,7 @@ export class ProgramsController {
 @Module({
   controllers: [ProgramsController],
   providers: [ProgramsService],
+  imports: [RoutinesModule],
   exports: [ProgramsService],
 })
 export class ProgramsModule {}

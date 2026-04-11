@@ -1,10 +1,10 @@
 // src/components/RestTimer.tsx
-import { useEffect, useState, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
-import { Colors } from '../theme/colors';
-import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
-import { useNotifications } from '../hooks/useNotifications';
+import { useEffect, useState, useRef, useCallback } from "react";
+import { View, Text, StyleSheet, Pressable, Animated } from "react-native";
+import { Colors } from "../theme/colors";
+import { LinearGradient } from "expo-linear-gradient";
+import * as Haptics from "expo-haptics";
+import { useNotifications } from "../hooks/useNotifications";
 
 interface RestTimerProps {
   initialSeconds: number;
@@ -12,11 +12,18 @@ interface RestTimerProps {
   onDismiss?: () => void;
 }
 
-export default function RestTimer({ initialSeconds, onTimerEnd, onDismiss }: RestTimerProps) {
-  const { scheduleRestTimerNotification, cancelAllNotifications } = useNotifications();
-  
+export default function RestTimer({
+  initialSeconds,
+  onTimerEnd,
+  onDismiss,
+}: RestTimerProps) {
+  const { scheduleRestTimerNotification, cancelAllNotifications } =
+    useNotifications();
+
   // States based on timestamps for better accuracy
-  const [targetTime, setTargetTime] = useState<number>(Date.now() + initialSeconds * 1000);
+  const [targetTime, setTargetTime] = useState<number>(
+    Date.now() + initialSeconds * 1000,
+  );
   const [remaining, setRemaining] = useState(initialSeconds);
   const progressAnim = useRef(new Animated.Value(1)).current;
 
@@ -41,15 +48,18 @@ export default function RestTimer({ initialSeconds, onTimerEnd, onDismiss }: Res
     const interval = setInterval(() => {
       const now = Date.now();
       const diff = Math.max(0, Math.ceil((targetTime - now) / 1000));
-      
-      setRemaining(prev => {
+
+      setRemaining((prev) => {
         if (prev !== diff) return diff;
         return prev;
       });
 
-      const totalDuration = initialSeconds; 
-      const currentProgress = Math.max(0, (targetTime - now) / (totalDuration * 1000));
-      
+      const totalDuration = initialSeconds;
+      const currentProgress = Math.max(
+        0,
+        (targetTime - now) / (totalDuration * 1000),
+      );
+
       Animated.timing(progressAnim, {
         toValue: currentProgress,
         duration: 200,
@@ -66,18 +76,21 @@ export default function RestTimer({ initialSeconds, onTimerEnd, onDismiss }: Res
     return () => clearInterval(interval);
   }, [targetTime, initialSeconds]); // Removed onTimerEnd to prevent constant restarts
 
-  const addTime = useCallback(async (secs: number) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const newRemaining = remaining + secs;
-    const newTarget = targetTime + secs * 1000;
-    
-    setTargetTime(newTarget);
-    setRemaining(newRemaining);
+  const addTime = useCallback(
+    async (secs: number) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      const newRemaining = remaining + secs;
+      const newTarget = targetTime + secs * 1000;
 
-    // Reschedule notification
-    await cancelAllNotifications();
-    await scheduleRestTimerNotification(newRemaining);
-  }, [remaining, targetTime]);
+      setTargetTime(newTarget);
+      setRemaining(newRemaining);
+
+      // Reschedule notification
+      await cancelAllNotifications();
+      await scheduleRestTimerNotification(newRemaining);
+    },
+    [remaining, targetTime],
+  );
 
   const skipTimer = () => {
     Haptics.selectionAsync();
@@ -88,7 +101,7 @@ export default function RestTimer({ initialSeconds, onTimerEnd, onDismiss }: Res
   const formatTime = (totalSeconds: number) => {
     const m = Math.floor(totalSeconds / 60);
     const s = totalSeconds % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
+    return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
   if (remaining <= 0 && Date.now() >= targetTime) return null;
@@ -96,25 +109,25 @@ export default function RestTimer({ initialSeconds, onTimerEnd, onDismiss }: Res
   return (
     <View style={styles.container}>
       <View style={styles.progressBarContainer}>
-        <Animated.View 
+        <Animated.View
           style={[
-            styles.progressBar, 
-            { 
+            styles.progressBar,
+            {
               width: progressAnim.interpolate({
                 inputRange: [0, 1],
-                outputRange: ['0%', '100%']
-              }) 
-            }
-          ]} 
+                outputRange: ["0%", "100%"],
+              }),
+            },
+          ]}
         />
       </View>
 
       <View style={styles.content}>
         <View style={styles.left}>
-          <Text style={styles.label}>RESTING</Text>
+          <Text style={styles.label}>DESCANSANDO</Text>
           <Text style={styles.timer}>{formatTime(remaining)}</Text>
         </View>
-        
+
         <View style={styles.actions}>
           <Pressable style={styles.btn} onPress={() => addTime(30)}>
             <Text style={styles.btnText}>+30s</Text>
@@ -126,7 +139,7 @@ export default function RestTimer({ initialSeconds, onTimerEnd, onDismiss }: Res
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
             >
-              <Text style={styles.skipText}>SKIP</Text>
+              <Text style={styles.skipText}>SALTAR</Text>
             </LinearGradient>
           </Pressable>
         </View>
@@ -137,7 +150,7 @@ export default function RestTimer({ initialSeconds, onTimerEnd, onDismiss }: Res
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 24,
     left: 16,
     right: 16,
@@ -145,7 +158,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: `${Colors.border}`,
-    overflow: 'hidden',
+    overflow: "hidden",
     shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.4,
@@ -155,16 +168,16 @@ const styles = StyleSheet.create({
   progressBarContainer: {
     height: 4,
     backgroundColor: `${Colors.border}40`,
-    width: '100%',
+    width: "100%",
   },
   progressBar: {
-    height: '100%',
+    height: "100%",
     backgroundColor: Colors.primary,
   },
   content: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 14,
   },
@@ -172,30 +185,30 @@ const styles = StyleSheet.create({
     gap: -4,
   },
   label: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 10,
     letterSpacing: 2,
     color: Colors.textTertiary,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
   timer: {
-    fontFamily: 'BebasNeue',
+    fontFamily: "BebasNeue",
     fontSize: 38,
     color: Colors.textPrimary,
     letterSpacing: 1,
   },
   actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
   },
   btn: {
     backgroundColor: `${Colors.border}40`,
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   btnText: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 13,
     color: Colors.textPrimary,
     paddingHorizontal: 16,
@@ -209,9 +222,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   skipText: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 13,
-    color: '#FFF',
+    color: "#FFF",
     letterSpacing: 0.5,
-  }
+  },
 });

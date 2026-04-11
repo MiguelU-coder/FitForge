@@ -1,6 +1,6 @@
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../theme/colors';
+import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { Colors } from "../theme/colors";
 
 interface AiRecommendationCardProps {
   isLoading?: boolean;
@@ -8,7 +8,11 @@ interface AiRecommendationCardProps {
   action?: string;
 }
 
-export default function AiRecommendationCard({ isLoading, message, action }: AiRecommendationCardProps) {
+export default function AiRecommendationCard({
+  isLoading,
+  message,
+  action,
+}: AiRecommendationCardProps) {
   if (!isLoading && !message) return null;
 
   return (
@@ -19,7 +23,9 @@ export default function AiRecommendationCard({ isLoading, message, action }: AiR
       <View style={styles.content}>
         {isLoading ? (
           <View style={styles.loadingRow}>
-            <Text style={styles.loadingText}>AI Coach is analyzing your set...</Text>
+            <Text style={styles.loadingText}>
+              El entrenador de IA está analizando tu serie...
+            </Text>
             <ActivityIndicator size="small" color={Colors.secondaryBright} />
           </View>
         ) : (
@@ -35,50 +41,50 @@ export default function AiRecommendationCard({ isLoading, message, action }: AiR
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginTop: 12,
     marginHorizontal: 12,
     marginBottom: 4,
     padding: 12,
-    backgroundColor: '#1E1A29', // Dark violet-tinted carbon
+    backgroundColor: "#1E1A29", // Dark violet-tinted carbon
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#3D2D5E', // Subtle violet border
-    alignItems: 'flex-start',
+    borderColor: "#3D2D5E", // Subtle violet border
+    alignItems: "flex-start",
   },
   iconContainer: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: 'rgba(139, 92, 246, 0.15)', // Violet with opacity
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(139, 92, 246, 0.15)", // Violet with opacity
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 10,
   },
   content: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
     minHeight: 28,
   },
   loadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   loadingText: {
-    fontFamily: 'DMSans-Medium',
+    fontFamily: "DMSans-Medium",
     fontSize: 13,
     color: Colors.secondaryBright,
     opacity: 0.8,
   },
   messageText: {
-    fontFamily: 'DMSans-Medium',
+    fontFamily: "DMSans-Medium",
     fontSize: 13,
-    color: '#E2D5F8',
+    color: "#E2D5F8",
     lineHeight: 18,
   },
   actionText: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     color: Colors.secondaryBright,
   },
 });

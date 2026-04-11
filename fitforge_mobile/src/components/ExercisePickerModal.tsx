@@ -1,14 +1,28 @@
 // src/components/ExercisePickerModal.tsx
-import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Modal, FlatList, Pressable, TextInput, ActivityIndicator } from 'react-native';
-import { Colors } from '../theme/colors';
-import { useExerciseStore } from '../stores/useExerciseStore';
-import { Exercise, MUSCLE_GROUPS, EQUIPMENT_LIST, formatLabel } from '../types/exercise';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import ExerciseCard from './ExerciseCard';
-import { getMuscleColor } from '../utils/muscleColors';
-import { ScrollView } from 'react-native';
+import { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Modal,
+  FlatList,
+  Pressable,
+  TextInput,
+  ActivityIndicator,
+} from "react-native";
+import { Colors } from "../theme/colors";
+import { useExerciseStore } from "../stores/useExerciseStore";
+import {
+  Exercise,
+  MUSCLE_GROUPS,
+  EQUIPMENT_LIST,
+  formatLabel,
+} from "../types/exercise";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import ExerciseCard from "./ExerciseCard";
+import { getMuscleColor } from "../utils/muscleColors";
+import { ScrollView } from "react-native";
 
 interface ExercisePickerModalProps {
   visible: boolean;
@@ -16,10 +30,15 @@ interface ExercisePickerModalProps {
   onSelect: (exercise: Exercise) => void;
 }
 
-export default function ExercisePickerModal({ visible, onClose, onSelect }: ExercisePickerModalProps) {
+export default function ExercisePickerModal({
+  visible,
+  onClose,
+  onSelect,
+}: ExercisePickerModalProps) {
   const insets = useSafeAreaInsets();
-  const { filters, page, isLoading, fetchExercises, setFilters } = useExerciseStore();
-  const [searchInput, setSearchInput] = useState('');
+  const { filters, page, isLoading, fetchExercises, setFilters } =
+    useExerciseStore();
+  const [searchInput, setSearchInput] = useState("");
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
@@ -52,13 +71,18 @@ export default function ExercisePickerModal({ visible, onClose, onSelect }: Exer
           <Pressable onPress={onClose} style={styles.closeBtn}>
             <Ionicons name="close" size={24} color={Colors.textPrimary} />
           </Pressable>
-          <Text style={styles.title}>Add Exercise</Text>
+          <Text style={styles.title}>Añadir ejercicio</Text>
           <View style={{ width: 36 }} />
         </View>
 
         <View style={styles.searchRow}>
           <View style={styles.searchContainer}>
-            <Ionicons name="search" size={20} color={Colors.textSecondary} style={{ marginRight: 8 }} />
+            <Ionicons
+              name="search"
+              size={20}
+              color={Colors.textSecondary}
+              style={{ marginRight: 8 }}
+            />
             <TextInput
               style={styles.searchInput}
               placeholder="Search exercises..."
@@ -67,22 +91,27 @@ export default function ExercisePickerModal({ visible, onClose, onSelect }: Exer
               onChangeText={setSearchInput}
             />
           </View>
-          <Pressable 
-            style={[styles.filterBtn, (filters.muscle || filters.equipment) && styles.filterBtnActive]} 
+          <Pressable
+            style={[
+              styles.filterBtn,
+              (filters.muscle || filters.equipment) && styles.filterBtnActive,
+            ]}
             onPress={() => setShowFilters(true)}
           >
-            <Ionicons 
-              name="options" 
-              size={20} 
-              color={!!(filters.muscle || filters.equipment) ? Colors.primary : Colors.textSecondary} 
+            <Ionicons
+              name="options"
+              size={20}
+              color={
+                !!(filters.muscle || filters.equipment)
+                  ? Colors.primary
+                  : Colors.textSecondary
+              }
             />
           </Pressable>
         </View>
 
         <View style={styles.countRow}>
-          <Text style={styles.countText}>
-            {page?.total ?? 0} exercises
-          </Text>
+          <Text style={styles.countText}>{page?.total ?? 0} ejercicios</Text>
         </View>
 
         {isLoading ? (
@@ -94,21 +123,31 @@ export default function ExercisePickerModal({ visible, onClose, onSelect }: Exer
             data={page?.exercises ?? []}
             keyExtractor={(item) => item.id}
             numColumns={2}
-            contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 16 }}
+            contentContainerStyle={{
+              paddingBottom: 100,
+              paddingHorizontal: 16,
+            }}
             columnWrapperStyle={{ gap: 16, marginBottom: 16 }}
             renderItem={({ item }) => (
-              <ExerciseCard 
-                exercise={item} 
+              <ExerciseCard
+                exercise={item}
                 onPress={() => {
                   onSelect(item);
                   onClose();
-                }} 
+                }}
               />
             )}
             ListEmptyComponent={
               <View style={styles.center}>
-                <Ionicons name="barbell-outline" size={48} color={Colors.textTertiary} style={{ marginBottom: 16, marginTop: 40 }} />
-                <Text style={styles.emptyText}>No exercises found.</Text>
+                <Ionicons
+                  name="barbell-outline"
+                  size={48}
+                  color={Colors.textTertiary}
+                  style={{ marginBottom: 16, marginTop: 40 }}
+                />
+                <Text style={styles.emptyText}>
+                  No se han encontrado ejercicios.
+                </Text>
               </View>
             }
           />
@@ -116,38 +155,85 @@ export default function ExercisePickerModal({ visible, onClose, onSelect }: Exer
 
         {/* ── Advanced Filters Modal ── */}
         <Modal visible={showFilters} animationType="slide" transparent>
-          <Pressable style={styles.modalOverlay} onPress={() => setShowFilters(false)}>
-            <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+          <Pressable
+            style={styles.modalOverlay}
+            onPress={() => setShowFilters(false)}
+          >
+            <Pressable
+              style={styles.modalContent}
+              onPress={(e) => e.stopPropagation()}
+            >
               <View style={styles.modalHandle} />
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>ADVANCED FILTERS</Text>
-                <Pressable onPress={() => setFilters({ muscle: undefined, equipment: undefined, search: '' })}>
-                  <Text style={styles.modalResetText}>Reset</Text>
+                <Text style={styles.modalTitle}>FILTROS AVANZADOS</Text>
+                <Pressable
+                  onPress={() =>
+                    setFilters({
+                      muscle: undefined,
+                      equipment: undefined,
+                      search: "",
+                    })
+                  }
+                >
+                  <Text style={styles.modalResetText}>Restablecer</Text>
                 </Pressable>
               </View>
 
-              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 40 }}
+              >
                 {/* Muscle Group */}
                 <View style={styles.filterSection}>
-                  <Text style={styles.sectionTitle}>MUSCLE GROUP</Text>
+                  <Text style={styles.sectionTitle}>GRUPO MUSCULAR</Text>
                   <View style={styles.chipWrap}>
                     <Pressable
-                      style={[styles.muscleChip, !filters.muscle && styles.muscleChipActive]}
+                      style={[
+                        styles.muscleChip,
+                        !filters.muscle && styles.muscleChipActive,
+                      ]}
                       onPress={() => setFilters({ muscle: undefined })}
                     >
-                      <Ionicons name="apps" size={16} color={getMuscleColor('ALL')} />
-                      <Text style={[styles.muscleChipText, !filters.muscle ? { color: '#FFF' } : null]}>All</Text>
+                      <Ionicons
+                        name="apps"
+                        size={16}
+                        color={getMuscleColor("ALL")}
+                      />
+                      <Text
+                        style={[
+                          styles.muscleChipText,
+                          !filters.muscle ? { color: "#FFF" } : null,
+                        ]}
+                      >
+                        All
+                      </Text>
                     </Pressable>
-                    {MUSCLE_GROUPS.map(muscle => {
+                    {MUSCLE_GROUPS.map((muscle) => {
                       const isActive = filters.muscle === muscle;
                       return (
                         <Pressable
                           key={muscle}
-                          style={[styles.muscleChip, isActive && styles.muscleChipActive]}
-                          onPress={() => setFilters({ muscle: isActive ? undefined : muscle })}
+                          style={[
+                            styles.muscleChip,
+                            isActive && styles.muscleChipActive,
+                          ]}
+                          onPress={() =>
+                            setFilters({
+                              muscle: isActive ? undefined : muscle,
+                            })
+                          }
                         >
-                          <Ionicons name="body" size={16} color={getMuscleColor(muscle)} />
-                          <Text style={[styles.muscleChipText, isActive ? { color: '#FFF' } : null]}>
+                          <Ionicons
+                            name="body"
+                            size={16}
+                            color={getMuscleColor(muscle)}
+                          />
+                          <Text
+                            style={[
+                              styles.muscleChipText,
+                              isActive ? { color: "#FFF" } : null,
+                            ]}
+                          >
                             {formatLabel(muscle)}
                           </Text>
                         </Pressable>
@@ -158,23 +244,43 @@ export default function ExercisePickerModal({ visible, onClose, onSelect }: Exer
 
                 {/* Equipment */}
                 <View style={styles.filterSection}>
-                  <Text style={styles.sectionTitle}>EQUIPMENT</Text>
+                  <Text style={styles.sectionTitle}>EQUIPAMIENTO</Text>
                   <View style={styles.chipWrap}>
                     <Pressable
-                      style={[styles.equipChip, !filters.equipment && styles.equipChipActive]}
+                      style={[
+                        styles.equipChip,
+                        !filters.equipment && styles.equipChipActive,
+                      ]}
                       onPress={() => setFilters({ equipment: undefined })}
                     >
-                      <Text style={[styles.equipChipText, !filters.equipment && styles.equipChipTextActive]}>All</Text>
+                      <Text
+                        style={[
+                          styles.equipChipText,
+                          !filters.equipment && styles.equipChipTextActive,
+                        ]}
+                      >
+                        All
+                      </Text>
                     </Pressable>
-                    {EQUIPMENT_LIST.map(eq => {
+                    {EQUIPMENT_LIST.map((eq) => {
                       const isActive = filters.equipment === eq;
                       return (
                         <Pressable
                           key={eq}
-                          style={[styles.equipChip, isActive && styles.equipChipActive]}
-                          onPress={() => setFilters({ equipment: isActive ? undefined : eq })}
+                          style={[
+                            styles.equipChip,
+                            isActive && styles.equipChipActive,
+                          ]}
+                          onPress={() =>
+                            setFilters({ equipment: isActive ? undefined : eq })
+                          }
                         >
-                          <Text style={[styles.equipChipText, isActive && styles.equipChipTextActive]}>
+                          <Text
+                            style={[
+                              styles.equipChipText,
+                              isActive && styles.equipChipTextActive,
+                            ]}
+                          >
                             {formatLabel(eq)}
                           </Text>
                         </Pressable>
@@ -186,7 +292,6 @@ export default function ExercisePickerModal({ visible, onClose, onSelect }: Exer
             </Pressable>
           </Pressable>
         </Modal>
-
       </View>
     </Modal>
   );
@@ -198,14 +303,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
     marginBottom: 20,
   },
   title: {
-    fontFamily: 'ArchivoBlack',
+    fontFamily: "ArchivoBlack",
     fontSize: 20,
     color: Colors.textPrimary,
   },
@@ -213,16 +318,16 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     marginHorizontal: 16,
     marginBottom: 16,
   },
   searchContainer: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 16,
     height: 52,
     backgroundColor: Colors.elevated,
@@ -232,7 +337,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontFamily: 'DMSans-Medium',
+    fontFamily: "DMSans-Medium",
     fontSize: 15,
     color: Colors.textPrimary,
   },
@@ -241,8 +346,8 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 14,
     backgroundColor: Colors.elevated,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 1,
     borderColor: Colors.border,
   },
@@ -255,18 +360,18 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   countText: {
-    fontFamily: 'DMSans-Medium',
+    fontFamily: "DMSans-Medium",
     fontSize: 12,
     color: Colors.textTertiary,
   },
   center: {
     flex: 1,
-    justifyContent: 'flex-start',
-    alignItems: 'center',
+    justifyContent: "flex-start",
+    alignItems: "center",
     paddingTop: 40,
   },
   emptyText: {
-    fontFamily: 'DMSans-Medium',
+    fontFamily: "DMSans-Medium",
     color: Colors.textSecondary,
     fontSize: 16,
   },
@@ -274,39 +379,39 @@ const styles = StyleSheet.create({
   // Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.85)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0,0,0,0.85)",
+    justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: '#161616',
+    backgroundColor: "#161616",
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     padding: 20,
-    maxHeight: '85%',
+    maxHeight: "85%",
   },
   modalHandle: {
     width: 40,
     height: 4,
     backgroundColor: Colors.border,
     borderRadius: 2,
-    alignSelf: 'center',
+    alignSelf: "center",
     marginBottom: 20,
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 20,
   },
   modalTitle: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: "800",
     color: Colors.textTertiary,
     letterSpacing: 1.5,
   },
   modalResetText: {
-    fontFamily: 'DMSans-SemiBold',
+    fontFamily: "DMSans-SemiBold",
     fontSize: 13,
     color: Colors.primary,
   },
@@ -314,19 +419,19 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   sectionTitle: {
-    fontFamily: 'DMSans-Medium',
+    fontFamily: "DMSans-Medium",
     fontSize: 12,
     color: Colors.textPrimary,
     marginBottom: 12,
   },
   chipWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 10,
   },
   muscleChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 14,
@@ -340,7 +445,7 @@ const styles = StyleSheet.create({
     backgroundColor: `${Colors.primary}10`,
   },
   muscleChipText: {
-    fontFamily: 'DMSans-Medium',
+    fontFamily: "DMSans-Medium",
     fontSize: 12,
     color: Colors.textSecondary,
   },
@@ -357,7 +462,7 @@ const styles = StyleSheet.create({
     backgroundColor: `${Colors.primary}15`,
   },
   equipChipText: {
-    fontFamily: 'DMSans-Regular',
+    fontFamily: "DMSans-Regular",
     fontSize: 12,
     color: Colors.textSecondary,
   },

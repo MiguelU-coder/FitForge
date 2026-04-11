@@ -2,32 +2,40 @@
 // Port of register_screen.dart — "Industrial Premium Athletic" design
 // Reference: lib/features/auth/presentation/screens/register_screen.dart
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from "react";
 import {
-  View, Text, TextInput, Pressable, ScrollView,
-  KeyboardAvoidingView, Platform, StyleSheet, Animated,
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Animated,
   ActivityIndicator,
-} from 'react-native';
-import { Link, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors, Shadows } from '../../src/theme/colors';
-import { Typography } from '../../src/theme/typography';
-import { useAuthStore } from '../../src/stores/useAuthStore';
+} from "react-native";
+import { Link, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { Colors, Shadows } from "../../src/theme/colors";
+import { Typography } from "../../src/theme/typography";
+import { useAuthStore } from "../../src/stores/useAuthStore";
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { register, signInWithGoogle, isLoading, error, clearError } = useAuthStore();
+  const { register, signInWithGoogle, isLoading, error, clearError } =
+    useAuthStore();
 
-  const [displayName, setDisplayName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const [nameError, setNameError] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [passError, setPassError] = useState('');
-  const [confirmError, setConfirmError] = useState('');
+  const [nameError, setNameError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [passError, setPassError] = useState("");
+  const [confirmError, setConfirmError] = useState("");
 
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
@@ -39,8 +47,16 @@ export default function RegisterScreen() {
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 500, useNativeDriver: true }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }),
     ]).start();
   }, []);
 
@@ -48,25 +64,43 @@ export default function RegisterScreen() {
     let valid = true;
 
     // Name validation
-    if (!displayName.trim()) { setNameError('Name is required'); valid = false; }
-    else if (displayName.trim().length < 2) { setNameError('Min 2 characters'); valid = false; }
-    else setNameError('');
+    if (!displayName.trim()) {
+      setNameError("El nombre es requerido");
+      valid = false;
+    } else if (displayName.trim().length < 2) {
+      setNameError("Min 2 caracteres");
+      valid = false;
+    } else setNameError("");
 
     // Email validation
-    if (!email.trim()) { setEmailError('Email is required'); valid = false; }
-    else if (!email.includes('@')) { setEmailError('Invalid email'); valid = false; }
-    else setEmailError('');
+    if (!email.trim()) {
+      setEmailError("El correo es requerido");
+      valid = false;
+    } else if (!email.includes("@")) {
+      setEmailError("Correo inválido");
+      valid = false;
+    } else setEmailError("");
 
     // Password validation
-    if (!password) { setPassError('Required'); valid = false; }
-    else if (password.length < 8) { setPassError('Min 8 characters'); valid = false; }
-    else if (!/[A-Z]/.test(password)) { setPassError('Include uppercase letter'); valid = false; }
-    else if (!/[0-9]/.test(password)) { setPassError('Include a number'); valid = false; }
-    else setPassError('');
+    if (!password) {
+      setPassError("Requerido");
+      valid = false;
+    } else if (password.length < 8) {
+      setPassError("Min 8 caracteres");
+      valid = false;
+    } else if (!/[A-Z]/.test(password)) {
+      setPassError("Incluye una mayúscula");
+      valid = false;
+    } else if (!/[0-9]/.test(password)) {
+      setPassError("Incluye un número");
+      valid = false;
+    } else setPassError("");
 
     // Confirm password
-    if (confirmPassword !== password) { setConfirmError('Passwords do not match'); valid = false; }
-    else setConfirmError('');
+    if (confirmPassword !== password) {
+      setConfirmError("Las contraseñas no coinciden");
+      valid = false;
+    } else setConfirmError("");
 
     return valid;
   };
@@ -80,53 +114,85 @@ export default function RegisterScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+        <Animated.View
+          style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
+        >
           {/* ── Back Button ── */}
           <Pressable onPress={() => router.back()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={20} color={Colors.textPrimary} />
           </Pressable>
 
           {/* ── Header ── */}
-          <Text style={styles.title}>Create account</Text>
-          <Text style={styles.subtitle}>Start tracking your progress today</Text>
+          <Text style={styles.title}>Crear cuenta</Text>
+          <Text style={styles.subtitle}>
+            Empieza a registrar tu progreso hoy
+          </Text>
 
           {/* ── Form ── */}
           <View style={styles.form}>
             {/* Display Name */}
-            <Text style={styles.inputLabel}>DISPLAY NAME</Text>
-            <View style={[styles.inputContainer, nameError ? styles.inputError : null]}>
-              <Ionicons name="person-outline" size={18} color={Colors.textTertiary} style={styles.inputIconView} />
+            <Text style={styles.inputLabel}>NOMBRE</Text>
+            <View
+              style={[
+                styles.inputContainer,
+                nameError ? styles.inputError : null,
+              ]}
+            >
+              <Ionicons
+                name="person-outline"
+                size={18}
+                color={Colors.textTertiary}
+                style={styles.inputIconView}
+              />
               <TextInput
                 style={styles.input}
-                placeholder="How should we call you?"
+                placeholder="¿Cómo te llamamos?"
                 placeholderTextColor={Colors.textMuted}
                 value={displayName}
-                onChangeText={(t) => { setDisplayName(t); setNameError(''); }}
+                onChangeText={(t) => {
+                  setDisplayName(t);
+                  setNameError("");
+                }}
                 returnKeyType="next"
                 autoCapitalize="words"
                 onSubmitEditing={() => emailRef.current?.focus()}
               />
             </View>
-            {nameError ? <Text style={styles.errorText}>{nameError}</Text> : null}
+            {nameError ? (
+              <Text style={styles.errorText}>{nameError}</Text>
+            ) : null}
 
             {/* Email */}
             <Text style={[styles.inputLabel, { marginTop: 16 }]}>EMAIL</Text>
-            <View style={[styles.inputContainer, emailError ? styles.inputError : null]}>
-              <Ionicons name="mail-outline" size={18} color={Colors.textTertiary} style={styles.inputIconView} />
+            <View
+              style={[
+                styles.inputContainer,
+                emailError ? styles.inputError : null,
+              ]}
+            >
+              <Ionicons
+                name="mail-outline"
+                size={18}
+                color={Colors.textTertiary}
+                style={styles.inputIconView}
+              />
               <TextInput
                 ref={emailRef}
                 style={styles.input}
                 placeholder="you@example.com"
                 placeholderTextColor={Colors.textMuted}
                 value={email}
-                onChangeText={(t) => { setEmail(t); setEmailError(''); }}
+                onChangeText={(t) => {
+                  setEmail(t);
+                  setEmailError("");
+                }}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -134,50 +200,88 @@ export default function RegisterScreen() {
                 onSubmitEditing={() => passwordRef.current?.focus()}
               />
             </View>
-            {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+            {emailError ? (
+              <Text style={styles.errorText}>{emailError}</Text>
+            ) : null}
 
             {/* Password */}
             <Text style={[styles.inputLabel, { marginTop: 16 }]}>PASSWORD</Text>
-            <View style={[styles.inputContainer, passError ? styles.inputError : null]}>
-              <Ionicons name="lock-closed-outline" size={18} color={Colors.textTertiary} style={styles.inputIconView} />
+            <View
+              style={[
+                styles.inputContainer,
+                passError ? styles.inputError : null,
+              ]}
+            >
+              <Ionicons
+                name="lock-closed-outline"
+                size={18}
+                color={Colors.textTertiary}
+                style={styles.inputIconView}
+              />
               <TextInput
                 ref={passwordRef}
                 style={styles.input}
-                placeholder="Min 8 chars, 1 uppercase, 1 number"
+                placeholder="Min 8 caracteres, 1 mayúscula, 1 número"
                 placeholderTextColor={Colors.textMuted}
                 value={password}
-                onChangeText={(t) => { setPassword(t); setPassError(''); }}
+                onChangeText={(t) => {
+                  setPassword(t);
+                  setPassError("");
+                }}
                 secureTextEntry={!showPassword}
                 returnKeyType="next"
                 onSubmitEditing={() => confirmRef.current?.focus()}
               />
-              <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn} hitSlop={8}>
+              <Pressable
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.eyeBtn}
+                hitSlop={8}
+              >
                 <Ionicons
-                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  name={showPassword ? "eye-off-outline" : "eye-outline"}
                   size={20}
                   color={Colors.textTertiary}
                 />
               </Pressable>
             </View>
-            {passError ? <Text style={styles.errorText}>{passError}</Text> : null}
+            {passError ? (
+              <Text style={styles.errorText}>{passError}</Text>
+            ) : null}
 
             {/* Confirm Password */}
-            <Text style={[styles.inputLabel, { marginTop: 16 }]}>CONFIRM PASSWORD</Text>
-            <View style={[styles.inputContainer, confirmError ? styles.inputError : null]}>
-              <Ionicons name="lock-closed-outline" size={18} color={Colors.textTertiary} style={styles.inputIconView} />
+            <Text style={[styles.inputLabel, { marginTop: 16 }]}>
+              CONFIRMAR CONTRASEÑA
+            </Text>
+            <View
+              style={[
+                styles.inputContainer,
+                confirmError ? styles.inputError : null,
+              ]}
+            >
+              <Ionicons
+                name="lock-closed-outline"
+                size={18}
+                color={Colors.textTertiary}
+                style={styles.inputIconView}
+              />
               <TextInput
                 ref={confirmRef}
                 style={styles.input}
                 placeholder="••••••••"
                 placeholderTextColor={Colors.textMuted}
                 value={confirmPassword}
-                onChangeText={(t) => { setConfirmPassword(t); setConfirmError(''); }}
+                onChangeText={(t) => {
+                  setConfirmPassword(t);
+                  setConfirmError("");
+                }}
                 secureTextEntry={!showPassword}
                 returnKeyType="done"
                 onSubmitEditing={handleSubmit}
               />
             </View>
-            {confirmError ? <Text style={styles.errorText}>{confirmError}</Text> : null}
+            {confirmError ? (
+              <Text style={styles.errorText}>{confirmError}</Text>
+            ) : null}
 
             {/* API Error */}
             {error ? (
@@ -195,7 +299,7 @@ export default function RegisterScreen() {
               {isLoading ? (
                 <ActivityIndicator color="#FFF" size="small" />
               ) : (
-                <Text style={styles.submitBtnText}>CREATE ACCOUNT</Text>
+                <Text style={styles.submitBtnText}>CREAR CUENTA</Text>
               )}
             </Pressable>
           </View>
@@ -203,7 +307,7 @@ export default function RegisterScreen() {
           {/* ── Social Login ── */}
           <View style={styles.dividerRow}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>OR CONTINUE WITH</Text>
+            <Text style={styles.dividerText}>O CONTINÚA CON</Text>
             <View style={styles.dividerLine} />
           </View>
 
@@ -214,10 +318,10 @@ export default function RegisterScreen() {
 
           {/* ── Footer ── */}
           <View style={styles.footerRow}>
-            <Text style={styles.footerText}>Already have an account? </Text>
+            <Text style={styles.footerText}>¿Ya tienes una cuenta? </Text>
             <Link href="/(auth)/login" asChild>
               <Pressable style={styles.signInPill}>
-                <Text style={styles.signInText}>Sign In</Text>
+                <Text style={styles.signInText}>Inicia Sesión</Text>
               </Pressable>
             </Link>
           </View>
@@ -233,15 +337,19 @@ const styles = StyleSheet.create({
 
   // Back button
   backBtn: {
-    width: 44, height: 44, borderRadius: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     backgroundColor: Colors.elevated,
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1, borderColor: Colors.border,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
 
   // Header
   title: {
-    fontFamily: 'BebasNeue',
+    fontFamily: "BebasNeue",
     fontSize: 42,
     letterSpacing: 1,
     color: Colors.textPrimary,
@@ -249,7 +357,7 @@ const styles = StyleSheet.create({
     lineHeight: 42,
   },
   subtitle: {
-    fontFamily: 'DMSans-Regular',
+    fontFamily: "DMSans-Regular",
     fontSize: 14,
     color: Colors.textSecondary,
     marginTop: 6,
@@ -258,15 +366,15 @@ const styles = StyleSheet.create({
   // Form
   form: { marginTop: 24 },
   inputLabel: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 12,
     letterSpacing: 1.5,
     color: Colors.textTertiary,
     marginBottom: 6,
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: `${Colors.background}80`,
     borderRadius: 12,
     borderWidth: 1,
@@ -278,14 +386,14 @@ const styles = StyleSheet.create({
   inputIconView: { marginRight: 8 },
   input: {
     flex: 1,
-    fontFamily: 'DMSans-Medium',
+    fontFamily: "DMSans-Medium",
     fontSize: 15,
     color: Colors.textPrimary,
     paddingVertical: 14,
   },
   eyeBtn: { padding: 8 },
   errorText: {
-    fontFamily: 'DMSans-Regular',
+    fontFamily: "DMSans-Regular",
     fontSize: 12,
     color: Colors.error,
     marginTop: 4,
@@ -298,7 +406,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   apiErrorText: {
-    fontFamily: 'DMSans-Regular',
+    fontFamily: "DMSans-Regular",
     fontSize: 13,
     color: Colors.error,
   },
@@ -308,29 +416,29 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 14,
     backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 20,
     ...Shadows.primaryGlow,
   },
   submitBtnDisabled: { opacity: 0.7 },
   submitBtnText: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 15,
     letterSpacing: 1.5,
-    color: '#FFF',
+    color: "#FFF",
   },
 
   // Divider
   dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 24,
     marginBottom: 20,
   },
   dividerLine: { flex: 1, height: 1, backgroundColor: Colors.border },
   dividerText: {
-    fontFamily: 'DMSans-SemiBold',
+    fontFamily: "DMSans-SemiBold",
     fontSize: 11,
     letterSpacing: 1,
     color: Colors.textTertiary,
@@ -341,20 +449,20 @@ const styles = StyleSheet.create({
   socialBtn: {
     height: 44,
     borderRadius: 12,
-    flexDirection: 'row',
+    flexDirection: "row",
     backgroundColor: Colors.elevated,
     borderWidth: 1,
     borderColor: Colors.border,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   socialIcon: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 18,
     color: Colors.textPrimary,
   },
   socialLabel: {
-    fontFamily: 'DMSans-SemiBold',
+    fontFamily: "DMSans-SemiBold",
     fontSize: 14,
     color: Colors.textPrimary,
     marginLeft: 8,
@@ -362,14 +470,14 @@ const styles = StyleSheet.create({
 
   // Footer
   footerRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 24,
     marginBottom: 40,
   },
   footerText: {
-    fontFamily: 'DMSans-Regular',
+    fontFamily: "DMSans-Regular",
     fontSize: 14,
     color: Colors.textSecondary,
   },
@@ -380,7 +488,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   signInText: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 14,
     color: Colors.primary,
   },

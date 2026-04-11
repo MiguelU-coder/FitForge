@@ -2,7 +2,7 @@
 // Port of exercises_screen.dart — "Industrial Premium Athletic" design
 // Reference: lib/features/exercises/presentation/screens/exercises_screen.dart
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,21 +12,26 @@ import {
   Pressable,
   ActivityIndicator,
   Modal,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { Colors, Shadows } from '../../src/theme/colors';
-import { useExerciseStore } from '../../src/stores/useExerciseStore';
-import { MUSCLE_GROUPS, EQUIPMENT_LIST, formatLabel } from '../../src/types/exercise';
-import ExerciseCard from '../../src/components/ExerciseCard';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { getMuscleColor } from '../../src/utils/muscleColors';
-import { ScrollView } from 'react-native';
+} from "react-native";
+import { useRouter } from "expo-router";
+import { Colors, Shadows } from "../../src/theme/colors";
+import { useExerciseStore } from "../../src/stores/useExerciseStore";
+import {
+  MUSCLE_GROUPS,
+  EQUIPMENT_LIST,
+  formatLabel,
+} from "../../src/types/exercise";
+import ExerciseCard from "../../src/components/ExerciseCard";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { getMuscleColor } from "../../src/utils/muscleColors";
+import { ScrollView } from "react-native";
 
 export default function ExercisesScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { filters, page, isLoading, error, setFilters, fetchExercises } = useExerciseStore();
+  const { filters, page, isLoading, error, setFilters, fetchExercises } =
+    useExerciseStore();
   const [searchInput, setSearchInput] = useState(filters.search);
   const [showFilters, setShowFilters] = useState(false);
 
@@ -45,8 +50,8 @@ export default function ExercisesScreen() {
   }, [searchInput, filters.search, setFilters]);
 
   const clearFilters = () => {
-    setFilters({ muscle: undefined, equipment: undefined, search: '' });
-    setSearchInput('');
+    setFilters({ muscle: undefined, equipment: undefined, search: "" });
+    setSearchInput("");
   };
 
   const hasActiveFilters =
@@ -60,12 +65,15 @@ export default function ExercisesScreen() {
       <View style={styles.headerSection}>
         <View style={styles.header}>
           <View>
-            <Text style={styles.title}>Library</Text>
-            <Text style={styles.subtitle}>Global exercise database</Text>
+            <Text style={styles.title}>EJERCICIOS</Text>
+            <Text style={styles.subtitle}>Base de datos de ejercicios</Text>
           </View>
           <View style={styles.headerActions}>
             <Pressable
-              style={[styles.filterBtn, hasActiveFilters && styles.filterBtnActive]}
+              style={[
+                styles.filterBtn,
+                hasActiveFilters && styles.filterBtnActive,
+              ]}
               onPress={() => setShowFilters(true)}
             >
               <Ionicons
@@ -76,7 +84,7 @@ export default function ExercisesScreen() {
             </Pressable>
             <Pressable
               style={styles.addBtn}
-              onPress={() => router.push('/exercise/create')}
+              onPress={() => router.push("/exercise/create")}
             >
               <Ionicons name="add" size={24} color="#FFF" />
             </Pressable>
@@ -93,7 +101,7 @@ export default function ExercisesScreen() {
           />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search exercises..."
+            placeholder="Buscar ejercicios..."
             placeholderTextColor={Colors.textMuted}
             value={searchInput}
             onChangeText={setSearchInput}
@@ -102,17 +110,20 @@ export default function ExercisesScreen() {
           {searchInput.length > 0 && (
             <Pressable
               onPress={() => {
-                setSearchInput('');
-                setFilters({ search: '' });
+                setSearchInput("");
+                setFilters({ search: "" });
               }}
               style={{ padding: 4 }}
             >
-              <Ionicons name="close-circle" size={18} color={Colors.textTertiary} />
+              <Ionicons
+                name="close-circle"
+                size={18}
+                color={Colors.textTertiary}
+              />
             </Pressable>
           )}
         </View>
-
-        </View>
+      </View>
 
       {/* ── Exercise Grid ── */}
       {isLoading && (!page || page.exercises.length === 0) ? (
@@ -122,12 +133,16 @@ export default function ExercisesScreen() {
       ) : error ? (
         <View style={styles.center}>
           <View style={styles.errorIconWrap}>
-            <Ionicons name="wifi-outline" size={32} color={Colors.textTertiary} />
+            <Ionicons
+              name="wifi-outline"
+              size={32}
+              color={Colors.textTertiary}
+            />
           </View>
-          <Text style={styles.errorTitle}>Connection error</Text>
+          <Text style={styles.errorTitle}>Error de conexión</Text>
           <Text style={styles.errorSubtitle}>{error}</Text>
           <Pressable style={styles.retryBtn} onPress={() => fetchExercises(1)}>
-            <Text style={styles.retryBtnText}>Retry</Text>
+            <Text style={styles.retryBtnText}>Reintentar</Text>
           </Pressable>
         </View>
       ) : (
@@ -148,13 +163,18 @@ export default function ExercisesScreen() {
                   style={{ opacity: 0.5 }}
                 />
               </View>
-              <Text style={styles.emptyTitle}>No results found</Text>
+              <Text style={styles.emptyTitle}>
+                No se encontraron resultados
+              </Text>
               <Text style={styles.emptySubtitle}>
-                Try a different search term or clear the filters
+                Intenta con un término de búsqueda diferente o borra los filtros
               </Text>
               {hasActiveFilters && (
-                <Pressable style={styles.clearFiltersBtn} onPress={clearFilters}>
-                  <Text style={styles.clearFiltersBtnText}>Clear Filters</Text>
+                <Pressable
+                  style={styles.clearFiltersBtn}
+                  onPress={clearFilters}
+                >
+                  <Text style={styles.clearFiltersBtnText}>Borrar filtros</Text>
                 </Pressable>
               )}
             </View>
@@ -164,38 +184,75 @@ export default function ExercisesScreen() {
 
       {/* ── Advanced Filters Modal ── */}
       <Modal visible={showFilters} animationType="slide" transparent>
-        <Pressable style={styles.modalOverlay} onPress={() => setShowFilters(false)}>
-          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setShowFilters(false)}
+        >
+          <Pressable
+            style={styles.modalContent}
+            onPress={(e) => e.stopPropagation()}
+          >
             <View style={styles.modalHandle} />
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>ADVANCED FILTERS</Text>
+              <Text style={styles.modalTitle}>FILTROS AVANZADOS</Text>
               <Pressable onPress={clearFilters}>
-                <Text style={styles.modalResetText}>Reset</Text>
+                <Text style={styles.modalResetText}>Reiniciar</Text>
               </Pressable>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 40 }}
+            >
               {/* Muscle Group */}
               <View style={styles.filterSection}>
-                <Text style={styles.sectionTitle}>MUSCLE GROUP</Text>
+                <Text style={styles.sectionTitle}>GRUPO MUSCULAR</Text>
                 <View style={styles.chipWrap}>
                   <Pressable
-                    style={[styles.muscleChip, !filters.muscle && styles.muscleChipActive]}
+                    style={[
+                      styles.muscleChip,
+                      !filters.muscle && styles.muscleChipActive,
+                    ]}
                     onPress={() => setFilters({ muscle: undefined })}
                   >
-                    <Ionicons name="apps" size={16} color={getMuscleColor('ALL')} />
-                    <Text style={[styles.muscleChipText, !filters.muscle && { color: '#FFF' }]}>All</Text>
+                    <Ionicons
+                      name="apps"
+                      size={16}
+                      color={getMuscleColor("ALL")}
+                    />
+                    <Text
+                      style={[
+                        styles.muscleChipText,
+                        !filters.muscle && { color: "#FFF" },
+                      ]}
+                    >
+                      All
+                    </Text>
                   </Pressable>
-                  {MUSCLE_GROUPS.map(muscle => {
+                  {MUSCLE_GROUPS.map((muscle) => {
                     const isActive = filters.muscle === muscle;
                     return (
                       <Pressable
                         key={muscle}
-                        style={[styles.muscleChip, isActive && styles.muscleChipActive]}
-                        onPress={() => setFilters({ muscle: isActive ? undefined : muscle })}
+                        style={[
+                          styles.muscleChip,
+                          isActive && styles.muscleChipActive,
+                        ]}
+                        onPress={() =>
+                          setFilters({ muscle: isActive ? undefined : muscle })
+                        }
                       >
-                        <Ionicons name="body" size={16} color={getMuscleColor(muscle)} />
-                        <Text style={[styles.muscleChipText, isActive ? { color: '#FFF' } : null]}>
+                        <Ionicons
+                          name="body"
+                          size={16}
+                          color={getMuscleColor(muscle)}
+                        />
+                        <Text
+                          style={[
+                            styles.muscleChipText,
+                            isActive ? { color: "#FFF" } : null,
+                          ]}
+                        >
                           {formatLabel(muscle)}
                         </Text>
                       </Pressable>
@@ -209,20 +266,40 @@ export default function ExercisesScreen() {
                 <Text style={styles.sectionTitle}>EQUIPMENT</Text>
                 <View style={styles.chipWrap}>
                   <Pressable
-                    style={[styles.equipChip, !filters.equipment && styles.equipChipActive]}
+                    style={[
+                      styles.equipChip,
+                      !filters.equipment && styles.equipChipActive,
+                    ]}
                     onPress={() => setFilters({ equipment: undefined })}
                   >
-                    <Text style={[styles.equipChipText, !filters.equipment && styles.equipChipTextActive]}>All</Text>
+                    <Text
+                      style={[
+                        styles.equipChipText,
+                        !filters.equipment && styles.equipChipTextActive,
+                      ]}
+                    >
+                      All
+                    </Text>
                   </Pressable>
-                  {EQUIPMENT_LIST.map(eq => {
+                  {EQUIPMENT_LIST.map((eq) => {
                     const isActive = filters.equipment === eq;
                     return (
                       <Pressable
                         key={eq}
-                        style={[styles.equipChip, isActive && styles.equipChipActive]}
-                        onPress={() => setFilters({ equipment: isActive ? undefined : eq })}
+                        style={[
+                          styles.equipChip,
+                          isActive && styles.equipChipActive,
+                        ]}
+                        onPress={() =>
+                          setFilters({ equipment: isActive ? undefined : eq })
+                        }
                       >
-                        <Text style={[styles.equipChipText, isActive ? styles.equipChipTextActive : null]}>
+                        <Text
+                          style={[
+                            styles.equipChipText,
+                            isActive ? styles.equipChipTextActive : null,
+                          ]}
+                        >
                           {formatLabel(eq)}
                         </Text>
                       </Pressable>
@@ -246,26 +323,26 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     paddingHorizontal: 20,
     marginBottom: 16,
   },
   title: {
-    fontFamily: 'BebasNeue',
+    fontFamily: "BebasNeue",
     fontSize: 34,
     letterSpacing: 2,
     color: Colors.textPrimary,
   },
   subtitle: {
-    fontFamily: 'DMSans-Regular',
+    fontFamily: "DMSans-Regular",
     fontSize: 12,
     color: Colors.textSecondary,
     marginTop: 1,
   },
   headerActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
   },
   filterBtn: {
@@ -273,8 +350,8 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 12,
     backgroundColor: Colors.elevated,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 1,
     borderColor: Colors.border,
   },
@@ -287,15 +364,15 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 12,
     backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     ...Shadows.primaryGlow,
   },
 
   // Search
   searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginHorizontal: 16,
     marginBottom: 14,
     paddingHorizontal: 14,
@@ -307,7 +384,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontFamily: 'DMSans-Medium',
+    fontFamily: "DMSans-Medium",
     fontSize: 14,
     color: Colors.textPrimary,
   },
@@ -331,7 +408,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary,
   },
   filterChipText: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 11,
     letterSpacing: 0.5,
     color: Colors.textSecondary,
@@ -343,8 +420,8 @@ const styles = StyleSheet.create({
   // Center / Loading
   center: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
 
   // Error
@@ -353,21 +430,21 @@ const styles = StyleSheet.create({
     height: 72,
     borderRadius: 36,
     backgroundColor: Colors.elevated,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 16,
   },
   errorTitle: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 16,
     color: Colors.textPrimary,
   },
   errorSubtitle: {
-    fontFamily: 'DMSans-Regular',
+    fontFamily: "DMSans-Regular",
     fontSize: 13,
     color: Colors.textSecondary,
     marginTop: 4,
-    textAlign: 'center',
+    textAlign: "center",
   },
   retryBtn: {
     marginTop: 20,
@@ -379,7 +456,7 @@ const styles = StyleSheet.create({
     borderColor: `${Colors.primary}4D`,
   },
   retryBtnText: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 13,
     color: Colors.primary,
   },
@@ -397,8 +474,8 @@ const styles = StyleSheet.create({
   // Empty
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingTop: 60,
   },
   emptyIconWrap: {
@@ -406,22 +483,22 @@ const styles = StyleSheet.create({
     height: 72,
     borderRadius: 36,
     backgroundColor: Colors.elevated,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 16,
   },
   emptyTitle: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 16,
     color: Colors.textPrimary,
   },
   emptySubtitle: {
-    fontFamily: 'DMSans-Regular',
+    fontFamily: "DMSans-Regular",
     fontSize: 13,
-    fontWeight: '300',
+    fontWeight: "300",
     color: Colors.textSecondary,
     marginTop: 8,
-    textAlign: 'center',
+    textAlign: "center",
     paddingHorizontal: 40,
   },
   clearFiltersBtn: {
@@ -434,7 +511,7 @@ const styles = StyleSheet.create({
     borderColor: `${Colors.primary}4D`,
   },
   clearFiltersBtnText: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 13,
     color: Colors.primary,
   },
@@ -442,61 +519,62 @@ const styles = StyleSheet.create({
   // Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.85)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0,0,0,0.85)",
+    justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: '#161616',
+    backgroundColor: "#161616",
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     padding: 20,
-    maxHeight: '85%',
+    maxHeight: "85%",
   },
   modalHandle: {
     width: 40,
     height: 4,
     backgroundColor: Colors.border,
     borderRadius: 2,
-    alignSelf: 'center',
+    alignSelf: "center",
     marginBottom: 20,
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 20,
   },
   modalTitle: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: "800",
     color: Colors.textTertiary,
     letterSpacing: 1.5,
   },
   modalResetText: {
-    fontFamily: 'DMSans-SemiBold',
+    fontFamily: "DMSans-SemiBold",
     fontSize: 13,
     color: Colors.primary,
   },
-  filterSection: { // Add general section spacing
+  filterSection: {
+    // Add general section spacing
     marginBottom: 28,
   },
   sectionTitle: {
-    fontFamily: 'DMSans-Medium',
+    fontFamily: "DMSans-Medium",
     fontSize: 12,
     color: Colors.textPrimary,
     marginBottom: 12,
   },
   chipRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
   },
   chipWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 10,
   },
-  
+
   // Source Chips
   sourceChip: {
     paddingHorizontal: 20,
@@ -511,19 +589,19 @@ const styles = StyleSheet.create({
     backgroundColor: `${Colors.primary}15`,
   },
   sourceChipText: {
-    fontFamily: 'DMSans-Regular',
+    fontFamily: "DMSans-Regular",
     fontSize: 13,
     color: Colors.textSecondary,
   },
   sourceChipTextActive: {
     color: Colors.primary,
-    fontFamily: 'DMSans-Medium',
+    fontFamily: "DMSans-Medium",
   },
 
   // Muscle Chips
   muscleChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 14,
@@ -537,7 +615,7 @@ const styles = StyleSheet.create({
     backgroundColor: `${Colors.primary}10`,
   },
   muscleChipText: {
-    fontFamily: 'DMSans-Medium',
+    fontFamily: "DMSans-Medium",
     fontSize: 12,
     color: Colors.textSecondary,
   },
@@ -556,7 +634,7 @@ const styles = StyleSheet.create({
     backgroundColor: `${Colors.primary}15`,
   },
   equipChipText: {
-    fontFamily: 'DMSans-Regular',
+    fontFamily: "DMSans-Regular",
     fontSize: 12,
     color: Colors.textSecondary,
   },
@@ -564,4 +642,3 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
 });
-
