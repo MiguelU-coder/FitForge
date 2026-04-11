@@ -269,11 +269,12 @@ export default function UnifiedOnboarding() {
                 <Animated.View style={[styles.slideInner, { opacity, transform: [{ scale }] }]}>
                   {/* Icon */}
                   <View style={styles.iconWrapper}>
-                    <LinearGradient
-                      colors={item.gradientColors}
-                      style={StyleSheet.absoluteFill}
-                      borderRadius={90}
-                    />
+                    <View style={{ borderRadius: 90, overflow: 'hidden' }}>
+                      <LinearGradient
+                        colors={item.gradientColors}
+                        style={StyleSheet.absoluteFill}
+                      />
+                    </View>
                     <View style={[styles.iconRing, { borderColor: `${item.accentColor}30` }]}>
                       <View style={[styles.iconCore, { backgroundColor: `${item.accentColor}18` }]}>
                         <Ionicons name={item.icon} size={52} color={item.accentColor} />
@@ -488,11 +489,10 @@ export default function UnifiedOnboarding() {
         {/* Step 1: Name */}
         {step === 1 && (
           <View style={styles.centeredStep}>
-            <View style={styles.stepIconCircle}>
+            <View style={[styles.stepIconCircle, { overflow: 'hidden' }]}>
               <LinearGradient
                 colors={[`${Colors.primary}25`, 'transparent']}
                 style={StyleSheet.absoluteFill}
-                borderRadius={44}
               />
               <Ionicons name="person-outline" size={36} color={Colors.primary} />
             </View>
@@ -538,11 +538,10 @@ export default function UnifiedOnboarding() {
         {/* Step 5: Measurements */}
         {step === 5 && (
           <View style={styles.centeredStep}>
-            <View style={[styles.stepIconCircle, styles.stepIconCyan]}>
+            <View style={[styles.stepIconCircle, styles.stepIconCyan, { overflow: 'hidden' }]}>
               <LinearGradient
                 colors={[`${Colors.accentCyan}25`, 'transparent']}
                 style={StyleSheet.absoluteFill}
-                borderRadius={44}
               />
               <Ionicons name="body-outline" size={36} color={Colors.accentCyan} />
             </View>

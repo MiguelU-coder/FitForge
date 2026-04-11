@@ -1,11 +1,13 @@
 import { ExerciseType, FatigueLevel } from '@prisma/client';
-import { ExerciseSelectionService, ExerciseWithMeta } from './exercise-selection.service';
+import { ExerciseSelectionService, ExerciseWithMeta, VolumeTracker } from './exercise-selection.service';
 
 describe('ExerciseSelectionService', () => {
   let service: ExerciseSelectionService;
+  let volumeTracker: VolumeTracker;
 
   beforeEach(() => {
     service = new ExerciseSelectionService();
+    volumeTracker = new VolumeTracker();
   });
 
   const createMockExercise = (
@@ -20,6 +22,7 @@ describe('ExerciseSelectionService', () => {
     exerciseType: type,
     fatigueLevel: fatigue,
     isCompound,
+    movementPattern: null,
   });
 
   describe('selectExercisesForMuscle', () => {
@@ -39,6 +42,8 @@ describe('ExerciseSelectionService', () => {
         exercisesByMuscle,
         0,
         new Set(),
+        volumeTracker,
+        0,
       );
 
       expect(result.exerciseIds.length).toBeGreaterThanOrEqual(2);
@@ -59,6 +64,8 @@ describe('ExerciseSelectionService', () => {
         exercisesByMuscle,
         2,
         new Set(),
+        volumeTracker,
+        0,
       );
 
       expect(result.totalFatigue).toBeLessThanOrEqual(2);
@@ -80,6 +87,8 @@ describe('ExerciseSelectionService', () => {
         exercisesByMuscle,
         0,
         usedIds,
+        volumeTracker,
+        0,
       );
 
       expect(result.exerciseIds).not.toContain('1');
@@ -94,6 +103,8 @@ describe('ExerciseSelectionService', () => {
         exercisesByMuscle,
         0,
         new Set(),
+        volumeTracker,
+        0,
       );
 
       expect(result.exerciseIds).toEqual([]);
@@ -116,6 +127,8 @@ describe('ExerciseSelectionService', () => {
         exercisesByMuscle,
         0,
         new Set(),
+        volumeTracker,
+        0,
       );
 
       const selectedExercises = exercises.filter((e) => result.exerciseIds.includes(e.id));
