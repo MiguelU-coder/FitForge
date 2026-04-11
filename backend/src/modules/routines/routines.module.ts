@@ -238,7 +238,10 @@ export class RoutinesService {
       config: {
         sets: avgSetsPerDay,
         reps: goalReps,
-        rir: phase.rirTarget[trainingLevel as TrainingLevel],
+        rir: { 
+          min: phase.rirTarget[trainingLevel as TrainingLevel], 
+          max: phase.rirTarget[trainingLevel as TrainingLevel] + 1 
+        },
         restSeconds: 150,
       },
       periodization: {
@@ -276,8 +279,13 @@ export class RoutinesService {
       config: {
         sets: 3,
         reps: '8-12',
-        rir: 2,
+        rir: { min: 2, max: 3 },
         restSeconds: 150,
+      },
+      periodization: {
+        phase: 'HYPERTROPHY',
+        strategy: 'SET_INCREMENT',
+        weeks: [1, 8] as [number, number],
       },
     };
   }
