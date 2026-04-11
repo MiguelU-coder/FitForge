@@ -16,6 +16,7 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "db:seed": "ts-node -r tsconfig-paths/register prisma/seed.ts",
+    "db:seed:exercisedb": "ts-node -r tsconfig-paths/register prisma/seed-from-exercisedb.ts",
     "db:setup": "prisma migrate deploy && ts-node -r tsconfig-paths/register prisma/seed.ts",
     "db:reset": "prisma migrate reset",
     "prepare": "husky",
