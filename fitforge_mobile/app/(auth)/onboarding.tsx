@@ -223,6 +223,14 @@ export default function UnifiedOnboarding() {
         ...(height ? { heightCm: parseFloat(height) } : {}),
         has_completed_onboarding: true,
       });
+
+      // Force local state update before redirect to prevent going back to onboarding
+      useAuthStore.setState((state) => ({
+        user: state.user
+          ? { ...state.user, hasCompletedOnboarding: true }
+          : null,
+      }));
+
       // Refresh templates so the AI-generated program is visible immediately
       useWorkoutStore.getState().fetchTemplates();
       router.replace("/(tabs)");
