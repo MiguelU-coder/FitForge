@@ -62,6 +62,24 @@ function normalizeMuscle(muscle: string): string {
   return normalized || muscle.toUpperCase();
 }
 
+const EQUIPMENT_PREFERENCE: Record<string, number> = {
+  MACHINE: 1,
+  CABLE: 2,
+  BARBELL: 3,
+  SMITH_MACHINE: 4,
+  DUMBBELL: 5,
+  BODYWEIGHT: 6,
+  KETTLEBELL: 7,
+  RESISTANCE_BAND: 8,
+  ELASTIC_BAND: 9,
+  CARDIO: 10,
+};
+
+function getEquipmentScore(equipment: string | undefined): number {
+  if (!equipment) return 99;
+  return EQUIPMENT_PREFERENCE[equipment] ?? 50;
+}
+
 export interface ExerciseWithMeta {
   id: string;
   name: string;
@@ -384,8 +402,14 @@ export class ExerciseSelectionService {
       return null;
     }
 
-    const shuffled = this.shuffleArray(pool);
-    return shuffled[0].id;
+    // Sort by equipment preference (MACHINE > CABLE > BARBELL > etc.)
+    const sortedPool = [...pool].sort((a, b) => {
+      const scoreA = getEquipmentScore(a.equipment);
+      const scoreB = getEquipmentScore(b.equipment);
+      return scoreA - scoreB;
+    });
+
+    return sortedPool[0].id;
   }
 
   /**

@@ -1,7 +1,7 @@
 // app/(auth)/onboarding.tsx
 // Unified onboarding — welcome slides + profile setup + training preferences + routine preview
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -16,30 +16,30 @@ import {
   Dimensions,
   ActivityIndicator,
   ViewToken,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors } from '../../src/theme/colors';
-import { useAuthStore } from '../../src/stores/useAuthStore';
-import { useWorkoutStore } from '../../src/stores/useWorkoutStore';
+} from "react-native";
+import { useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Colors } from "../../src/theme/colors";
+import { useAuthStore } from "../../src/stores/useAuthStore";
+import { useWorkoutStore } from "../../src/stores/useWorkoutStore";
 import {
   useOnboardingStore,
   type Gender,
   type TrainingLevel,
   type UserGoal,
-} from '../../src/stores/useOnboardingStore';
-import { GenderSelector } from '../../src/components/onboarding/GenderSelector';
-import { LevelSelector } from '../../src/components/onboarding/LevelSelector';
-import { GoalSelector } from '../../src/components/onboarding/GoalSelector';
-import { RoutinePreview } from '../../src/components/onboarding/RoutinePreview';
+} from "../../src/stores/useOnboardingStore";
+import { GenderSelector } from "../../src/components/onboarding/GenderSelector";
+import { LevelSelector } from "../../src/components/onboarding/LevelSelector";
+import { GoalSelector } from "../../src/components/onboarding/GoalSelector";
+import { RoutinePreview } from "../../src/components/onboarding/RoutinePreview";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
-type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
+type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
 /**
  * Step index:
@@ -62,26 +62,32 @@ const WELCOME_SLIDES: Array<{
   accentColor: string;
 }> = [
   {
-    id: '1',
-    title: 'TRACK EVERY REP',
-    subtitle: 'Log your sets, reps, and RPE with precision. Let FitForge crunch the numbers.',
-    icon: 'analytics-outline',
+    id: "1",
+    title: "LLEVA UN REGISTRO DE CADA REPETICIÓN",
+    subtitle:
+      "Registra tus series, repeticiones y RPE con precisión. Deja que FitForge haga los cálculos.",
+    icon: "analytics-outline",
     gradientColors: [`${Colors.primary}30`, `${Colors.primary}08`],
     accentColor: Colors.primary,
   },
   {
-    id: '2',
-    title: 'AI COACHING',
-    subtitle: 'Get real-time feedback on your performance and fatigue. Train smarter, not harder.',
-    icon: 'sparkles-outline',
-    gradientColors: [`${Colors.secondaryBright}30`, `${Colors.secondaryBright}08`],
+    id: "2",
+    title: "ENTRENADOR DE IA",
+    subtitle:
+      "Obtén retroalimentación en tiempo real sobre tu rendimiento y fatiga. Entrena de forma más inteligente, no más dura.",
+    icon: "sparkles-outline",
+    gradientColors: [
+      `${Colors.secondaryBright}30`,
+      `${Colors.secondaryBright}08`,
+    ],
     accentColor: Colors.secondaryBright,
   },
   {
-    id: '3',
-    title: 'SMASH YOUR PRS',
-    subtitle: 'Track your body metrics and volume. Watch your strength skyrocket over time.',
-    icon: 'trophy-outline',
+    id: "3",
+    title: "DESTRUYE TU PRS",
+    subtitle:
+      "Registra tus métricas corporales y volumen. Observa cómo tu fuerza se dispara con el tiempo.",
+    icon: "trophy-outline",
     gradientColors: [`${Colors.pr}30`, `${Colors.pr}08`],
     accentColor: Colors.pr,
   },
@@ -102,11 +108,11 @@ export default function UnifiedOnboarding() {
   const slidesRef = useRef<FlatList>(null);
 
   // ── Profile fields
-  const [name, setName] = useState('');
-  const [weight, setWeight] = useState('');
-  const [height, setHeight] = useState('');
-  const [weightUnit, setWeightUnit] = useState<'kg' | 'lbs'>('kg');
-  const [heightUnit, setHeightUnit] = useState<'cm' | 'in'>('cm');
+  const [name, setName] = useState("");
+  const [weight, setWeight] = useState("");
+  const [height, setHeight] = useState("");
+  const [weightUnit, setWeightUnit] = useState<"kg" | "lbs">("kg");
+  const [heightUnit, setHeightUnit] = useState<"cm" | "in">("cm");
   const [isNameFocused, setIsNameFocused] = useState(false);
   const [isWeightFocused, setIsWeightFocused] = useState(false);
   const [isHeightFocused, setIsHeightFocused] = useState(false);
@@ -117,15 +123,21 @@ export default function UnifiedOnboarding() {
   // ── Stores
   const { user, updateProfile, isLoading: authLoading } = useAuthStore();
   const {
-    gender, trainingLevel, mainGoal,
-    generatedProgram, isLoading: routineLoading,
-    setGender, setTrainingLevel, setMainGoal, generateRoutine,
+    gender,
+    trainingLevel,
+    mainGoal,
+    generatedProgram,
+    isLoading: routineLoading,
+    setGender,
+    setTrainingLevel,
+    setMainGoal,
+    generateRoutine,
   } = useOnboardingStore();
 
   // Seed name from already-registered user
   useEffect(() => {
     const dn = user?.displayName;
-    if (dn && dn !== 'User') setName(dn);
+    if (dn && dn !== "User") setName(dn);
   }, []);
 
   // Animate progress bar whenever step 1–5 changes
@@ -140,9 +152,11 @@ export default function UnifiedOnboarding() {
   }, [step]);
 
   // ── Navigation helpers
-  const viewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
-    setWelcomeIndex(viewableItems[0]?.index ?? 0);
-  }).current;
+  const viewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      setWelcomeIndex(viewableItems[0]?.index ?? 0);
+    },
+  ).current;
   const viewConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
 
   const currentSlide = WELCOME_SLIDES[welcomeIndex];
@@ -211,7 +225,7 @@ export default function UnifiedOnboarding() {
       });
       // Refresh templates so the AI-generated program is visible immediately
       useWorkoutStore.getState().fetchTemplates();
-      router.replace('/(tabs)');
+      router.replace("/(tabs)");
     } catch {
       // error handled by auth store
     }
@@ -221,8 +235,8 @@ export default function UnifiedOnboarding() {
   const isLoading = authLoading || routineLoading;
   const progressWidth = progressAnim.interpolate({
     inputRange: [1, CONTENT_STEPS],
-    outputRange: ['20%', '100%'],
-    extrapolate: 'clamp',
+    outputRange: ["20%", "100%"],
+    extrapolate: "clamp",
   });
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -232,7 +246,7 @@ export default function UnifiedOnboarding() {
     return (
       <View style={styles.container}>
         <LinearGradient
-          colors={['#0A1F14', Colors.background]}
+          colors={["#0A1F14", Colors.background]}
           style={StyleSheet.absoluteFill}
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 0.55 }}
@@ -248,42 +262,67 @@ export default function UnifiedOnboarding() {
           keyExtractor={(item) => item.id}
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-            { useNativeDriver: false }
+            { useNativeDriver: false },
           )}
           onViewableItemsChanged={viewableItemsChanged}
           viewabilityConfig={viewConfig}
           renderItem={({ item, index }) => {
-            const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
+            const inputRange = [
+              (index - 1) * width,
+              index * width,
+              (index + 1) * width,
+            ];
             const opacity = scrollX.interpolate({
               inputRange,
               outputRange: [0.35, 1, 0.35],
-              extrapolate: 'clamp',
+              extrapolate: "clamp",
             });
             const scale = scrollX.interpolate({
               inputRange,
               outputRange: [0.88, 1, 0.88],
-              extrapolate: 'clamp',
+              extrapolate: "clamp",
             });
             return (
               <View style={[styles.slide, { width }]}>
-                <Animated.View style={[styles.slideInner, { opacity, transform: [{ scale }] }]}>
+                <Animated.View
+                  style={[
+                    styles.slideInner,
+                    { opacity, transform: [{ scale }] },
+                  ]}
+                >
                   {/* Icon */}
                   <View style={styles.iconWrapper}>
-                    <View style={{ borderRadius: 90, overflow: 'hidden' }}>
+                    <View style={{ borderRadius: 90, overflow: "hidden" }}>
                       <LinearGradient
                         colors={item.gradientColors}
                         style={StyleSheet.absoluteFill}
                       />
                     </View>
-                    <View style={[styles.iconRing, { borderColor: `${item.accentColor}30` }]}>
-                      <View style={[styles.iconCore, { backgroundColor: `${item.accentColor}18` }]}>
-                        <Ionicons name={item.icon} size={52} color={item.accentColor} />
+                    <View
+                      style={[
+                        styles.iconRing,
+                        { borderColor: `${item.accentColor}30` },
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.iconCore,
+                          { backgroundColor: `${item.accentColor}18` },
+                        ]}
+                      >
+                        <Ionicons
+                          name={item.icon}
+                          size={52}
+                          color={item.accentColor}
+                        />
                       </View>
                     </View>
                   </View>
 
                   {/* Text */}
-                  <Text style={[styles.welcomeTitle, { color: item.accentColor }]}>
+                  <Text
+                    style={[styles.welcomeTitle, { color: item.accentColor }]}
+                  >
                     {item.title}
                   </Text>
                   <Text style={styles.welcomeSubtitle}>{item.subtitle}</Text>
@@ -294,26 +333,35 @@ export default function UnifiedOnboarding() {
         />
 
         {/* Footer */}
-        <View style={[styles.welcomeFooter, { paddingBottom: insets.bottom + 24 }]}>
+        <View
+          style={[styles.welcomeFooter, { paddingBottom: insets.bottom + 24 }]}
+        >
           {/* Animated dots */}
           <View style={styles.paginator}>
             {WELCOME_SLIDES.map((slide, i) => {
               const inputRange = [(i - 1) * width, i * width, (i + 1) * width];
               const dotWidth = scrollX.interpolate({
-                inputRange, outputRange: [6, 28, 6], extrapolate: 'clamp',
+                inputRange,
+                outputRange: [6, 28, 6],
+                extrapolate: "clamp",
               });
               const opacity = scrollX.interpolate({
-                inputRange, outputRange: [0.3, 1, 0.3], extrapolate: 'clamp',
+                inputRange,
+                outputRange: [0.3, 1, 0.3],
+                extrapolate: "clamp",
               });
               const bgColor = scrollX.interpolate({
                 inputRange,
                 outputRange: [Colors.border, slide.accentColor, Colors.border],
-                extrapolate: 'clamp',
+                extrapolate: "clamp",
               });
               return (
                 <Animated.View
                   key={i}
-                  style={[styles.dot, { width: dotWidth, opacity, backgroundColor: bgColor }]}
+                  style={[
+                    styles.dot,
+                    { width: dotWidth, opacity, backgroundColor: bgColor },
+                  ]}
                 />
               );
             })}
@@ -322,23 +370,22 @@ export default function UnifiedOnboarding() {
           {/* CTA */}
           <Pressable
             onPress={advanceWelcome}
-            accessibilityRole="button"
-            accessibilityLabel={welcomeIndex === WELCOME_SLIDES.length - 1 ? "Comenzar" : "Siguiente"}
+            style={({ pressed }) => [
+              styles.continueBtn,
+              pressed && { opacity: 0.9 },
+            ]}
           >
             <LinearGradient
-              colors={[currentSlide.accentColor, `${currentSlide.accentColor}BB`]}
-              style={styles.ctaBtn}
+              colors={[
+                currentSlide.accentColor,
+                `${currentSlide.accentColor}BB`,
+              ]}
+              style={styles.continueBtn}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
             >
-              <Text style={styles.ctaBtnText}>
-                {welcomeIndex === WELCOME_SLIDES.length - 1 ? "GET STARTED" : 'NEXT'}
-              </Text>
-              <Ionicons
-                name={welcomeIndex === WELCOME_SLIDES.length - 1 ? 'rocket-outline' : 'arrow-forward'}
-                size={18}
-                color="#FFF"
-              />
+              <Text style={styles.ctaBtnText}>SIGUIENTE</Text>
+              <Ionicons name="arrow-forward" size={18} color="#FFF" />
             </LinearGradient>
           </Pressable>
 
@@ -349,7 +396,7 @@ export default function UnifiedOnboarding() {
               accessibilityRole="button"
               accessibilityLabel="Saltar introducción"
             >
-              <Text style={styles.skipText}>Skip intro</Text>
+              <Text style={styles.skipText}>SALTAR INTRO</Text>
             </Pressable>
           )}
         </View>
@@ -362,22 +409,40 @@ export default function UnifiedOnboarding() {
   // ─────────────────────────────────────────────────────────────────────────
   if (step === 6) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 20 }]}>
+      <View
+        style={[
+          styles.container,
+          { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 20 },
+        ]}
+      >
         {/* Header */}
         <View style={styles.previewHeader}>
           <Pressable
             onPress={handleBack}
-            style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
+            style={({ pressed }) => [
+              styles.backBtn,
+              pressed && { opacity: 0.6 },
+            ]}
             accessibilityRole="button"
             accessibilityLabel="Volver"
           >
-            <Ionicons name="chevron-back" size={22} color={Colors.textSecondary} />
+            <Ionicons
+              name="chevron-back"
+              size={22}
+              color={Colors.textSecondary}
+            />
           </Pressable>
           <View style={styles.previewHeaderCenter}>
-            <Text style={styles.previewHeaderTitle}>YOUR PROGRAM</Text>
+            <Text style={styles.previewHeaderTitle}>
+              TU PROGRAMA DE ENTRENAMIENTO
+            </Text>
             <View style={styles.aiBadge}>
-              <Ionicons name="sparkles-outline" size={11} color={Colors.secondaryBright} />
-              <Text style={styles.aiBadgeText}>AI GENERATED</Text>
+              <Ionicons
+                name="sparkles-outline"
+                size={11}
+                color={Colors.secondaryBright}
+              />
+              <Text style={styles.aiBadgeText}>GENERADO POR IA</Text>
             </View>
           </View>
           <View style={{ width: 40 }} />
@@ -391,7 +456,12 @@ export default function UnifiedOnboarding() {
               onConfirm={handleConfirm}
               onBack={handleBack}
             />
-            <View style={[styles.previewFooter, { paddingHorizontal: 24, paddingBottom: insets.bottom + 12 }]}>
+            <View
+              style={[
+                styles.previewFooter,
+                { paddingHorizontal: 24, paddingBottom: insets.bottom + 12 },
+              ]}
+            >
               <Pressable onPress={handleConfirm} disabled={isLoading}>
                 <LinearGradient
                   colors={[Colors.primary, Colors.primaryBright]}
@@ -403,7 +473,9 @@ export default function UnifiedOnboarding() {
                     <ActivityIndicator color="#FFF" />
                   ) : (
                     <>
-                      <Text style={styles.confirmBtnText}>START TRAINING</Text>
+                      <Text style={styles.confirmBtnText}>
+                        EMPEZAR A ENTRENAR
+                      </Text>
                       <Ionicons name="barbell-outline" size={18} color="#FFF" />
                     </>
                   )}
@@ -416,9 +488,9 @@ export default function UnifiedOnboarding() {
             <View style={styles.generatingIconWrap}>
               <ActivityIndicator size="large" color={Colors.primary} />
             </View>
-            <Text style={styles.generatingTitle}>Building your program</Text>
+            <Text style={styles.generatingTitle}>Creando tu programa</Text>
             <Text style={styles.generatingText}>
-              Your AI coach is designing your personalized routine...
+              Tu entrenador de IA está diseñando tu rutina personalizada
             </Text>
           </View>
         )}
@@ -432,10 +504,10 @@ export default function UnifiedOnboarding() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <LinearGradient
-        colors={['#0A1F14', Colors.background]}
+        colors={["#0A1F14", Colors.background]}
         style={StyleSheet.absoluteFill}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 0.4 }}
@@ -446,12 +518,19 @@ export default function UnifiedOnboarding() {
         <View style={styles.headerRow}>
           <Pressable
             onPress={handleBack}
-            style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
+            style={({ pressed }) => [
+              styles.backBtn,
+              pressed && { opacity: 0.6 },
+            ]}
             accessibilityRole="button"
             accessibilityLabel="Volver"
             hitSlop={8}
           >
-            <Ionicons name="chevron-back" size={22} color={Colors.textSecondary} />
+            <Ionicons
+              name="chevron-back"
+              size={22}
+              color={Colors.textSecondary}
+            />
           </Pressable>
 
           {/* Segmented progress */}
@@ -461,7 +540,9 @@ export default function UnifiedOnboarding() {
                 <Animated.View
                   style={[
                     styles.segmentFill,
-                    { width: step > i ? '100%' : step === i + 1 ? '60%' : '0%' },
+                    {
+                      width: step > i ? "100%" : step === i + 1 ? "60%" : "0%",
+                    },
                   ]}
                 />
               </View>
@@ -489,16 +570,20 @@ export default function UnifiedOnboarding() {
         {/* Step 1: Name */}
         {step === 1 && (
           <View style={styles.centeredStep}>
-            <View style={[styles.stepIconCircle, { overflow: 'hidden' }]}>
+            <View style={[styles.stepIconCircle, { overflow: "hidden" }]}>
               <LinearGradient
-                colors={[`${Colors.primary}25`, 'transparent']}
+                colors={[`${Colors.primary}25`, "transparent"]}
                 style={StyleSheet.absoluteFill}
               />
-              <Ionicons name="person-outline" size={36} color={Colors.primary} />
+              <Ionicons
+                name="person-outline"
+                size={36}
+                color={Colors.primary}
+              />
             </View>
-            <Text style={styles.stepTitle}>What's your name?</Text>
+            <Text style={styles.stepTitle}>¿Cómo te llamas?</Text>
             <Text style={styles.stepSubtitle}>
-              We'll personalize your experience just for you.
+              Personalizaremos tu experiencia especialmente para ti.
             </Text>
             <TextInput
               style={[styles.nameInput, isNameFocused && styles.inputFocused]}
@@ -510,7 +595,9 @@ export default function UnifiedOnboarding() {
               onBlur={() => setIsNameFocused(false)}
               autoFocus
               returnKeyType="next"
-              onSubmitEditing={() => { if (name.trim()) setStep(2); }}
+              onSubmitEditing={() => {
+                if (name.trim()) setStep(2);
+              }}
               accessibilityLabel="Ingresa tu nombre"
             />
           </View>
@@ -523,7 +610,10 @@ export default function UnifiedOnboarding() {
 
         {/* Step 3: Level */}
         {step === 3 && (
-          <LevelSelector selected={trainingLevel} onSelect={handleLevelSelect} />
+          <LevelSelector
+            selected={trainingLevel}
+            onSelect={handleLevelSelect}
+          />
         )}
 
         {/* Step 4: Goal */}
@@ -538,49 +628,89 @@ export default function UnifiedOnboarding() {
         {/* Step 5: Measurements */}
         {step === 5 && (
           <View style={styles.centeredStep}>
-            <View style={[styles.stepIconCircle, styles.stepIconCyan, { overflow: 'hidden' }]}>
+            <View
+              style={[
+                styles.stepIconCircle,
+                styles.stepIconCyan,
+                { overflow: "hidden" },
+              ]}
+            >
               <LinearGradient
-                colors={[`${Colors.accentCyan}25`, 'transparent']}
+                colors={[`${Colors.accentCyan}25`, "transparent"]}
                 style={StyleSheet.absoluteFill}
               />
-              <Ionicons name="body-outline" size={36} color={Colors.accentCyan} />
+              <Ionicons
+                name="body-outline"
+                size={36}
+                color={Colors.accentCyan}
+              />
             </View>
-            <Text style={styles.stepTitle}>Your measurements</Text>
+            <Text style={styles.stepTitle}>Tus medidas</Text>
             <Text style={styles.stepSubtitle}>
-              Optional — we'll use this to calculate volume and progress.
+              Opcional — lo usaremos para calcular el volumen y el progreso.
             </Text>
 
             {/* Unit toggle */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>UNIT SYSTEM</Text>
+              <Text style={styles.fieldLabel}>SISTEMA DE UNIDADES</Text>
               <View style={styles.unitToggle}>
                 <Pressable
-                  style={[styles.unitBtn, weightUnit === 'kg' && styles.unitBtnActive]}
-                  onPress={() => { setWeightUnit('kg'); setHeightUnit('cm'); }}
+                  style={[
+                    styles.unitBtn,
+                    weightUnit === "kg" && styles.unitBtnActive,
+                  ]}
+                  onPress={() => {
+                    setWeightUnit("kg");
+                    setHeightUnit("cm");
+                  }}
                   accessibilityRole="radio"
-                  accessibilityState={{ selected: weightUnit === 'kg' }}
+                  accessibilityState={{ selected: weightUnit === "kg" }}
                 >
                   <Ionicons
-                    name="globe-outline" size={14}
-                    color={weightUnit === 'kg' ? Colors.primary : Colors.textTertiary}
+                    name="globe-outline"
+                    size={14}
+                    color={
+                      weightUnit === "kg" ? Colors.primary : Colors.textTertiary
+                    }
                     style={{ marginRight: 6 }}
                   />
-                  <Text style={[styles.unitBtnText, weightUnit === 'kg' && styles.unitBtnTextActive]}>
-                    METRIC
+                  <Text
+                    style={[
+                      styles.unitBtnText,
+                      weightUnit === "kg" && styles.unitBtnTextActive,
+                    ]}
+                  >
+                    MÉTRICO
                   </Text>
                 </Pressable>
                 <Pressable
-                  style={[styles.unitBtn, weightUnit === 'lbs' && styles.unitBtnActive]}
-                  onPress={() => { setWeightUnit('lbs'); setHeightUnit('in'); }}
+                  style={[
+                    styles.unitBtn,
+                    weightUnit === "lbs" && styles.unitBtnActive,
+                  ]}
+                  onPress={() => {
+                    setWeightUnit("lbs");
+                    setHeightUnit("in");
+                  }}
                   accessibilityRole="radio"
-                  accessibilityState={{ selected: weightUnit === 'lbs' }}
+                  accessibilityState={{ selected: weightUnit === "lbs" }}
                 >
                   <Ionicons
-                    name="flag-outline" size={14}
-                    color={weightUnit === 'lbs' ? Colors.primary : Colors.textTertiary}
+                    name="flag-outline"
+                    size={14}
+                    color={
+                      weightUnit === "lbs"
+                        ? Colors.primary
+                        : Colors.textTertiary
+                    }
                     style={{ marginRight: 6 }}
                   />
-                  <Text style={[styles.unitBtnText, weightUnit === 'lbs' && styles.unitBtnTextActive]}>
+                  <Text
+                    style={[
+                      styles.unitBtnText,
+                      weightUnit === "lbs" && styles.unitBtnTextActive,
+                    ]}
+                  >
                     IMPERIAL
                   </Text>
                 </Pressable>
@@ -590,9 +720,14 @@ export default function UnifiedOnboarding() {
             {/* Weight + Height */}
             <View style={styles.inputRow}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.fieldLabel}>WEIGHT ({weightUnit.toUpperCase()})</Text>
+                <Text style={styles.fieldLabel}>
+                  PESO ({weightUnit.toUpperCase()})
+                </Text>
                 <TextInput
-                  style={[styles.measureInput, isWeightFocused && styles.inputFocused]}
+                  style={[
+                    styles.measureInput,
+                    isWeightFocused && styles.inputFocused,
+                  ]}
                   placeholder="—"
                   placeholderTextColor={Colors.textMuted}
                   keyboardType="decimal-pad"
@@ -604,9 +739,14 @@ export default function UnifiedOnboarding() {
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.fieldLabel}>HEIGHT ({heightUnit.toUpperCase()})</Text>
+                <Text style={styles.fieldLabel}>
+                  ALTURA ({heightUnit.toUpperCase()})
+                </Text>
                 <TextInput
-                  style={[styles.measureInput, isHeightFocused && styles.inputFocused]}
+                  style={[
+                    styles.measureInput,
+                    isHeightFocused && styles.inputFocused,
+                  ]}
                   placeholder="—"
                   placeholderTextColor={Colors.textMuted}
                   keyboardType="decimal-pad"
@@ -624,19 +764,28 @@ export default function UnifiedOnboarding() {
 
       {/* ── Footer (steps 1 and 5 need explicit Continue) ── */}
       {(step === 1 || step === 5) && (
-        <View style={[styles.formFooter, { paddingBottom: insets.bottom + 20 }]}>
+        <View
+          style={[styles.formFooter, { paddingBottom: insets.bottom + 20 }]}
+        >
           {step === 5 && (
             <Pressable
               onPress={handleGenerateRoutine}
-              style={({ pressed }) => [styles.skipLink, pressed && { opacity: 0.5 }]}
+              style={({ pressed }) => [
+                styles.skipLink,
+                pressed && { opacity: 0.5 },
+              ]}
               accessibilityRole="button"
               disabled={isLoading}
             >
-              <Text style={styles.skipLinkText}>Skip measurements</Text>
+              <Text style={styles.skipLinkText}>Saltar medidas</Text>
             </Pressable>
           )}
           <Pressable
-            onPress={step === 1 ? () => name.trim() && setStep(2) : handleGenerateRoutine}
+            onPress={
+              step === 1
+                ? () => name.trim() && setStep(2)
+                : handleGenerateRoutine
+            }
             disabled={(step === 1 && !name.trim()) || isLoading}
           >
             <LinearGradient
@@ -656,15 +805,21 @@ export default function UnifiedOnboarding() {
                   <Text
                     style={[
                       styles.continueBtnText,
-                      (step === 1 && !name.trim()) && styles.continueBtnTextDisabled,
+                      step === 1 &&
+                        !name.trim() &&
+                        styles.continueBtnTextDisabled,
                     ]}
                   >
-                    {step === 5 ? 'GENERATE ROUTINE' : 'CONTINUE'}
+                    {step === 5 ? "GENERAR RUTINA" : "CONTINUAR"}
                   </Text>
                   <Ionicons
-                    name={step === 5 ? 'sparkles-outline' : 'arrow-forward'}
+                    name={step === 5 ? "sparkles-outline" : "arrow-forward"}
                     size={18}
-                    color={(step === 1 && !name.trim()) || isLoading ? Colors.textTertiary : '#FFF'}
+                    color={
+                      (step === 1 && !name.trim()) || isLoading
+                        ? Colors.textTertiary
+                        : "#FFF"
+                    }
                   />
                 </>
               )}
@@ -687,20 +842,20 @@ const styles = StyleSheet.create({
   // ─── Welcome ──────────────────────────────────────────────────────────────
   slide: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingTop: 60,
     paddingBottom: 20,
   },
   slideInner: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingHorizontal: 32,
   },
   iconWrapper: {
     width: 180,
     height: 180,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 44,
   },
   iconRing: {
@@ -708,39 +863,39 @@ const styles = StyleSheet.create({
     height: 160,
     borderRadius: 80,
     borderWidth: 1.5,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   iconCore: {
     width: 124,
     height: 124,
     borderRadius: 62,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   welcomeTitle: {
-    fontFamily: 'BebasNeue',
+    fontFamily: "BebasNeue",
     fontSize: 48,
     letterSpacing: 2,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 16,
   },
   welcomeSubtitle: {
-    fontFamily: 'DMSans-Regular',
+    fontFamily: "DMSans-Regular",
     fontSize: 16,
     color: Colors.textSecondary,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 26,
     maxWidth: 300,
   },
   welcomeFooter: {
     paddingHorizontal: 24,
-    alignItems: 'center',
+    alignItems: "center",
     gap: 8,
   },
   paginator: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     height: 20,
     marginBottom: 16,
     gap: 6,
@@ -750,26 +905,26 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   ctaBtn: {
-    width: '100%',
+    width: "100%",
     height: 58,
     borderRadius: 18,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     gap: 10,
   },
   ctaBtnText: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 15,
     letterSpacing: 1.5,
-    color: '#FFF',
+    color: "#FFF",
   },
   skipBtn: {
     paddingVertical: 10,
     paddingHorizontal: 20,
   },
   skipText: {
-    fontFamily: 'DMSans-Medium',
+    fontFamily: "DMSans-Medium",
     fontSize: 14,
     color: Colors.textTertiary,
   },
@@ -780,8 +935,8 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
   backBtn: {
@@ -789,12 +944,12 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 12,
     backgroundColor: Colors.elevated,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   segmentRow: {
     flex: 1,
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 5,
   },
   segmentTrack: {
@@ -802,23 +957,23 @@ const styles = StyleSheet.create({
     height: 4,
     backgroundColor: Colors.elevated,
     borderRadius: 2,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   segmentFill: {
-    height: '100%',
+    height: "100%",
     backgroundColor: Colors.primary,
     borderRadius: 2,
   },
   stepBadge: {
-    fontFamily: 'BebasNeue',
+    fontFamily: "BebasNeue",
     fontSize: 22,
     color: Colors.primary,
     letterSpacing: 1,
     minWidth: 40,
-    textAlign: 'right',
+    textAlign: "right",
   },
   stepBadgeOf: {
-    fontFamily: 'DMSans-Regular',
+    fontFamily: "DMSans-Regular",
     fontSize: 14,
     color: Colors.textTertiary,
   },
@@ -828,7 +983,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   centeredStep: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   stepIconCircle: {
     width: 88,
@@ -837,41 +992,41 @@ const styles = StyleSheet.create({
     backgroundColor: `${Colors.primary}12`,
     borderWidth: 1.5,
     borderColor: `${Colors.primary}25`,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 28,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   stepIconCyan: {
     backgroundColor: `${Colors.accentCyan}12`,
     borderColor: `${Colors.accentCyan}25`,
   },
   stepTitle: {
-    fontFamily: 'BebasNeue',
+    fontFamily: "BebasNeue",
     fontSize: 36,
     color: Colors.textPrimary,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 10,
     letterSpacing: 0.5,
   },
   stepSubtitle: {
-    fontFamily: 'DMSans-Regular',
+    fontFamily: "DMSans-Regular",
     fontSize: 15,
     color: Colors.textSecondary,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 23,
     marginBottom: 36,
     maxWidth: 300,
   },
   nameInput: {
-    width: '100%',
+    width: "100%",
     height: 64,
     backgroundColor: Colors.elevated,
     borderRadius: 16,
     paddingHorizontal: 20,
     color: Colors.textPrimary,
     fontSize: 20,
-    fontFamily: 'DMSans-Medium',
+    fontFamily: "DMSans-Medium",
     borderWidth: 1.5,
     borderColor: Colors.border,
   },
@@ -884,18 +1039,18 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   fieldGroup: {
-    width: '100%',
+    width: "100%",
     marginBottom: 20,
   },
   fieldLabel: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 10,
     color: Colors.textTertiary,
     letterSpacing: 1.2,
     marginBottom: 10,
   },
   unitToggle: {
-    flexDirection: 'row',
+    flexDirection: "row",
     backgroundColor: Colors.elevated,
     borderRadius: 14,
     padding: 4,
@@ -903,10 +1058,10 @@ const styles = StyleSheet.create({
   },
   unitBtn: {
     flex: 1,
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: 10,
   },
   unitBtnActive: {
@@ -915,7 +1070,7 @@ const styles = StyleSheet.create({
     borderColor: `${Colors.primary}40`,
   },
   unitBtnText: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 11,
     letterSpacing: 0.5,
     color: Colors.textTertiary,
@@ -924,23 +1079,23 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
   inputRow: {
-    flexDirection: 'row',
-    width: '100%',
+    flexDirection: "row",
+    width: "100%",
     gap: 14,
     marginBottom: 8,
   },
   measureInput: {
-    width: '100%',
+    width: "100%",
     height: 60,
     backgroundColor: Colors.elevated,
     borderRadius: 14,
     paddingHorizontal: 16,
     color: Colors.textPrimary,
     fontSize: 22,
-    fontFamily: 'BebasNeue',
+    fontFamily: "BebasNeue",
     borderWidth: 1.5,
     borderColor: Colors.border,
-    textAlign: 'center',
+    textAlign: "center",
     letterSpacing: 1,
   },
   formFooter: {
@@ -949,28 +1104,32 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   skipLink: {
-    alignSelf: 'center',
+    alignSelf: "center",
     paddingVertical: 6,
     paddingHorizontal: 12,
   },
   skipLinkText: {
-    fontFamily: 'DMSans-Medium',
+    fontFamily: "DMSans-Medium",
     fontSize: 13,
     color: Colors.textTertiary,
   },
   continueBtn: {
-    height: 58,
+    width: "100%",
     borderRadius: 18,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
+    overflow: "hidden",
+    height: 58,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 10,
   },
   continueBtnText: {
-    fontFamily: 'DMSans-Bold',
-    fontSize: 15,
+    fontFamily: "DMSans-Bold",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 20,
     letterSpacing: 1.5,
-    color: '#FFF',
+    color: "#FFF",
   },
   continueBtnTextDisabled: {
     color: Colors.textTertiary,
@@ -978,25 +1137,25 @@ const styles = StyleSheet.create({
 
   // ─── Routine preview ──────────────────────────────────────────────────────
   previewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     marginBottom: 8,
   },
   previewHeaderCenter: {
-    alignItems: 'center',
+    alignItems: "center",
     gap: 4,
   },
   previewHeaderTitle: {
-    fontFamily: 'BebasNeue',
+    fontFamily: "BebasNeue",
     fontSize: 22,
     letterSpacing: 2,
     color: Colors.textPrimary,
   },
   aiBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
     backgroundColor: `${Colors.secondaryBright}15`,
     borderWidth: 1,
@@ -1006,7 +1165,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   aiBadgeText: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 9,
     color: Colors.secondaryBright,
     letterSpacing: 1,
@@ -1018,9 +1177,9 @@ const styles = StyleSheet.create({
   confirmBtn: {
     height: 58,
     borderRadius: 18,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     gap: 10,
     shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 6 },
@@ -1029,15 +1188,15 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   confirmBtnText: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 15,
     letterSpacing: 1.5,
-    color: '#FFF',
+    color: "#FFF",
   },
   generatingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     gap: 16,
     paddingHorizontal: 32,
   },
@@ -1048,22 +1207,22 @@ const styles = StyleSheet.create({
     backgroundColor: `${Colors.primary}15`,
     borderWidth: 1,
     borderColor: `${Colors.primary}30`,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 8,
   },
   generatingTitle: {
-    fontFamily: 'BebasNeue',
+    fontFamily: "BebasNeue",
     fontSize: 28,
     color: Colors.textPrimary,
     letterSpacing: 1,
-    textAlign: 'center',
+    textAlign: "center",
   },
   generatingText: {
-    fontFamily: 'DMSans-Regular',
+    fontFamily: "DMSans-Regular",
     fontSize: 15,
     color: Colors.textSecondary,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 22,
   },
 });

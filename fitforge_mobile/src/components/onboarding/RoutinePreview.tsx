@@ -1,9 +1,9 @@
 // src/components/onboarding/RoutinePreview.tsx
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Colors } from '../../theme/colors';
-import type { GeneratedProgram } from '../../stores/useOnboardingStore';
+import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { Colors } from "../../theme/colors";
+import type { GeneratedProgram } from "../../stores/useOnboardingStore";
 
 interface RoutinePreviewProps {
   program: GeneratedProgram;
@@ -12,13 +12,13 @@ interface RoutinePreviewProps {
   onBack: () => void;
 }
 
-const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const DAY_LABELS = ["Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom"];
 
 const SPLIT_LABELS: Record<string, string> = {
-  FULL_BODY: 'Full Body',
-  UPPER_LOWER: 'Upper / Lower',
-  PUSH_PULL_LEGS: 'Push Pull Legs',
-  BROSPLIT: 'Bro Split',
+  FULL_BODY: "Full Body",
+  UPPER_LOWER: "Upper / Lower",
+  PUSH_PULL_LEGS: "Push Pull Legs",
+  BROSPLIT: "Bro Split",
 };
 
 export function RoutinePreview({ program }: RoutinePreviewProps) {
@@ -29,7 +29,9 @@ export function RoutinePreview({ program }: RoutinePreviewProps) {
     return secs === 0 ? `${mins}m` : `${mins}m ${secs}s`;
   };
 
-  const splitLabel = SPLIT_LABELS[program.program.split] ?? program.program.split.replace(/_/g, ' ');
+  const splitLabel =
+    SPLIT_LABELS[program.program.split] ??
+    program.program.split.replace(/_/g, " ");
 
   return (
     <ScrollView
@@ -41,25 +43,32 @@ export function RoutinePreview({ program }: RoutinePreviewProps) {
       {/* ── Program header ── */}
       <View style={styles.programHeader}>
         <View style={styles.programIconWrap}>
-          <LinearGradient
-            colors={[`${Colors.primary}30`, `${Colors.primary}08`]}
-            style={StyleSheet.absoluteFill}
-            borderRadius={44}
-          />
+          <View style={StyleSheet.absoluteFillObject}>
+            <LinearGradient
+              colors={[`${Colors.primary}30`, `${Colors.primary}08`]}
+              style={StyleSheet.absoluteFillObject}
+            />
+          </View>
           <Ionicons name="calendar-outline" size={32} color={Colors.primary} />
         </View>
-        <Text style={styles.programName}>{program.program.name}</Text>
+        <Text style={styles.programName}>
+          {program.program.name || "Programa de entrenamiento"}
+        </Text>
 
         {/* Badges row */}
         <View style={styles.badgesRow}>
           <View style={styles.badge}>
             <Ionicons name="time-outline" size={13} color={Colors.primary} />
             <Text style={styles.badgeText}>
-              {program.program.daysPerWeek} days/week
+              {program.program.daysPerWeek} días/semana
             </Text>
           </View>
           <View style={styles.badge}>
-            <Ionicons name="layers-outline" size={13} color={Colors.secondaryBright} />
+            <Ionicons
+              name="layers-outline"
+              size={13}
+              color={Colors.secondaryBright}
+            />
             <Text style={[styles.badgeText, { color: Colors.secondaryBright }]}>
               {splitLabel}
             </Text>
@@ -77,13 +86,15 @@ export function RoutinePreview({ program }: RoutinePreviewProps) {
           </Text>
           <View style={styles.configDivider} />
           <View style={styles.rirBadge}>
-            <Text style={styles.rirText}>RIR {program.config.rir.min}–{program.config.rir.max}</Text>
+            <Text style={styles.rirText}>
+              RIR {program.config.rir.min}–{program.config.rir.max}
+            </Text>
           </View>
         </View>
       </View>
 
       {/* ── Routine cards ── */}
-      <Text style={styles.sectionLabel}>YOUR TRAINING DAYS</Text>
+      <Text style={styles.sectionLabel}>TUS DÍAS DE ENTRENAMIENTO</Text>
 
       {program.routines.map((routine, routineIdx) => (
         <View key={routine.id} style={styles.routineCard}>
@@ -101,7 +112,9 @@ export function RoutinePreview({ program }: RoutinePreviewProps) {
               {routine.name}
             </Text>
             <View style={styles.exerciseCountBadge}>
-              <Text style={styles.exerciseCountText}>{routine.items.length}</Text>
+              <Text style={styles.exerciseCountText}>
+                {routine.items.length}
+              </Text>
             </View>
           </View>
 
@@ -122,9 +135,15 @@ export function RoutinePreview({ program }: RoutinePreviewProps) {
             ))}
             {routine.items.length > 5 && (
               <View style={styles.moreRow}>
-                <Ionicons name="ellipsis-horizontal" size={13} color={Colors.textTertiary} />
+                <Ionicons
+                  name="ellipsis-horizontal"
+                  size={13}
+                  color={Colors.textTertiary}
+                />
                 <Text style={styles.moreText}>
-                  {' '}{routine.items.length - 5} more exercise{routine.items.length - 5 === 1 ? '' : 's'}
+                  {" "}
+                  {routine.items.length - 5} más ejercicios
+                  {routine.items.length - 5 === 1 ? "" : "s"}
                 </Text>
               </View>
             )}
@@ -134,9 +153,13 @@ export function RoutinePreview({ program }: RoutinePreviewProps) {
 
       {/* ── Footer note ── */}
       <View style={styles.footer}>
-        <Ionicons name="shield-checkmark-outline" size={14} color={Colors.textTertiary} />
+        <Ionicons
+          name="shield-checkmark-outline"
+          size={14}
+          color={Colors.textTertiary}
+        />
         <Text style={styles.footerText}>
-          Exercises chosen for safe progression and muscle balance
+          Ejercicios elegidos para una progresión segura y equilibrio muscular
         </Text>
       </View>
     </ScrollView>
@@ -152,7 +175,7 @@ const styles = StyleSheet.create({
 
   // Program header
   programHeader: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 24,
   },
   programIconWrap: {
@@ -161,27 +184,27 @@ const styles = StyleSheet.create({
     borderRadius: 44,
     borderWidth: 1.5,
     borderColor: `${Colors.primary}25`,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
     marginBottom: 16,
   },
   programName: {
-    fontFamily: 'BebasNeue',
+    fontFamily: "BebasNeue",
     fontSize: 32,
     color: Colors.textPrimary,
     letterSpacing: 1.5,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 12,
   },
   badgesRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 10,
     marginBottom: 14,
   },
   badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 5,
     backgroundColor: `${Colors.primary}12`,
     borderWidth: 1,
@@ -191,14 +214,14 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   badgeText: {
-    fontFamily: 'DMSans-SemiBold',
+    fontFamily: "DMSans-SemiBold",
     fontSize: 12,
     color: Colors.primary,
     letterSpacing: 0.3,
   },
   configPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: Colors.elevated,
     borderWidth: 1,
     borderColor: Colors.border,
@@ -208,7 +231,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   configText: {
-    fontFamily: 'DMSans-Regular',
+    fontFamily: "DMSans-Regular",
     fontSize: 13,
     color: Colors.textSecondary,
   },
@@ -224,15 +247,15 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   rirText: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 11,
-    color: '#FFF',
+    color: "#FFF",
     letterSpacing: 0.5,
   },
 
   // Section label
   sectionLabel: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 10,
     letterSpacing: 2,
     color: Colors.textTertiary,
@@ -248,10 +271,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 0.5,
     borderColor: Colors.border,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   cardAccent: {
-    position: 'absolute',
+    position: "absolute",
     left: 0,
     top: 0,
     bottom: 0,
@@ -261,8 +284,8 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 18,
   },
   cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 12,
     gap: 10,
   },
@@ -275,13 +298,13 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   dayBadgeText: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 11,
     color: Colors.primary,
     letterSpacing: 0.5,
   },
   routineName: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 15,
     color: Colors.textPrimary,
     flex: 1,
@@ -293,11 +316,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   exerciseCountText: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 11,
     color: Colors.textSecondary,
   },
@@ -310,8 +333,8 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   exerciseRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
   },
   exerciseIndex: {
@@ -321,52 +344,52 @@ const styles = StyleSheet.create({
     backgroundColor: `${Colors.primary}15`,
     borderWidth: 1,
     borderColor: `${Colors.primary}25`,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   exerciseIndexText: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 10,
     color: Colors.primary,
   },
   exerciseName: {
-    fontFamily: 'DMSans-Regular',
+    fontFamily: "DMSans-Regular",
     fontSize: 13,
     color: Colors.textPrimary,
     flex: 1,
   },
   exerciseSets: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 13,
     color: Colors.textTertiary,
     letterSpacing: 0.5,
   },
   moreRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingLeft: 2,
     paddingTop: 2,
   },
   moreText: {
-    fontFamily: 'DMSans-Regular',
+    fontFamily: "DMSans-Regular",
     fontSize: 12,
     color: Colors.textTertiary,
   },
 
   // Footer
   footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 6,
     marginTop: 16,
     paddingHorizontal: 16,
   },
   footerText: {
-    fontFamily: 'DMSans-Regular',
+    fontFamily: "DMSans-Regular",
     fontSize: 12,
     color: Colors.textTertiary,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 18,
     flex: 1,
   },
