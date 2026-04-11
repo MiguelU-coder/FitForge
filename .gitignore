@@ -2,6 +2,8 @@
 .vscode/
 .idea/
 .claude/
+skills/
+.windsurf/
 .DS_Store
 *.suo
 *.ntvs*
