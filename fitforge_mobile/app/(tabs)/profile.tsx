@@ -182,11 +182,11 @@ export default function ProfileScreen() {
       <View style={styles.settingsCard}>
         <SettingsRow
           icon="scale-outline"
-          label="Weight Unit"
+          label="Unidad de peso"
           value={user?.weightUnit?.toUpperCase() ?? "KG"}
           onPress={() =>
             showSelectionDialog(
-              "Weight Unit",
+              "Unidad de peso",
               ["kg", "lbs"],
               user?.weightUnit ?? "kg",
               (val) => updateProfile({ weightUnit: val }),
@@ -195,11 +195,11 @@ export default function ProfileScreen() {
         />
         <SettingsRow
           icon="resize-outline"
-          label="Height Unit"
+          label="Unidad de altura"
           value={user?.heightUnit?.toUpperCase() ?? "CM"}
           onPress={() =>
             showSelectionDialog(
-              "Height Unit",
+              "Unidad de altura",
               ["cm", "in"],
               user?.heightUnit ?? "cm",
               (val) => updateProfile({ heightUnit: val }),
@@ -208,11 +208,11 @@ export default function ProfileScreen() {
         />
         <SettingsRow
           icon="timer-outline"
-          label="Default Rest"
+          label="Descanso por defecto"
           value={`${user?.defaultRestSeconds ?? 90}s`}
           onPress={() =>
             showSelectionDialog(
-              "Default Rest",
+              "Descanso por defecto",
               ["30", "60", "90", "120", "180", "240"],
               `${user?.defaultRestSeconds ?? 90}`,
               (val) => updateProfile({ defaultRestSeconds: parseInt(val, 10) }),
@@ -229,12 +229,12 @@ export default function ProfileScreen() {
       <View style={styles.settingsCard}>
         <SettingsRow
           icon="person-outline"
-          label="Edit Profile"
+          label="Editar perfil"
           onPress={() => router.push("/profile/edit")}
         />
         <SettingsRow
           icon="lock-closed-outline"
-          label="Change Password"
+          label="Cambiar contraseña"
           onPress={() => {}}
           isLast
         />
@@ -248,8 +248,8 @@ export default function ProfileScreen() {
       <View style={styles.settingsCard}>
         <SettingsRow
           icon="information-circle-outline"
-          label="Version"
-          value="1.0.0"
+          label="Versión"
+          value="2.0.1"
           isLast
         />
       </View>

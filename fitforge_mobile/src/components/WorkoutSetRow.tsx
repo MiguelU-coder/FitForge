@@ -80,18 +80,26 @@ export default function WorkoutSetRow({
             placeholderTextColor={Colors.textTertiary}
             editable={!isCompleted}
           />
-          {onOpenCalculator && !isCompleted && (
-            <Pressable
-                style={styles.calcTrigger}
-                onPress={onOpenCalculator}
-                hitSlop={10}
-                accessibilityRole="button"
-                accessibilityLabel="Abrir calculadora de discos"
-            >
-                <Ionicons name="calculator-outline" size={12} color={Colors.textTertiary} />
-            </Pressable>
-          )}
         </View>
+
+        {/* Plate Calculator Button */}
+        {onOpenCalculator && !isCompleted ? (
+          <Pressable
+            style={({ pressed }) => [
+              styles.calcBtn,
+              pressed && styles.calcBtnPressed,
+            ]}
+            onPress={onOpenCalculator}
+            hitSlop={4}
+            accessibilityRole="button"
+            accessibilityLabel="Abrir calculadora de discos"
+          >
+            <Ionicons name="barbell-outline" size={16} color={Colors.primary} />
+          </Pressable>
+        ) : (
+          /* placeholder to preserve layout when completed */
+          <View style={styles.calcBtnPlaceholder} />
+        )}
 
         {/* Reps Input */}
         <View style={styles.inputWrap}>
@@ -174,8 +182,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   setNumberBox: {
-    width: 28,
-    height: 32,
+    width: 24,
+    height: 28,
     borderRadius: 6,
     borderWidth: 1,
     borderColor: `${Colors.border}80`,
@@ -196,17 +204,17 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
   inputWrap: {
-    width: 44,
+    width: 38,
   },
   input: {
-    height: 38,
+    height: 28,
     backgroundColor: '#1E1E1E', // Dark carbon input
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#2A2A2A',
     color: Colors.textPrimary,
     fontFamily: 'DMSans-Bold',
-    fontSize: 16,
+    fontSize: 14,
     textAlign: 'center',
   },
   inputCompleted: {
@@ -238,7 +246,7 @@ const styles = StyleSheet.create({
     color: Colors.textTertiary,
   },
   checkWrap: {
-    width: 44,
+    width: 38,
     alignItems: 'flex-end',
   },
   checkBtn: {
@@ -271,15 +279,21 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 10,
     borderBottomRightRadius: 10,
   },
-  calcTrigger: {
-    position: 'absolute',
-    right: 2,
-    bottom: 2,
-    width: 20,
-    height: 20,
+  calcBtn: {
+    width: 38,
+    height: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#2A2A2A',
-    borderRadius: 4,
+    backgroundColor: `${Colors.primary}15`,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: `${Colors.primary}40`,
+  },
+  calcBtnPressed: {
+    backgroundColor: `${Colors.primary}30`,
+    borderColor: Colors.primary,
+  },
+  calcBtnPlaceholder: {
+    width: 38,
   }
 });

@@ -385,7 +385,7 @@ export default function HomeScreen() {
               </LinearGradient>
               <View style={styles.streakTextCol}>
                 <Text style={styles.streakNumber}>{streak}</Text>
-                <Text style={styles.streakLabel}>Day streak</Text>
+                <Text style={styles.streakLabel}>Racha diaria</Text>
               </View>
             </View>
           </View>
