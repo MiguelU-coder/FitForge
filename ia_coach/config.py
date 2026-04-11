@@ -23,9 +23,8 @@ class Settings(BaseSettings):
     # Límite: 1.5M tokens/mes gratis con Gemini 1.5 Flash
     gemini_api_key: str = ""
 
-    # ExerciseDB via RapidAPI
-    exercise_db_api_key: str = ""
-    exercise_db_host: str = "exercisedb.p.rapidapi.com"
+    # Backend (Prisma con ejercicios)
+    backend_url: str = "http://localhost:3000"
 
     # Cache TTL
     cache_ttl_coach: int = 60         # Coach feedback: 60s (muy dinámico)
