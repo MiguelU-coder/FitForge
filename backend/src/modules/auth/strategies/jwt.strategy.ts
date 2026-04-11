@@ -191,8 +191,15 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
                 `JIT provisioning conflict: User recreated in Supabase with new sub ${payload.sub} for email ${email}. Deleting stale user ${existingByEmail.id}`,
               );
 
-              // Delete old user (Cascade should clean up linked data)
-              await this.prisma.user.delete({ where: { id: existingByEmail.id } });
+              try {
+                // Soft delete: deactivate old user instead of hard delete (avoids FK issues)
+                await this.prisma.user.update({
+                  where: { id: existingByEmail.id },
+                  data: { isActive: false },
+                });
+              } catch (softDeleteError) {
+                console.warn('Could not deactivate stale user:', softDeleteError);
+              }
 
               // Retry creation with new ID
               user = await this.prisma.user.create({
