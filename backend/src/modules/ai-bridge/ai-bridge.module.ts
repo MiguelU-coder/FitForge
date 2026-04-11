@@ -4,6 +4,7 @@ import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
 import { AiBridgeService } from './ai-bridge.service';
 import { AiBridgeController } from './ai-bridge.controller';
+import { ExerciseSelectionService } from '../routines/services/exercise-selection.service';
 
 @Module({
   imports: [
@@ -14,7 +15,7 @@ import { AiBridgeController } from './ai-bridge.controller';
     ConfigModule,
   ],
   controllers: [AiBridgeController],
-  providers: [AiBridgeService],
+  providers: [AiBridgeService, ExerciseSelectionService],
   exports: [AiBridgeService],
 })
 export class AiBridgeModule {}

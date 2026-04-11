@@ -17,6 +17,17 @@ import {
   SessionCoachAnalyzeRequestDto,
   CoachRoutineRequestDto,
 } from './dto/ai-request.dto';
+import {
+  LEVEL_SPLIT_MAP,
+  getPhaseForWeek,
+  TrainingLevel,
+  SplitConfig,
+  DayConfig,
+} from '../routines/config/training.config';
+import {
+  ExerciseSelectionService,
+  ExerciseWithMeta,
+} from '../routines/services/exercise-selection.service';
 
 @Injectable()
 export class AiBridgeService {
@@ -30,6 +41,7 @@ export class AiBridgeService {
     private readonly http: HttpService,
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly exerciseSelectionService: ExerciseSelectionService,
   ) {
     this.aiBaseUrl = config.get<string>('AI_SERVICE_URL', 'http://localhost:8000');
     this.aiCoachUrl = config.get<string>('AI_COACH_URL', 'http://localhost:8001');
@@ -110,53 +122,74 @@ export class AiBridgeService {
    * Generate and save a personalized workout routine based on user profile.
    * Called from onboarding flow when user taps "Generate Plan".
    *
-   * Strategy:
-   * 1. Try AI Coach service first (if available)
-   * 2. Fall back to local rule-based generation if AI fails
+   * Uses slot-based generation via LEVEL_SPLIT_MAP + ExerciseSelectionService:
+   * - Each level maps to a scientifically designed SplitConfig
+   * - Each day slot defines movement pattern, muscle target, sets, reps, rest
+   * - Exercises are selected by strict muscle match (no name guessing)
    */
   async generateAndSaveRoutine(
     userId: string,
     dto: CoachRoutineRequestDto,
     authToken?: string,
   ): Promise<any> {
-    this.logger.log(`Generating routine for user ${userId} with goal ${dto.goal}`);
+    this.logger.log(`Generating routine for user ${userId}, level: ${dto.level}, goal: ${dto.goal}`);
 
-    // 1. Fetch available exercises from DB (load full catalogue for name-based lookup)
-    const dbExercises = await this.prisma.exercise.findMany({
+    // 1. Load exercises from DB
+    const dbExercisesRaw = await this.prisma.exercise.findMany({
       where: { isActive: true, isCustom: false },
       take: 500,
       orderBy: { name: 'asc' },
     });
 
-    if (dbExercises.length === 0) {
+    if (dbExercisesRaw.length === 0) {
       throw new HttpException(
         'No exercises available. Please seed the exercise database first.',
         HttpStatus.SERVICE_UNAVAILABLE,
       );
     }
 
-    const daysPerWeek = this.getDaysPerWeek(dto.level);
+    const exercises: ExerciseWithMeta[] = dbExercisesRaw.map((ex: any) => ({
+      id: ex.id,
+      name: ex.name,
+      primaryMuscles: this.parseArrayField(ex.primary_muscles),
+      secondaryMuscles: this.parseArrayField(ex.secondary_muscles),
+      isCompound: ex.is_compound ?? false,
+      movementPattern: ex.movement_pattern ?? null,
+      exerciseType: ex.exercise_type ?? null,
+      fatigueLevel: ex.fatigue_level ?? null,
+      equipment: ex.equipment ?? undefined,
+      isUnilateral: ex.is_unilateral ?? false,
+    }));
+
+    this.logger.log(`Loaded ${exercises.length} exercises from DB`);
+
+    // 2. Resolve split config from training level
+    const trainingLevel = this.mapToTrainingLevel(dto.level);
+    const splitConfig = LEVEL_SPLIT_MAP[trainingLevel];
+    const materializedDays = this.materializeDays(splitConfig);
+    const phase = getPhaseForWeek(1, trainingLevel);
     const routineName = this.getRoutineName(dto.goal);
-    let generatedBy = 'ai';
-    let sessions: any[] = [];
 
-    // 2. Bypass AI Coach and use local science-based generation
-    this.logger.log(`Generating local routine for ${daysPerWeek} days/week, goal: ${dto.goal}`);
-    generatedBy = 'local';
-    sessions = this.buildSessionsFromExercises(dbExercises, daysPerWeek, dto.goal, dto.level);
+    // 3. Build sessions slot by slot (strict muscle validation)
+    const sessions = materializedDays.map((day) => ({
+      day_label: day.dayName,
+      exercises: this.buildDayExercises(day, exercises, phase, trainingLevel),
+    }));
 
-    // Use actual number of sessions generated
-    const templateCount = sessions.length;
+    const totalExercises = sessions.reduce((sum, s) => sum + s.exercises.length, 0);
+    this.logger.log(
+      `Built ${sessions.length} sessions, ${totalExercises} exercises total: [${sessions.map((s) => s.exercises.length).join(', ')}]`,
+    );
 
-    // 3. Create Program → Routine → RoutineItems in a transaction
+    // 4. Create Program → Routine → RoutineItems in a transaction
     const result = await this.prisma.$transaction(async (tx) => {
       const program = await tx.program.create({
         data: {
           userId,
           name: routineName,
           goal: dto.goal ?? 'General Fitness',
-          weeks: 4,
-          daysPerWeek: templateCount,
+          weeks: trainingLevel === 'ADVANCED' ? 9 : 8,
+          daysPerWeek: sessions.length,
           isActive: true,
           startedAt: new Date(),
         },
@@ -166,612 +199,168 @@ export class AiBridgeService {
       for (let i = 0; i < sessions.length; i++) {
         const session = sessions[i];
 
+        const routineItemsData = session.exercises.map((ex, exIdx) => ({
+          exerciseId: ex.id,
+          sortOrder: exIdx,
+          targetSets: ex.sets,
+          targetReps: ex.reps,
+          targetRir: ex.rir,
+          restSeconds: ex.rest_seconds,
+          notes: ex.notes ?? null,
+        }));
+
         const routine = await tx.routine.create({
           data: {
             userId,
             programId: program.id,
-            name: session.day_label || session.name,
+            name: session.day_label,
             dayOfWeek: i + 1,
             sortOrder: i,
-            routineItems: {
-              create: session.exercises.map((ex: any, exIdx: number) => {
-                // Find exercise in DB by name or use first available
-                const match =
-                  dbExercises.find((dbEx) => dbEx.name.toLowerCase() === ex.name?.toLowerCase()) ||
-                  dbExercises[Math.floor(Math.random() * Math.min(dbExercises.length, 10))];
-
-                return {
-                  exerciseId: match.id,
-                  sortOrder: exIdx,
-                  targetSets: ex.sets || ex.targetSets || 3,
-                  targetReps: parseInt(ex.reps || ex.targetReps) || 10,
-                  targetRir: ex.rir || ex.targetRir || 2,
-                  restSeconds: ex.rest_seconds || ex.restSeconds || 90,
-                  notes: ex.notes,
-                };
-              }),
-            },
+            routineItems: { create: routineItemsData },
           },
           include: {
-            routineItems: {
-              include: { exercise: true },
-            },
+            routineItems: { include: { exercise: true } },
           },
         });
+
         createdRoutines.push(routine);
       }
 
       return { program, routines: createdRoutines };
     });
 
-    this.logger.log(
-      `Routine created: ${routineName} (${generatedBy}) with ${result.routines.length} templates`,
-    );
+    this.logger.log(`Saved program "${routineName}" with ${result.routines.length} routines`);
 
-    // Get template names for description
-    const templateNames = sessions.map((s) => s.day_label).join(', ');
+    // 5. Format response for Flutter
+    const routinesFormatted = result.routines.map((r) => ({
+      name: r.name,
+      exercises: r.routineItems.map((item) => ({
+        name: item.exercise?.name || 'UNKNOWN',
+        sets: item.targetSets,
+        targetSets: item.targetSets,
+        reps: item.targetReps,
+        targetReps: item.targetReps,
+      })),
+    }));
 
-    // 4. Format response for Flutter
     return {
       data: {
         routineId: result.routines[0]?.id ?? result.program.id,
         routineName,
         name: routineName,
-        description:
-          generatedBy === 'ai'
-            ? `An AI-powered personalized plan with ${templateCount} workout templates.`
-            : `A personalized ${daysPerWeek}-day workout plan with templates: ${templateNames}.`,
-        generatedBy,
+        description: `A personalized ${sessions.length}-day ${splitConfig.splitName} program.`,
+        generatedBy: 'local',
         schedule: {
-          daysPerWeek: templateCount,
+          daysPerWeek: sessions.length,
           sessionDuration: 60,
         },
-        routines: result.routines.slice(0, templateCount).map((r) => ({
-          name: r.name,
-          exercises: r.routineItems.map((item) => ({
-            name: item.exercise.name,
-            sets: item.targetSets,
-            targetSets: item.targetSets,
-            reps: item.targetReps,
-            targetReps: item.targetReps,
-          })),
-        })),
+        routines: routinesFormatted,
       },
     };
   }
 
   /**
-   * Build workout sessions from database exercises using science-based exercise selection.
-   * This is the fallback when AI Coach is unavailable.
-   *
-   * KEY IMPROVEMENTS:
-   * 1. STRICT muscle-based validation (no random fallback)
-   * 2. VolumeTracker ensures minimum weekly volume per muscle
-   * 3. 5-8 exercises per day (completeness validation)
-   * 4. Post-generation volume gap filling
-   *
-   * Exercise ordering follows hypertrophy science:
-   *   compound multi-joint first → isolation last
-   *   vertical pull before horizontal pull
-   *   large muscle group before small muscle group
+   * Build exercises for a single training day using slot-based strict selection.
+   * Each slot specifies movement pattern + muscle target + sets/reps/rest.
    */
-  private buildSessionsFromExercises(
-    exercises: any[],
-    daysPerWeek: number,
-    goal?: string,
-    level?: string,
-  ): {
-    day_label: string;
-    exercises: { name: string; sets: number; reps: number; rir: number; rest_seconds: number }[];
-  }[] {
-    const trainingLevel = this.normalizeLevel(level);
-    const dayPlans = this.getScienceBasedDayPlans(daysPerWeek, trainingLevel);
+  private buildDayExercises(
+    day: DayConfig,
+    exercises: ExerciseWithMeta[],
+    phase: ReturnType<typeof getPhaseForWeek>,
+    trainingLevel: TrainingLevel,
+  ): { id: string; name: string; sets: number; reps: number; rir: number; rest_seconds: number; notes?: string }[] {
+    const usedIds = new Set<string>();
+    const result: { id: string; name: string; sets: number; reps: number; rir: number; rest_seconds: number; notes?: string }[] = [];
 
-    // Index exercises by primary muscle for fast lookup
-    const exercisesByMuscle = new Map<string, any[]>();
-    for (const ex of exercises) {
-      for (const muscle of ex.primaryMuscles || []) {
-        if (!exercisesByMuscle.has(muscle)) {
-          exercisesByMuscle.set(muscle, []);
-        }
-        exercisesByMuscle.get(muscle)!.push(ex);
-      }
-      // Also index by secondary muscles for fallback
-      for (const muscle of ex.secondaryMuscles || []) {
-        if (!exercisesByMuscle.has(muscle)) {
-          exercisesByMuscle.set(muscle, []);
-        }
-        exercisesByMuscle.get(muscle)!.push(ex);
-      }
-    }
+    for (const slot of day.slots) {
+      const targetMuscle = slot.muscleTarget || this.getPrimaryMuscleForPattern(slot.movementPattern);
 
-    const sessions: {
-      day_label: string;
-      exercises: { name: string; sets: number; reps: number; rir: number; rest_seconds: number }[];
-    }[] = [];
-    const allUsedIds = new Set<string>();
+      const exerciseId = this.exerciseSelectionService.selectExerciseForSlot(
+        slot,
+        exercises,
+        usedIds,
+        targetMuscle,
+      );
 
-    // Process each day
-    for (let dayIndex = 0; dayIndex < dayPlans.length; dayIndex++) {
-      const day = dayPlans[dayIndex];
-      const usedIds = new Set<string>(allUsedIds);
-      const dayExercises: {
-        name: string;
-        sets: number;
-        reps: number;
-        rir: number;
-        rest_seconds: number;
-      }[] = [];
-
-      // Select exercises for each slot with STRICT muscle validation
-      for (let i = 0; i < day.exercises.length; i++) {
-        const exEntry = day.exercises[i];
-        const scheme = this.getScheme(goal, level, i);
-
-        // STRICT: Find exercise by muscle target (primary then secondary)
-        let match = this.findExerciseByMuscleStrict(
-          exEntry.muscle,
-          exercises,
-          usedIds,
-          exEntry.search,
-        );
-
-        if (match) {
-          usedIds.add(match.id);
-          allUsedIds.add(match.id);
-          dayExercises.push({
-            name: match.name,
-            sets: scheme.sets,
-            reps: scheme.reps,
-            rir: scheme.rir,
-            rest_seconds: scheme.rest,
-          });
-        } else {
-          this.logger.warn(
-            `No exercise found for muscle ${exEntry.muscle} (search: ${exEntry.search}) on day ${day.name}`,
-          );
-        }
+      if (!exerciseId) {
+        this.logger.warn(`No exercise found for slot (muscle: ${targetMuscle}, pattern: ${slot.movementPattern}) in ${day.dayName}`);
+        continue;
       }
 
-      // Ensure minimum 5 exercises per day (add isolations if needed)
-      while (dayExercises.length < 5) {
-        const fillerExercise = this.findFillerExercise(exercises, usedIds);
-        if (fillerExercise) {
-          usedIds.add(fillerExercise.id);
-          allUsedIds.add(fillerExercise.id);
-          const lastScheme = this.getScheme(goal, level, dayExercises.length);
-          dayExercises.push({
-            name: fillerExercise.name,
-            sets: lastScheme.sets,
-            reps: lastScheme.reps,
-            rir: lastScheme.rir,
-            rest_seconds: lastScheme.rest,
-          });
-        } else {
-          break; // No more exercises available
-        }
-      }
+      usedIds.add(exerciseId);
+      const ex = exercises.find((e) => e.id === exerciseId);
 
-      // Cap at 8 exercises maximum per day
-      sessions.push({
-        day_label: day.name,
-        exercises: dayExercises.slice(0, 8),
+      result.push({
+        id: exerciseId,
+        name: ex?.name || 'Unknown',
+        sets: slot.sets,
+        reps: slot.repsMin,
+        rir: phase.rirTarget[trainingLevel],
+        rest_seconds: slot.restSeconds,
+        notes: slot.notes,
       });
     }
 
-    // Validate weekly volume coverage and fill gaps
-    const volumeSummary = this.validateWeeklyVolume(sessions, exercisesByMuscle, allUsedIds);
-    if (volumeSummary.missingMuscles.length > 0) {
-      this.logger.warn(
-        `Weekly volume gaps detected: ${volumeSummary.missingMuscles.join(', ')}. Adding filler exercises.`,
-      );
-      this.fillVolumeGaps(sessions, volumeSummary.missingMuscles, exercisesByMuscle, allUsedIds, goal, level);
-    }
-
-    this.logger.log(
-      `Generated ${sessions.length} sessions with exercises: ${sessions.map((s) => s.exercises.length).join(', ')}`,
-    );
-
-    return sessions;
+    return result;
   }
 
   /**
-   * STRICT muscle-based exercise finding.
-   * Priority: 1) Name match, 2) Primary muscle match, 3) Secondary muscle match
-   * Returns null if no match found (NO random fallback).
+   * Expand AB-rotation splits into the actual training days for the week.
+   * e.g. A/B rotation with 3 days → [A, B, A]
    */
-  private findExerciseByMuscleStrict(
-    muscle: string,
-    exercises: any[],
-    usedIds: Set<string>,
-    nameSearch?: string,
-  ): any | null {
-    const available = exercises.filter((e) => !usedIds.has(e.id));
-
-    // 1. Name-based match (if search term provided)
-    if (nameSearch) {
-      const nameMatch = available.find((e) =>
-        e.name.toLowerCase().includes(nameSearch.toLowerCase()),
-      );
-      if (nameMatch) return nameMatch;
+  private materializeDays(splitConfig: SplitConfig): DayConfig[] {
+    const { days, daysPerWeek, rotationMode } = splitConfig;
+    if (rotationMode === 'AB' && daysPerWeek > days.length) {
+      return Array.from({ length: daysPerWeek }, (_, i) => days[i % days.length]);
     }
-
-    // 2. Primary muscle match
-    const primaryMatch = available.find((e) =>
-      (e.primaryMuscles || []).some((m: string) => m.toUpperCase() === muscle.toUpperCase()),
-    );
-    if (primaryMatch) return primaryMatch;
-
-    // 3. Secondary muscle match
-    const secondaryMatch = available.find((e) =>
-      (e.secondaryMuscles || []).some((m: string) => m.toUpperCase() === muscle.toUpperCase()),
-    );
-    if (secondaryMatch) return secondaryMatch;
-
-    return null; // NO random fallback
+    return days;
   }
 
   /**
-   * Find any unused isolation exercise as filler.
+   * Map raw onboarding level string to TrainingLevel enum.
    */
-  private findFillerExercise(exercises: any[], usedIds: Set<string>): any | null {
-    const available = exercises.filter(
-      (e) => !usedIds.has(e.id) && !e.isCompound,
-    );
-    if (available.length === 0) {
-      // Fallback to any unused exercise
-      const anyAvailable = exercises.find((e) => !usedIds.has(e.id));
-      return anyAvailable || null;
-    }
-    return available[Math.floor(Math.random() * available.length)];
+  private mapToTrainingLevel(level?: string): TrainingLevel {
+    if (level === 'BEGINNER') return 'BEGINNER';
+    if (level === 'IRREGULAR') return 'IRREGULAR';
+    if (level === 'ADVANCED') return 'ADVANCED';
+    return 'MEDIUM';
   }
 
   /**
-   * Validate weekly volume coverage across all sessions.
-   * Returns list of muscles that haven't reached minimum volume.
+   * Get primary muscle group for a movement pattern.
+   * Used as fallback when slot.muscleTarget is not specified.
    */
-  private validateWeeklyVolume(
-    sessions: { exercises: { name: string }[] }[],
-    exercisesByMuscle: Map<string, any[]>,
-    usedIds: Set<string>,
-  ): { missingMuscles: string[]; volumeByMuscle: Record<string, number> } {
-    // Count sets per muscle (assume 3 sets per exercise for estimation)
-    const volumeByMuscle: Record<string, number> = {};
-    const musclesTracked = new Set<string>();
+  private getPrimaryMuscleForPattern(pattern: string | null): string {
+    const muscleMap: Record<string, string> = {
+      SQUAT: 'QUADS',
+      HINGE: 'HAMSTRINGS',
+      PUSH_HORIZONTAL: 'CHEST',
+      PUSH_VERTICAL: 'SHOULDERS',
+      PULL_HORIZONTAL: 'BACK',
+      PULL_VERTICAL: 'LATS',
+      LUNGE: 'QUADS',
+      CORE: 'ABS',
+      CARRY: 'ABS',
+    };
+    return pattern ? (muscleMap[pattern] || 'CHEST') : 'CHEST';
+  }
 
-    for (const session of sessions) {
-      const dayMuscles = new Set<string>();
-      for (const ex of session.exercises) {
-        // Find exercise in index
-        for (const [muscle, exList] of exercisesByMuscle.entries()) {
-          const match = exList.find((e) => e.name === ex.name);
-          if (match && !dayMuscles.has(muscle)) {
-            volumeByMuscle[muscle] = (volumeByMuscle[muscle] || 0) + 3; // 3 sets estimate
-            dayMuscles.add(muscle);
-            musclesTracked.add(muscle);
-          }
-        }
+  /**
+   * Parse JSON string array or comma-separated string to uppercase string[].
+   * Handles all Prisma JSON field formats.
+   */
+  private parseArrayField(field: unknown): string[] {
+    if (!field) return [];
+    if (Array.isArray(field)) return field.map((s) => String(s).toUpperCase());
+    if (typeof field === 'string') {
+      try {
+        const parsed = JSON.parse(field);
+        if (Array.isArray(parsed)) return parsed.map((s) => String(s).toUpperCase());
+      } catch {
+        return field.split(/[,;]/).map((s) => s.trim().toUpperCase()).filter(Boolean);
       }
     }
-
-    // Check against minimums
-    const missingMuscles: string[] = [];
-    const minimums: Record<string, number> = {
-      CHEST: 10,
-      BACK: 10,
-      QUADS: 12,
-      SHOULDERS: 8,
-      BICEPS: 6,
-      TRICEPS: 6,
-      HAMSTRINGS: 8,
-      GLUTES: 8,
-      CALVES: 4,
-      ABS: 4,
-      LATS: 8,
-      TRAPS: 6,
-    };
-
-    for (const [muscle, minSets] of Object.entries(minimums)) {
-      const current = volumeByMuscle[muscle] || 0;
-      if (current < minSets) {
-        missingMuscles.push(muscle);
-      }
-    }
-
-    return { missingMuscles, volumeByMuscle };
-  }
-
-  /**
-   * Fill volume gaps by adding exercises to existing sessions.
-   */
-  private fillVolumeGaps(
-    sessions: {
-      day_label: string;
-      exercises: { name: string; sets: number; reps: number; rir: number; rest_seconds: number }[];
-    }[],
-    missingMuscles: string[],
-    exercisesByMuscle: Map<string, any[]>,
-    usedIds: Set<string>,
-    goal?: string,
-    level?: string,
-  ): void {
-    for (const muscle of missingMuscles) {
-      const available = exercisesByMuscle.get(muscle)?.filter((e) => !usedIds.has(e.id)) || [];
-      if (available.length === 0) continue;
-
-      // Add to a session that has < 8 exercises
-      for (const session of sessions) {
-        if (session.exercises.length >= 8) continue;
-
-        const filler = available.shift();
-        if (filler) {
-          const scheme = this.getScheme(goal, level, session.exercises.length);
-          session.exercises.push({
-            name: filler.name,
-            sets: scheme.sets,
-            reps: scheme.reps,
-            rir: scheme.rir,
-            rest_seconds: scheme.rest,
-          });
-          usedIds.add(filler.id);
-        }
-      }
-    }
-  }
-
-  /**
-   * Normalises the raw onboarding level string into a unified tier.
-   * Maps to the level keys used in getScienceBasedDayPlans.
-   */
-  private normalizeLevel(level?: string): 'beginner' | 'intermediate' | 'advanced' {
-    if (level === 'BEGINNER' || level === 'IRREGULAR') return 'beginner';
-    if (level === 'ADVANCED') return 'advanced';
-    return 'intermediate'; // MEDIUM or unknown
-  }
-
-  /**
-   * Science-based exercise selection per training day and experience level.
-   *
-   * Each entry has:
-   *   search  — substring to match against exercise.name (case-insensitive)
-   *   muscle  — primaryMuscles fallback key when DB name search misses
-   *
-   * Notes:
-   *   "High Cable Curl"       → Bayesian curl equivalent (constant tension, elbow behind body)
-   *   "Straight-Arm Pulldown" → cable pullover equivalent (lat isolation, long head)
-   *   "Hip Abduction Machine" → glute-medius / abductor focus
-   */
-  private getScienceBasedDayPlans(
-    daysPerWeek: number,
-    level: 'beginner' | 'intermediate' | 'advanced',
-  ): { name: string; exercises: { search: string; muscle: string }[] }[] {
-    // ── Push Day ────────────────────────────────────────────────────────────
-    const pushDay = {
-      beginner: [
-        { search: 'Machine Chest Press', muscle: 'CHEST' }, // stable, no balance demand
-        { search: 'Incline Machine Press', muscle: 'CHEST' }, // upper chest volume
-        { search: 'Pec Deck', muscle: 'CHEST' }, // safe chest isolation
-        { search: 'Machine Lateral Raise', muscle: 'SHOULDERS' }, // guided ROM
-        { search: 'Tricep Pushdown', muscle: 'TRICEPS' }, // cable, elbow-friendly
-      ],
-      intermediate: [
-        { search: 'Incline Dumbbell Press', muscle: 'CHEST' }, // free weight, more ROM
-        { search: 'Machine Chest Press', muscle: 'CHEST' }, // mechanical tension
-        { search: 'Pec Deck', muscle: 'CHEST' }, // peak contraction
-        { search: 'Lateral Raise', muscle: 'SHOULDERS' }, // dumbbell, proprioception
-        { search: 'Cable Overhead Extension', muscle: 'TRICEPS' }, // long head, constant tension
-      ],
-      advanced: [
-        { search: 'Incline Dumbbell Press', muscle: 'CHEST' },
-        { search: 'Machine Chest Press', muscle: 'CHEST' },
-        { search: 'Pec Deck', muscle: 'CHEST' },
-        { search: 'Cable Lateral Raise', muscle: 'SHOULDERS' }, // constant tension curve
-        { search: 'Cable Overhead Extension', muscle: 'TRICEPS' }, // long head emphasis
-        { search: 'Rope Pushdown', muscle: 'TRICEPS' }, // lateral head volume
-      ],
-    };
-
-    // ── Pull Day ────────────────────────────────────────────────────────────
-    const pullDay = {
-      beginner: [
-        { search: 'Lat Pulldown', muscle: 'LATS' }, // vertical pull, guided
-        { search: 'Seated Cable Row', muscle: 'BACK' }, // horizontal pull, cable
-        { search: 'Straight-Arm Pulldown', muscle: 'LATS' }, // cable pullover motion
-        { search: 'Cable Face Pull', muscle: 'SHOULDERS' }, // rear delt + shoulder health
-        { search: 'Cable Curl', muscle: 'BICEPS' }, // cable, constant tension
-      ],
-      intermediate: [
-        { search: 'Wide-Grip Lat Pulldown', muscle: 'LATS' }, // wider lat activation
-        { search: 'Barbell Row', muscle: 'BACK' }, // free weight compound
-        { search: 'Straight-Arm Pulldown', muscle: 'LATS' }, // lat isolation / pullover equiv
-        { search: 'Cable Face Pull', muscle: 'SHOULDERS' },
-        { search: 'High Cable Curl', muscle: 'BICEPS' }, // Bayesian curl equiv
-      ],
-      advanced: [
-        { search: 'Pull-Up', muscle: 'LATS' }, // bodyweight vertical
-        { search: 'Barbell Row', muscle: 'BACK' }, // horizontal compound
-        { search: 'Wide-Grip Lat Pulldown', muscle: 'LATS' }, // additional lat volume
-        { search: 'Straight-Arm Pulldown', muscle: 'LATS' }, // lat isolation
-        { search: 'Cable Face Pull', muscle: 'SHOULDERS' },
-        { search: 'High Cable Curl', muscle: 'BICEPS' }, // Bayesian curl equiv
-      ],
-    };
-
-    // ── Legs Day ────────────────────────────────────────────────────────────
-    const legsDay = {
-      beginner: [
-        { search: 'Leg Press', muscle: 'QUADS' }, // machine squat pattern
-        { search: 'Hack Squat Machine', muscle: 'QUADS' }, // guided squat ROM
-        { search: 'Leg Extension', muscle: 'QUADS' }, // quad isolation
-        { search: 'Seated Leg Curl', muscle: 'HAMSTRINGS' }, // hamstring isolation
-        { search: 'Hip Thrust Machine', muscle: 'GLUTES' }, // glute isolation, safe
-        { search: 'Standing Calf Raise', muscle: 'CALVES' },
-      ],
-      intermediate: [
-        { search: 'Hack Squat Machine', muscle: 'QUADS' }, // quad emphasis squat
-        { search: 'Leg Extension', muscle: 'QUADS' },
-        { search: 'Seated Leg Curl', muscle: 'HAMSTRINGS' },
-        { search: 'Hip Thrust', muscle: 'GLUTES' }, // barbell, higher load
-        { search: 'Hip Abduction Machine', muscle: 'GLUTES' }, // glute med / abductor
-        { search: 'Standing Calf Raise', muscle: 'CALVES' },
-      ],
-      advanced: [
-        { search: 'Barbell Squat', muscle: 'QUADS' }, // free weight compound
-        { search: 'Hack Squat Machine', muscle: 'QUADS' }, // additional quad volume
-        { search: 'Leg Extension', muscle: 'QUADS' },
-        { search: 'Seated Leg Curl', muscle: 'HAMSTRINGS' },
-        { search: 'Hip Thrust', muscle: 'GLUTES' },
-        { search: 'Hip Abduction Machine', muscle: 'GLUTES' },
-        { search: 'Standing Calf Raise', muscle: 'CALVES' },
-      ],
-    };
-
-    // ── Upper Day (4-day split) ─────────────────────────────────────────────
-    // Balanced push/pull — compound first, isolation after, arms last
-    const upperDay = {
-      beginner: [
-        { search: 'Machine Chest Press', muscle: 'CHEST' },
-        { search: 'Lat Pulldown', muscle: 'LATS' },
-        { search: 'Pec Deck', muscle: 'CHEST' },
-        { search: 'Seated Cable Row', muscle: 'BACK' },
-        { search: 'Machine Lateral Raise', muscle: 'SHOULDERS' },
-        { search: 'Tricep Pushdown', muscle: 'TRICEPS' },
-        { search: 'Cable Curl', muscle: 'BICEPS' },
-      ],
-      intermediate: [
-        { search: 'Incline Dumbbell Press', muscle: 'CHEST' },
-        { search: 'Barbell Row', muscle: 'BACK' },
-        { search: 'Pec Deck', muscle: 'CHEST' },
-        { search: 'Wide-Grip Lat Pulldown', muscle: 'LATS' },
-        { search: 'High Cable Curl', muscle: 'BICEPS' }, // Bayesian equiv
-        { search: 'Rope Pushdown', muscle: 'TRICEPS' },
-        { search: 'Lateral Raise', muscle: 'SHOULDERS' },
-      ],
-      advanced: [
-        { search: 'Incline Dumbbell Press', muscle: 'CHEST' },
-        { search: 'Barbell Row', muscle: 'BACK' },
-        { search: 'Pec Deck', muscle: 'CHEST' },
-        { search: 'Wide-Grip Lat Pulldown', muscle: 'LATS' },
-        { search: 'High Cable Curl', muscle: 'BICEPS' },
-        { search: 'Cable Overhead Extension', muscle: 'TRICEPS' },
-        { search: 'Cable Lateral Raise', muscle: 'SHOULDERS' },
-      ],
-    };
-
-    // ── Full Body A (2-day split) ────────────────────────────────────────────
-    const fullBodyA = {
-      beginner: [
-        { search: 'Leg Press', muscle: 'QUADS' },
-        { search: 'Machine Chest Press', muscle: 'CHEST' },
-        { search: 'Lat Pulldown', muscle: 'LATS' },
-        { search: 'Seated Overhead Press', muscle: 'SHOULDERS' },
-        { search: 'Seated Leg Curl', muscle: 'HAMSTRINGS' },
-      ],
-      intermediate: [
-        { search: 'Hack Squat Machine', muscle: 'QUADS' },
-        { search: 'Incline Dumbbell Press', muscle: 'CHEST' },
-        { search: 'Barbell Row', muscle: 'BACK' },
-        { search: 'Overhead Press', muscle: 'SHOULDERS' },
-        { search: 'Seated Leg Curl', muscle: 'HAMSTRINGS' },
-      ],
-      advanced: [
-        { search: 'Barbell Squat', muscle: 'QUADS' },
-        { search: 'Incline Dumbbell Press', muscle: 'CHEST' },
-        { search: 'Barbell Row', muscle: 'BACK' },
-        { search: 'Overhead Press', muscle: 'SHOULDERS' },
-        { search: 'Seated Leg Curl', muscle: 'HAMSTRINGS' },
-      ],
-    };
-
-    // ── Full Body B (2-day split) ────────────────────────────────────────────
-    const fullBodyB = {
-      beginner: [
-        { search: 'Hip Thrust Machine', muscle: 'GLUTES' },
-        { search: 'Machine Chest Press', muscle: 'CHEST' },
-        { search: 'Seated Cable Row', muscle: 'BACK' },
-        { search: 'Machine Lateral Raise', muscle: 'SHOULDERS' },
-        { search: 'Leg Extension', muscle: 'QUADS' },
-      ],
-      intermediate: [
-        { search: 'Hip Thrust', muscle: 'GLUTES' },
-        { search: 'Machine Chest Press', muscle: 'CHEST' },
-        { search: 'Wide-Grip Lat Pulldown', muscle: 'LATS' },
-        { search: 'Lateral Raise', muscle: 'SHOULDERS' },
-        { search: 'Leg Extension', muscle: 'QUADS' },
-      ],
-      advanced: [
-        { search: 'Hip Thrust', muscle: 'GLUTES' },
-        { search: 'Machine Chest Press', muscle: 'CHEST' },
-        { search: 'Wide-Grip Lat Pulldown', muscle: 'LATS' },
-        { search: 'Cable Lateral Raise', muscle: 'SHOULDERS' },
-        { search: 'Leg Extension', muscle: 'QUADS' },
-      ],
-    };
-
-    // ── Assemble per frequency ───────────────────────────────────────────────
-    switch (daysPerWeek) {
-      case 2:
-        return [
-          { name: 'Full Body A', exercises: fullBodyA[level] },
-          { name: 'Full Body B', exercises: fullBodyB[level] },
-        ];
-
-      case 3:
-        return [
-          { name: 'Push Day', exercises: pushDay[level] },
-          { name: 'Pull Day', exercises: pullDay[level] },
-          { name: 'Legs Day', exercises: legsDay[level] },
-        ];
-
-      case 4:
-        return [
-          { name: 'Push Day', exercises: pushDay[level] },
-          { name: 'Pull Day', exercises: pullDay[level] },
-          { name: 'Legs Day', exercises: legsDay[level] },
-          { name: 'Upper Day', exercises: upperDay[level] },
-        ];
-
-      case 5:
-      case 6:
-        return [
-          { name: 'Push Day', exercises: pushDay[level] },
-          { name: 'Pull Day', exercises: pullDay[level] },
-          { name: 'Legs Day', exercises: legsDay[level] },
-          { name: 'Upper Day', exercises: upperDay[level] },
-          { name: 'Legs Hypertrophy', exercises: legsDay[level] }, // second leg stimulus
-        ];
-
-      default:
-        return [
-          { name: 'Push Day', exercises: pushDay[level] },
-          { name: 'Pull Day', exercises: pullDay[level] },
-          { name: 'Legs Day', exercises: legsDay[level] },
-        ];
-    }
-  }
-
-  private calculateAge(dob: string): number {
-    const birthday = new Date(dob);
-    const ageDifMs = Date.now() - birthday.getTime();
-    const ageDate = new Date(ageDifMs);
-    return Math.abs(ageDate.getUTCFullYear() - 1970);
-  }
-
-  // ── Routine generation helpers ──────────────────────────────────────────────
-
-  private getDaysPerWeek(level?: string): number {
-    switch (level) {
-      case 'BEGINNER':
-        return 3;
-      case 'IRREGULAR':
-        return 2;
-      case 'MEDIUM':
-        return 4;
-      case 'ADVANCED':
-        return 5;
-      default:
-        return 3;
-    }
+    return [];
   }
 
   private getRoutineName(goal?: string): string {
@@ -786,76 +375,6 @@ export class AiBridgeService {
         return 'Muscle Hypertrophy Plan';
       default:
         return 'AI Generated Routine';
-    }
-  }
-
-  /**
-   * Returns training scheme based on scientific recommendations.
-   *
-   * STRENGTH (1-6 reps):
-   * - Lower reps, higher intensity
-   * - 4-6 sets per exercise for neural adaptation
-   * - RIR 1-2 (close to failure)
-   * - Longer rest (2-3 min) for ATP-PCr recovery
-   *
-   * HYPERTROPHY (6-12 reps):
-   * - Moderate reps with mechanical tension
-   * - 3-4 sets per exercise
-   * - RIR 2-3
-   * - 60-90s rest for metabolic stress
-   *
-   * BODY COMPOSITION (8-15 reps):
-   * - Higher reps for metabolic stress + calorie burn
-   * - 2-3 sets per exercise
-   * - RIR 3-4
-   * - Shorter rest for cardiovascular effect
-   *
-   * Volume adjustments by level:
-   * - Beginner: Lower volume, focus on motor learning
-   * - Intermediate: Moderate volume, growing适应性
-   * - Advanced: Higher volume, specific to goals
-   */
-  private getScheme(goal?: string, level?: string, index: number = 0) {
-    const isBeginner = level === 'BEGINNER';
-    const isIrregular = level === 'IRREGULAR';
-    const isAdvanced = level === 'ADVANCED';
-    const isNovice = isBeginner || isIrregular;
-
-    // First 3 exercises are "compounds", the rest are "isolations"
-    const isCompound = index < 3;
-
-    switch (goal) {
-      case 'GET_STRONGER':
-        if (isCompound) {
-          return isNovice
-            ? { sets: 3, reps: 8, rir: 3, rest: 120 }
-            : { sets: 3, reps: 6, rir: 1, rest: 180 };
-        } else {
-          return { sets: 2, reps: 10, rir: 2, rest: 90 };
-        }
-
-      case 'GAIN_MUSCLE_MASS':
-        if (isCompound) {
-          return isNovice
-            ? { sets: 3, reps: 10, rir: 3, rest: 90 }
-            : { sets: 3, reps: 8, rir: 2, rest: 90 };
-        } else {
-          return { sets: 2, reps: 12, rir: 2, rest: 60 };
-        }
-
-      case 'LOSE_WEIGHT':
-        if (isCompound) {
-          return { sets: 3, reps: 10, rir: 3, rest: 60 };
-        } else {
-          return { sets: 2, reps: 15, rir: 3, rest: 45 };
-        }
-
-      default: // KEEP_FIT
-        if (isCompound) {
-          return { sets: 3, reps: 10, rir: 2, rest: 90 };
-        } else {
-          return { sets: 2, reps: 12, rir: 2, rest: 60 };
-        }
     }
   }
 
