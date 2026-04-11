@@ -11,11 +11,11 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  TouchableOpacity,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
-import { Colors, Shadows, Gradients } from "../../src/theme/colors";
-import { Typography } from "../../src/theme/typography";
+import { Colors, Shadows } from "../../src/theme/colors";
 import { useAuthStore } from "../../src/stores/useAuthStore";
 import { useWorkoutStore } from "../../src/stores/useWorkoutStore";
 import { Ionicons } from "@expo/vector-icons";
@@ -24,13 +24,33 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
   const { user, logout } = useAuthStore();
-  const { activeSession, checkForActiveSession, startSession, history, fetchHistory, isLoading, error: storeError, clearError } =
-    useWorkoutStore();
+  const {
+    activeSession,
+    checkForActiveSession,
+    startSession,
+    history,
+    fetchHistory,
+    isLoading,
+    error: storeError,
+    clearError,
+    cancelSession,
+  } = useWorkoutStore();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [startError, setStartError] = useState("");
   const [sessionElapsed, setSessionElapsed] = useState(0);
-  const hasCheckedOnce = useRef(false);
+  const sessionLoadTime = useRef<number | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const isMounted = useRef(true);
+  const [sessionJustCancelled, setSessionJustCancelled] = useState(false);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   // Clear local error when store error changes
   useEffect(() => {
@@ -39,17 +59,26 @@ export default function HomeScreen() {
     }
   }, [storeError]);
 
-  // Check for active session when screen gains focus (handles app resume)
-  // Only call checkForActiveSession if we don't already have a local session
+  // Check for active session when screen gains focus
+  // Skip if we just cancelled the session to avoid race condition
   useFocusEffect(
     useCallback(() => {
-      if (!hasCheckedOnce.current || !useWorkoutStore.getState().activeSession) {
+      if (!isCancelling && !sessionJustCancelled) {
         checkForActiveSession();
+        fetchHistory();
       }
-      hasCheckedOnce.current = true;
-      fetchHistory();
-    }, [checkForActiveSession, fetchHistory]),
+    }, [checkForActiveSession, fetchHistory, isCancelling, sessionJustCancelled]),
   );
+
+  // Track when session is loaded to detect stale sessions
+  useEffect(() => {
+    if (activeSession?.id) {
+      sessionLoadTime.current = Date.now();
+      setIsCancelling(false);
+    } else {
+      sessionLoadTime.current = null;
+    }
+  }, [activeSession?.id]);
 
   // Live timer for active session
   useEffect(() => {
@@ -60,7 +89,9 @@ export default function HomeScreen() {
 
     const start = new Date(activeSession.startedAt).getTime();
     const updateElapsed = () => {
-      setSessionElapsed(Math.floor((Date.now() - start) / 1000));
+      if (isMounted.current) {
+        setSessionElapsed(Math.floor((Date.now() - start) / 1000));
+      }
     };
 
     updateElapsed();
@@ -95,7 +126,7 @@ export default function HomeScreen() {
     return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
   };
 
-  // ── Metric Calculations ──
+  // Metric Calculations
   const todayStats = useMemo(() => {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
@@ -148,25 +179,25 @@ export default function HomeScreen() {
   const streak = useMemo(() => {
     if (history.length === 0) return 0;
     let count = 0;
-    const check = new Date();
-    check.setHours(23, 59, 59, 999);
-    // Walk back day by day
+    const checkDate = new Date();
+    checkDate.setHours(23, 59, 59, 999);
+
     for (let i = 0; i < 365; i++) {
-      const dayStart = new Date(check);
+      const dayStart = new Date(checkDate);
       dayStart.setHours(0, 0, 0, 0);
       const hasSession = history.some((s) => {
         if (!s.finishedAt) return false;
         const d = new Date(s.finishedAt);
-        return d >= dayStart && d <= check;
+        return d >= dayStart && d <= checkDate;
       });
       if (!hasSession) break;
       count += 1;
-      check.setDate(check.getDate() - 1);
+      checkDate.setDate(checkDate.getDate() - 1);
     }
     return count;
   }, [history]);
 
-  const weeklyGoal = 5; // default target
+  const weeklyGoal = 5;
   const weekProgress = Math.min(weekStats.count / weeklyGoal, 1);
 
   const handleLogout = () => {
@@ -193,6 +224,52 @@ export default function HomeScreen() {
     );
   };
 
+  const handleDiscardSession = () => {
+    Alert.alert(
+      "Descartar sesión",
+      "¿Seguro que quieres descartar esta sesión activa? Se perderá el progreso no guardado.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Descartar",
+          style: "destructive",
+          onPress: async () => {
+            if (isCancelling) return; // Evitar múltiples cancelaciones
+
+            setIsCancelling(true);
+            // Flag para ignorar sesión del backend por unos segundos
+            setSessionJustCancelled(true);
+
+            try {
+              await cancelSession();
+              // Clear any error
+              setStartError("");
+              clearError?.();
+            } catch (error) {
+              console.error("Error discarding session:", error);
+              if (isMounted.current) {
+                setStartError("Error al descartar la sesión");
+              }
+            } finally {
+              if (isMounted.current) {
+                setIsCancelling(false);
+              }
+            }
+
+            // Clear the flag after 3 seconds to allow normal checks again
+            setTimeout(() => {
+              if (isMounted.current) {
+                setSessionJustCancelled(false);
+                // Re-check after delay to ensure backend is in sync
+                checkForActiveSession();
+              }
+            }, 3000);
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <LinearGradient
@@ -206,7 +283,7 @@ export default function HomeScreen() {
         contentContainerStyle={[styles.content]}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Hero Header ── */}
+        {/* Hero Header */}
         <View style={styles.heroHeader}>
           <View style={styles.heroLeft}>
             <View style={styles.datePill}>
@@ -224,39 +301,67 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
-        {/* ── Dynamic Main Card (Active Session or Quick Start) ── */}
-        {activeSession ? (
-          <Pressable onPress={() => router.push("/workout/active")}>
-            <LinearGradient
-              colors={["#18B97A1A", "#0F3D2240"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.activeCard}
-            >
-              <View style={styles.activeContent}>
-                <View style={styles.activeIconContainer}>
-                  <Ionicons
-                    name="play"
-                    size={20}
-                    color={Colors.primary}
-                    style={{ marginLeft: 2 }}
-                  />
-                </View>
-                <View style={{ flex: 1, marginLeft: 16 }}>
-                  <Text style={styles.activeTag}>EN PROGRESO</Text>
-                  <Text style={styles.activeTitle} numberOfLines={1}>
-                    {activeSession.name}
-                  </Text>
-                  <Text style={styles.activeTime}>
-                    {formatDuration(sessionElapsed)} transcurrido
-                  </Text>
-                </View>
-                <View style={styles.resumeBtn}>
-                  <Text style={styles.resumeBtnText}>Reanudar</Text>
-                </View>
+        {/* Dynamic Main Card */}
+        {isCancelling ? (
+          <View
+            style={[
+              styles.quickStartCard,
+              styles.quickStartCardDisabled,
+              { marginHorizontal: 16 },
+            ]}
+          >
+            <View style={styles.quickStartContent}>
+              <View style={styles.quickStartIconWrap}>
+                <ActivityIndicator size="small" color={Colors.primary} />
               </View>
-            </LinearGradient>
-          </Pressable>
+              <View style={{ flex: 1, marginLeft: 18 }}>
+                <Text style={styles.quickStartTitle}>Cancelando sesión...</Text>
+                <Text style={styles.quickStartSubtitle}>Por favor espera</Text>
+              </View>
+            </View>
+          </View>
+        ) : activeSession ? (
+          <View style={styles.activeSessionContainer}>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => router.push("/workout/active")}
+              style={styles.activeCardWrapper}
+            >
+              <LinearGradient
+                colors={["#18B97A1A", "#0F3D2240"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.activeCard}
+              >
+                <View style={styles.activeContent}>
+                  <View style={styles.activeIconContainer}>
+                    <Ionicons
+                      name="play"
+                      size={20}
+                      color={Colors.primary}
+                      style={{ marginLeft: 2 }}
+                    />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 16 }}>
+                    <Text style={styles.activeTag}>EN PROGRESO</Text>
+                    <Text style={styles.activeTitle} numberOfLines={1}>
+                      {activeSession.name}
+                    </Text>
+                    <Text style={styles.activeTime}>
+                      {formatDuration(sessionElapsed)} transcurrido
+                    </Text>
+                  </View>
+                  <View style={styles.resumeBtn}>
+                    <Text style={styles.resumeBtnText}>Reanudar</Text>
+                  </View>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+            <Pressable onPress={handleDiscardSession} style={styles.discardBtn}>
+              <Ionicons name="trash-outline" size={14} color={Colors.error} />
+              <Text style={styles.discardBtnText}>Descartar sesión</Text>
+            </Pressable>
+          </View>
         ) : (
           <Pressable
             disabled={isLoading}
@@ -276,7 +381,10 @@ export default function HomeScreen() {
               colors={["#0F3D22", "#18B97A59"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={[styles.quickStartCard, isLoading && styles.quickStartCardDisabled]}
+              style={[
+                styles.quickStartCard,
+                isLoading && styles.quickStartCardDisabled,
+              ]}
             >
               <View style={styles.quickStartContent}>
                 <View style={styles.quickStartIconWrap}>
@@ -308,7 +416,7 @@ export default function HomeScreen() {
           </Pressable>
         )}
 
-        {/* ── Start Error Banner ── */}
+        {/* Start Error Banner */}
         {startError ? (
           <View style={styles.startErrorBanner}>
             <View style={styles.errorContent}>
@@ -331,7 +439,7 @@ export default function HomeScreen() {
           </View>
         ) : null}
 
-        {/* ── Today's Training ── */}
+        {/* Today's Training */}
         {history.length === 0 && !activeSession ? (
           <View
             style={[
@@ -392,7 +500,7 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* ── This Week ── */}
+        {/* This Week */}
         <View style={styles.glassCard}>
           <View style={styles.cardHeaderRowSpace}>
             <Text style={styles.sectionLabel}>ESTA SEMANA</Text>
@@ -449,7 +557,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* ── Streak & PRs ── */}
+        {/* Streak & PRs */}
         <View style={styles.streakRow}>
           <View style={styles.streakCardWrapper}>
             <View style={[styles.glassCard, styles.streakCard]}>
@@ -491,7 +599,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  scrollView: { flex: 1 }, // ← Propiedad agregada
+  scrollView: { flex: 1 },
   content: { paddingBottom: 110 },
 
   // Hero
@@ -566,13 +674,31 @@ const styles = StyleSheet.create({
   },
 
   // Active Session Card
-  activeCard: {
+  activeSessionContainer: {
     marginHorizontal: 16,
+  },
+  activeCardWrapper: {
+    borderRadius: 20,
+  },
+  activeCard: {
     borderRadius: 20,
     borderWidth: 1,
     borderColor: `${Colors.primary}4D`,
     padding: 16,
     ...Shadows.card,
+  },
+  discardBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  discardBtnText: {
+    fontFamily: "DMSans-Medium",
+    fontSize: 12,
+    color: Colors.error,
   },
   activeContent: {
     flexDirection: "row",

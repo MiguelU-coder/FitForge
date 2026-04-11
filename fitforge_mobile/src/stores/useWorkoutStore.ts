@@ -61,7 +61,21 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await apiClient.get('/workouts/sessions/active');
-      const session = response.data ? (response.data as WorkoutSession) : null;
+      const sessionData = response.data;
+
+      // Map exerciseBlocks with exercise names from backend
+      const session: WorkoutSession | null = sessionData ? {
+        ...sessionData,
+        exerciseBlocks: sessionData.exerciseBlocks?.map((block: any) => ({
+          ...block,
+          exerciseName: block.exercise?.name || block.exerciseName || 'Exercise',
+          primaryMuscles: block.exercise?.primaryMuscles || [],
+          isUnilateral: block.exercise?.isUnilateral || false,
+          exerciseId: block.exerciseId || block.exercise?.id,
+          sets: block.sets || [],
+        })) || [],
+      } : null;
+
       set({ activeSession: session, isLoading: false });
 
       if (session?.exerciseBlocks?.length) {
@@ -86,7 +100,22 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
       if (routineId) body.routineId = routineId;
 
       const response = await apiClient.post('/workouts/sessions/start', body);
-      set({ activeSession: response.data, isLoading: false });
+      const sessionData = response.data;
+
+      // Map exerciseBlocks with exercise names from backend
+      const session: WorkoutSession = {
+        ...sessionData,
+        exerciseBlocks: sessionData.exerciseBlocks?.map((block: any) => ({
+          ...block,
+          exerciseName: block.exercise?.name || block.exerciseName || 'Exercise',
+          primaryMuscles: block.exercise?.primaryMuscles || [],
+          isUnilateral: block.exercise?.isUnilateral || false,
+          exerciseId: block.exerciseId || block.exercise?.id,
+          sets: block.sets || [],
+        })) || [],
+      };
+
+      set({ activeSession: session, isLoading: false });
     } catch (e: any) {
       const errMsg = e.response?.data?.message || e.message;
       set({ isLoading: false, error: errMsg });
@@ -103,12 +132,17 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
         sortOrder: session.exerciseBlocks.length,
         blockType: 'NORMAL',
       });
-      const newBlock = response.data as ExerciseBlock;
-      
-      // Ensure exerciseName is present even if API response is minimal
-      if (!newBlock.exerciseName && exerciseName) {
-        newBlock.exerciseName = exerciseName;
-      }
+      const blockData = response.data;
+
+      // Map exercise data from backend response
+      const newBlock: ExerciseBlock = {
+        ...blockData,
+        exerciseName: blockData.exercise?.name || blockData.exerciseName || exerciseName || 'Exercise',
+        primaryMuscles: blockData.exercise?.primaryMuscles || [],
+        isUnilateral: blockData.exercise?.isUnilateral || false,
+        exerciseId: blockData.exerciseId || blockData.exercise?.id || exerciseId,
+        sets: blockData.sets || [],
+      };
 
       set({
         activeSession: {
@@ -225,15 +259,26 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
 
   cancelSession: async () => {
     const session = get().activeSession;
-    // Always clear local state first so UI updates immediately
-    set({ activeSession: null, lastPerformances: {}, isLoading: false });
-    if (!session?.id) return;
+    if (!session?.id) {
+      // No active session to cancel, just clear any stale state
+      set({ activeSession: null, lastPerformances: {}, isLoading: false });
+      return;
+    }
+
+    set({ isLoading: true, error: null });
     try {
       await apiClient.delete(`/workouts/sessions/${session.id}`);
-      get().fetchHistory();
+      // Small delay to allow backend to process deletion
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      // Clear state after successful API call
+      set({ activeSession: null, lastPerformances: {}, isLoading: false });
+      await get().fetchHistory();
     } catch (e: any) {
-      // Session might already be deleted on backend — local state is already cleared
-      get().fetchHistory();
+      // Session might already be deleted on backend
+      // Still clear local state to ensure UI is consistent
+      set({ activeSession: null, lastPerformances: {}, isLoading: false });
+      await get().fetchHistory();
+      throw e; // Re-throw so caller can handle if needed
     }
   },
 

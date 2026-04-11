@@ -157,17 +157,21 @@ export default function ActiveSessionScreen() {
       rpe: rpe.toString(),
     };
 
-    // Navigate FIRST, then finish session in background
-    // This prevents the component from unmounting before navigation
-    router.replace({
-      pathname: "/workout/summary",
-      params: summaryData,
-    });
-
-    // Finish session after navigation (don't await to avoid blocking)
-    finishSession(rpe).catch(() => {
-      // Session will be cleaned up on next app start if this fails
-    });
+    try {
+      // Finish session first and wait for completion
+      await finishSession(rpe);
+      // Then navigate after successful finish
+      router.replace({
+        pathname: "/workout/summary",
+        params: summaryData,
+      });
+    } catch (e) {
+      // If finish fails, still navigate but show error
+      router.replace({
+        pathname: "/workout/summary",
+        params: summaryData,
+      });
+    }
   };
 
   const handleCancel = () => {
@@ -180,10 +184,18 @@ export default function ActiveSessionScreen() {
           text: "Sí, Descartar",
           style: "destructive",
           onPress: async () => {
-            if (activeSession?.id) {
-              await cancelSession();
+            try {
+              if (activeSession?.id) {
+                await cancelSession();
+              }
+            } catch (e) {
+              // Even if cancel fails, continue
+              console.error("Error canceling session:", e);
             }
-            router.replace("/(tabs)");
+            // Small delay to ensure backend state is updated before navigation
+            setTimeout(() => {
+              router.replace("/(tabs)");
+            }, 100);
           },
         },
       ],
@@ -333,9 +345,14 @@ export default function ActiveSessionScreen() {
     );
   }
 
+  // Navigate away when session is cleared (must be in useEffect, not during render)
+  useEffect(() => {
+    if (!isLoading && !activeSession) {
+      router.replace("/(tabs)");
+    }
+  }, [activeSession, isLoading]);
+
   if (!activeSession) {
-    // Session was cleared (finished/canceled) — navigate to home
-    router.replace("/(tabs)");
     return null;
   }
 
