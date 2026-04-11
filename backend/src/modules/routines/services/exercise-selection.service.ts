@@ -14,6 +14,60 @@ import {
   getMinSetsForMuscle,
   getRemainingSets,
 } from '../config/volume.config';
+import { DefaultExerciseSlot } from '../config/default-routines';
+
+// ─── Fuzzy name matching ─────────────────────────────────────────────────
+
+const FUZZY_KEYWORDS: Record<string, string[]> = {
+  curl: ['BICEPS', 'HAMSTRINGS'],
+  fly: ['CHEST', 'SHOULDERS'],
+  press: ['CHEST', 'SHOULDERS', 'QUADS'],
+  row: ['BACK', 'LATS'],
+  pulldown: ['LATS'],
+  raise: ['SHOULDERS', 'CALVES'],
+  extension: ['QUADS'],
+  skull_crusher: ['TRICEPS'],
+  pushdown: ['TRICEPS'],
+  squat: ['QUADS'],
+  deadlift: ['BACK', 'HAMSTRINGS'],
+  lunge: ['QUADS'],
+  calf: ['CALVES'],
+  hip_thrust: ['GLUTES'],
+  face_pull: ['TRAPS'],
+  shrug: ['TRAPS'],
+};
+
+function getFuzzyMuscles(name: string): string[] {
+  const nameLower = name.toLowerCase();
+  const muscles: string[] = [];
+
+  for (const [keyword, muscleList] of Object.entries(FUZZY_KEYWORDS)) {
+    if (nameLower.includes(keyword)) {
+      muscles.push(...muscleList);
+    }
+  }
+
+  return [...new Set(muscles)];
+}
+
+function normalizeMuscleForMatch(muscle: string): string {
+  return muscle.toUpperCase().replace(/[_\-]/g, '');
+}
+
+function fuzzyMatchMuscles(exerciseMuscles: string[], targetMuscle: string): boolean {
+  const normalizedTarget = normalizeMuscleForMatch(targetMuscle);
+  const targetKeywords = getFuzzyMuscles(normalizedTarget);
+
+  for (const exMuscle of exerciseMuscles) {
+    const normalizedEx = normalizeMuscleForMatch(exMuscle);
+    if (normalizedEx === normalizedTarget) return true;
+    if (targetKeywords.some(k => normalizedEx.includes(k) || k.includes(normalizedEx))) return true;
+  }
+
+  return false;
+}
+
+// ─── Muscle normalization ────────────────────────────────────────────────
 
 const MUSCLE_NORMALIZATION: Record<string, string> = {
   'bicep': 'BICEPS',
@@ -338,6 +392,66 @@ export class ExerciseSelectionService {
     }
 
     return fillers;
+  }
+
+  /**
+   * Search for exercise by partial name with fuzzy matching.
+   * First tries exact/partial match, then falls back to keyword-based muscle match.
+   */
+  findExerciseByName(
+    name: string,
+    fallbackMuscle: string,
+    allExercises: ExerciseWithMeta[],
+    usedIds: Set<string>,
+  ): string | null {
+    const nameLower = name.toLowerCase();
+    const pool = allExercises.filter((e) => !usedIds.has(e.id));
+
+    // 1. Exact or partial name match (ILIKE-style)
+    const nameMatched = pool.filter((e) =>
+      e.name.toLowerCase().includes(nameLower) ||
+      nameLower.includes(e.name.toLowerCase()),
+    );
+
+    if (nameMatched.length > 0) {
+      return this.selectBestExercise(nameMatched);
+    }
+
+    // 2. Fallback: use fuzzy keywords to find exercises targeting the muscle
+    const targetMuscles = getFuzzyMuscles(fallbackMuscle);
+    const muscleMatched = pool.filter((e) => {
+      const exMuscles = [...e.primaryMuscles, ...(e.secondaryMuscles || [])];
+      return exMuscles.some((m) =>
+        targetMuscles.some((t) => fuzzyMatchMuscles([m], t)),
+      );
+    });
+
+    if (muscleMatched.length > 0) {
+      return this.selectBestExercise(muscleMatched);
+    }
+
+    // 3. Last resort: any exercise matching the fallback muscle
+    const strictMatch = pool.filter((e) => {
+      const exMuscles = e.primaryMuscles.map((m) => m.toUpperCase());
+      return exMuscles.includes(fallbackMuscle.toUpperCase()) ||
+        exMuscles.includes(normalizeMuscle(fallbackMuscle));
+    });
+
+    if (strictMatch.length > 0) {
+      return this.selectBestExercise(strictMatch);
+    }
+
+    this.logger.warn(`No exercise found for "${name}" (fallback: ${fallbackMuscle})`);
+    return null;
+  }
+
+  private selectBestExercise(exercises: ExerciseWithMeta[]): string {
+    const sorted = [...exercises].sort((a, b) => {
+      const scoreA = getEquipmentScore(a.equipment);
+      const scoreB = getEquipmentScore(b.equipment);
+      return scoreA - scoreB;
+    });
+    return sorted[0].id;
   }
 
   /**

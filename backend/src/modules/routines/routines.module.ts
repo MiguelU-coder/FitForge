@@ -25,8 +25,14 @@ import {
   PERIODIZATION_CONFIG,
   TrainingLevel,
   SplitConfig,
-  DayConfig,
 } from './config/training.config';
+import {
+  DEFAULT_ROUTINES,
+  getDefaultRoutine,
+  TrainingGoal,
+  GOAL_ADJUSTMENTS,
+  adjustForGoal,
+} from './config/default-routines';
 import { ExerciseSelectionService, ExerciseWithMeta } from './services/exercise-selection.service';
 
 const GenerateInitialRoutineSchema = z.object({
@@ -43,20 +49,9 @@ const LEVEL_CONFIG = {
   ADVANCED: { frequency: 6, split: 'PPL_AB' },
 };
 
-function materializeDays(splitConfig: SplitConfig): DayConfig[] {
-  const { days, daysPerWeek, rotationMode } = splitConfig;
-  
-  if (rotationMode === 'AB' && daysPerWeek > days.length) {
-    const result: DayConfig[] = [];
-    let dayIndex = 0;
-    for (let i = 0; i < daysPerWeek; i++) {
-      result.push(days[dayIndex % days.length]);
-      dayIndex++;
-    }
-    return result;
-  }
-  
-  return days;
+function stringifySetsReps(sets: number, repsStr: string): string {
+  const baseReps = parseInt(repsStr.split('-')[0]) || 10;
+  return repsStr;
 }
 
 @Injectable()
@@ -70,9 +65,9 @@ export class RoutinesService {
 
   async generateInitialRoutine(userId: string, dto: GenerateInitialRoutineDto) {
     const { trainingLevel, mainGoal } = dto;
-    this.logger.log(`Generating scientific routine for user ${userId}, level: ${trainingLevel}`);
+    this.logger.log(`Generating routine for user ${userId}, level: ${trainingLevel}, goal: ${mainGoal}`);
 
-    const splitConfig = LEVEL_SPLIT_MAP[trainingLevel as TrainingLevel];
+    const defaultRoutine = getDefaultRoutine(trainingLevel as TrainingLevel);
     const phase = getPhaseForWeek(1, trainingLevel as TrainingLevel);
     const totalWeeks = trainingLevel === 'ADVANCED' ? 9 : 8;
 
@@ -113,25 +108,26 @@ export class RoutinesService {
 
     if (exercises.length === 0) {
       const config = LEVEL_CONFIG[trainingLevel as keyof typeof LEVEL_CONFIG];
+      const splitConfig = LEVEL_SPLIT_MAP[trainingLevel as TrainingLevel];
       return this.createPlaceholderProgram(userId, trainingLevel, config, splitConfig);
     }
 
     const exercisesMeta: ExerciseWithMeta[] = exercises.map((e) => ({
       id: e.id,
       name: e.name,
-      primaryMuscles: e.primaryMuscles as string[],
-      secondaryMuscles: e.secondaryMuscles as string[],
-      exerciseType: e.exerciseType as 'COMPOUND' | 'ISOLATION' | null,
-      fatigueLevel: e.fatigueLevel as 'LOW' | 'MEDIUM' | 'HIGH' | null,
+      primaryMuscles: e.primaryMuscles,
+      secondaryMuscles: e.secondaryMuscles,
+      exerciseType: e.exerciseType,
+      fatigueLevel: e.fatigueLevel,
       isCompound: e.isCompound,
       movementPattern: e.movementPattern,
     }));
 
     const program = await this.prisma.$queryRaw<{ id: string; name: string }>`INSERT INTO programs (id, user_id, name, goal, weeks, days_per_week, is_active, started_at, progression_model, current_phase, created_at, updated_at)
-      VALUES (gen_random_uuid(), ${userId}::uuid, ${`${trainingLevel.charAt(0) + trainingLevel.slice(1).toLowerCase()} Program`}, ${mainGoal || trainingLevel}, ${totalWeeks}, ${splitConfig.daysPerWeek}, true, ${new Date()}, ${phase.progressionStrategy}, ${phase.label}::"ProgramPhase", ${new Date()}, ${new Date()})
+      VALUES (gen_random_uuid(), ${userId}::uuid, ${`${trainingLevel.charAt(0) + trainingLevel.slice(1).toLowerCase()} Program`}, ${mainGoal || trainingLevel}, ${totalWeeks}, ${defaultRoutine.daysPerWeek}, true, ${new Date()}, ${phase.progressionStrategy}, ${phase.label}::"ProgramPhase", ${new Date()}, ${new Date()})
       RETURNING id, name` as unknown as { id: string; name: string };
 
-    const materializedDays = materializeDays(splitConfig);
+    const goal = mainGoal as TrainingGoal | undefined;
     const createdRoutines: Array<{
       id: string;
       name: string;
@@ -145,7 +141,8 @@ export class RoutinesService {
       }>;
     }> = [];
 
-    for (const [dayIndex, day] of materializedDays.entries()) {
+    for (const day of defaultRoutine.days) {
+      const dayIndex = defaultRoutine.days.indexOf(day);
       const routine = await this.prisma.routine.create({
         data: {
           userId,
@@ -169,18 +166,16 @@ export class RoutinesService {
       }> = [];
 
       for (const [slotIndex, slot] of day.slots.entries()) {
-        // Determine target muscle: use muscleTarget if specified, otherwise derive from movement pattern
-        const targetMuscle = slot.muscleTarget || this.getPrimaryMuscleForPattern(slot.movementPattern);
-
-        const exerciseId = this.exerciseSelectionService.selectExerciseForSlot(
-          slot,
+        const adjustedSlot = adjustForGoal(slot, goal);
+        const exerciseId = this.exerciseSelectionService.findExerciseByName(
+          slot.exerciseName,
+          slot.fallbackMuscle,
           exercisesMeta,
           usedExerciseIds,
-          targetMuscle,
         );
 
         if (!exerciseId) {
-          this.logger.warn(`No exercise found for slot ${slotIndex} (${targetMuscle}) in ${day.dayName}`);
+          this.logger.warn(`No exercise found for "${slot.exerciseName}" (fallback: ${slot.fallbackMuscle}) in ${day.dayName}`);
           continue;
         }
 
@@ -191,11 +186,11 @@ export class RoutinesService {
           routineId: routine.id,
           exerciseId,
           sortOrder: slotIndex,
-          targetSets: slot.sets,
-          targetReps: slot.repsMin,
+          targetSets: adjustedSlot.sets,
+          targetReps: parseInt(adjustedSlot.reps.split('-')[0]),
           targetRir: phase.rirTarget[trainingLevel as TrainingLevel],
-          restSeconds: slot.restSeconds,
-          notes: slot.notes || phase.notes || PROGRESSION_NOTE,
+          restSeconds: adjustedSlot.restSeconds,
+          notes: adjustedSlot.notes || PROGRESSION_NOTE,
         });
       }
 
@@ -203,18 +198,15 @@ export class RoutinesService {
         await this.prisma.routineItem.createMany({ data: routineItems });
       }
 
-      const itemsWithSlots = day.slots.map((slot, idx) => ({ slot, item: routineItems[idx] }));
-      
       createdRoutines.push({
         id: routine.id,
-        name: day.dayName,
-        items: routineItems.map((item, idx) => {
+        name: routine.name,
+        items: routineItems.map((item) => {
           const ex = exercises.find((e) => e.id === item.exerciseId);
-          const slot = itemsWithSlots[idx]?.slot;
           return {
             exerciseName: ex?.name || 'Unknown',
             targetSets: item.targetSets,
-            targetReps: slot ? `${slot.repsMin}-${slot.repsMax}` : `${phase.repsMin}-${phase.repsMax}`,
+            targetReps: item.targetReps.toString(),
             targetRir: item.targetRir,
             restSeconds: item.restSeconds,
             notes: item.notes,
@@ -223,22 +215,29 @@ export class RoutinesService {
       });
     }
 
-    const slotSets = materializedDays.flatMap((d) => d.slots).reduce((sum, s) => sum + s.sets, 0);
-    const avgSetsPerDay = Math.round(slotSets / materializedDays.length);
+    const totalSets = createdRoutines.reduce(
+      (sum, r) => sum + r.items.reduce((s, i) => s + i.targetSets, 0),
+      0,
+    );
+    const avgSetsPerDay = Math.round(totalSets / defaultRoutine.daysPerWeek);
+
+    const goalReps = mainGoal && GOAL_ADJUSTMENTS[mainGoal as TrainingGoal]
+      ? GOAL_ADJUSTMENTS[mainGoal as TrainingGoal].repsRange
+      : `${phase.repsMin}-${phase.repsMax}`;
 
     return {
       program: {
         id: program.id,
         name: program.name,
-        daysPerWeek: splitConfig.daysPerWeek,
-        split: splitConfig.splitName,
+        daysPerWeek: defaultRoutine.daysPerWeek,
+        split: defaultRoutine.split,
         progressionModel: phase.progressionStrategy,
         currentPhase: phase.label,
       },
       routines: createdRoutines,
       config: {
         sets: avgSetsPerDay,
-        reps: `${phase.repsMin}-${phase.repsMax}`,
+        reps: goalReps,
         rir: phase.rirTarget[trainingLevel as TrainingLevel],
         restSeconds: 150,
       },
@@ -248,25 +247,6 @@ export class RoutinesService {
         weeks: phase.weeks,
       },
     };
-  }
-
-  /**
-   * Get primary muscle group for a movement pattern.
-   * Used as fallback when slot.muscleTarget is not specified.
-   */
-  private getPrimaryMuscleForPattern(pattern: string | null): string {
-    const muscleMap: Record<string, string> = {
-      SQUAT: 'QUADS',
-      HINGE: 'HAMSTRINGS',
-      PUSH_HORIZONTAL: 'CHEST',
-      PUSH_VERTICAL: 'SHOULDERS',
-      PULL_HORIZONTAL: 'BACK',
-      PULL_VERTICAL: 'LATS',
-      LUNGE: 'QUADS',
-      CORE: 'ABS',
-      CARRY: 'ABS',
-    };
-    return pattern ? muscleMap[pattern] || 'CHEST' : 'CHEST';
   }
 
   private async createPlaceholderProgram(
@@ -279,8 +259,6 @@ export class RoutinesService {
       VALUES (gen_random_uuid(), ${userId}::uuid, ${`${trainingLevel.charAt(0) + trainingLevel.slice(1).toLowerCase()} Program`}, ${trainingLevel}, 8, ${config.frequency}, true, ${new Date()}, 'SET_INCREMENT', 'HYPERTROPHY'::"ProgramPhase", ${new Date()}, ${new Date()})
       RETURNING id, name` as unknown as { id: string; name: string };
 
-    const materializedDays = materializeDays(splitConfig);
-
     return {
       program: {
         id: program.id,
@@ -290,7 +268,7 @@ export class RoutinesService {
         progressionModel: 'SET_INCREMENT',
         currentPhase: 'HYPERTROPHY',
       },
-      routines: materializedDays.map((day, idx) => ({
+      routines: splitConfig.days.map((day, idx) => ({
         id: `pending-${idx}`,
         name: day.dayName,
         items: [],
