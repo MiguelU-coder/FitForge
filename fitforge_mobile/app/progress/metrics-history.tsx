@@ -1,5 +1,5 @@
 // app/progress/metrics-history.tsx
-import React from 'react';
+import React from "react";
 import {
   View,
   Text,
@@ -7,12 +7,12 @@ import {
   ScrollView,
   Pressable,
   Platform,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { useProgressStore } from '../../src/stores/useProgressStore';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Shadows } from '../../src/theme/colors';
+} from "react-native";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { useProgressStore } from "../../src/stores/useProgressStore";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Colors, Shadows } from "../../src/theme/colors";
 
 export default function MetricsHistoryScreen() {
   const router = useRouter();
@@ -21,7 +21,7 @@ export default function MetricsHistoryScreen() {
 
   const formatNum = (val: any, decimals = 1) => {
     const n = Number(val);
-    if (isNaN(n)) return '--';
+    if (isNaN(n)) return "--";
     return n.toFixed(decimals);
   };
 
@@ -31,17 +31,26 @@ export default function MetricsHistoryScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* ── Header ── */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
+        <Pressable
+          onPress={() => router.back()}
+          style={styles.backBtn}
+          hitSlop={12}
+        >
           <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
         </Pressable>
         <View style={styles.headerTitleWrap}>
-          <Text style={styles.headerTitle}>LOG HISTORY</Text>
-          <Text style={styles.headerSubtitle}>{metrics.length} Total measurements</Text>
+          <Text style={styles.headerTitle}>HISTORIAL DE MEDICIONES</Text>
+          <Text style={styles.headerSubtitle}>
+            {metrics.length} mediciones en total
+          </Text>
         </View>
       </View>
 
-      <ScrollView 
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: insets.bottom + 40 },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {sortedMetrics.map((m, idx) => (
@@ -49,7 +58,9 @@ export default function MetricsHistoryScreen() {
             {/* Date Column */}
             <View style={styles.dateCol}>
               <Text style={styles.dateMonth}>
-                {new Date(m.recordedAt).toLocaleDateString('en', { month: 'short' }).toUpperCase()}
+                {new Date(m.recordedAt)
+                  .toLocaleDateString("en", { month: "short" })
+                  .toUpperCase()}
               </Text>
               <Text style={styles.dateDay}>
                 {new Date(m.recordedAt).getDate()}
@@ -64,27 +75,33 @@ export default function MetricsHistoryScreen() {
               <View style={styles.statGrid}>
                 {m.weightKg != null && (
                   <View style={styles.statBox}>
-                    <Text style={styles.statLabel}>WEIGHT</Text>
+                    <Text style={styles.statLabel}>PESO</Text>
                     <View style={styles.statValueRow}>
-                      <Text style={styles.statValue}>{formatNum(m.weightKg)}</Text>
+                      <Text style={styles.statValue}>
+                        {formatNum(m.weightKg)}
+                      </Text>
                       <Text style={styles.statUnit}>kg</Text>
                     </View>
                   </View>
                 )}
                 {m.bodyFatPct != null && (
                   <View style={styles.statBox}>
-                    <Text style={styles.statLabel}>BODY FAT</Text>
+                    <Text style={styles.statLabel}>GRASA CORPORAL</Text>
                     <View style={styles.statValueRow}>
-                      <Text style={styles.statValue}>{formatNum(m.bodyFatPct)}</Text>
+                      <Text style={styles.statValue}>
+                        {formatNum(m.bodyFatPct)}
+                      </Text>
                       <Text style={styles.statUnit}>%</Text>
                     </View>
                   </View>
                 )}
                 {m.waistCm != null && (
                   <View style={styles.statBox}>
-                    <Text style={styles.statLabel}>WAIST</Text>
+                    <Text style={styles.statLabel}>CINTURA</Text>
                     <View style={styles.statValueRow}>
-                      <Text style={styles.statValue}>{formatNum(m.waistCm, 0)}</Text>
+                      <Text style={styles.statValue}>
+                        {formatNum(m.waistCm, 0)}
+                      </Text>
                       <Text style={styles.statUnit}>cm</Text>
                     </View>
                   </View>
@@ -102,7 +119,9 @@ export default function MetricsHistoryScreen() {
 
               {m.notes && (
                 <View style={styles.notesBox}>
-                  <Text style={styles.notesText} numberOfLines={2}>{m.notes}</Text>
+                  <Text style={styles.notesText} numberOfLines={2}>
+                    {m.notes}
+                  </Text>
                 </View>
               )}
             </View>
@@ -111,9 +130,15 @@ export default function MetricsHistoryScreen() {
 
         {metrics.length === 0 && (
           <View style={styles.emptyState}>
-            <Ionicons name="document-text-outline" size={48} color={Colors.textMuted} />
-            <Text style={styles.emptyTitle}>Empty History</Text>
-            <Text style={styles.emptyText}>Go back and register your first measurement to see it here.</Text>
+            <Ionicons
+              name="document-text-outline"
+              size={48}
+              color={Colors.textMuted}
+            />
+            <Text style={styles.emptyTitle}>Historial vacío</Text>
+            <Text style={styles.emptyText}>
+              Ve atrás y registra tu primera medición para verla aquí.
+            </Text>
           </View>
         )}
       </ScrollView>
@@ -127,8 +152,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 20,
     borderBottomWidth: 1,
@@ -139,21 +164,21 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 12,
     backgroundColor: Colors.elevated,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 16,
   },
   headerTitleWrap: {
     flex: 1,
   },
   headerTitle: {
-    fontFamily: 'ArchivoBlack',
+    fontFamily: "ArchivoBlack",
     fontSize: 20,
     color: Colors.textPrimary,
     letterSpacing: 0.5,
   },
   headerSubtitle: {
-    fontFamily: 'DMSans-Medium',
+    fontFamily: "DMSans-Medium",
     fontSize: 12,
     color: Colors.textMuted,
     marginTop: 2,
@@ -162,7 +187,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   historyRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     backgroundColor: Colors.elevated,
     borderRadius: 20,
     padding: 16,
@@ -172,62 +197,62 @@ const styles = StyleSheet.create({
     ...Shadows.card,
   },
   dateCol: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingRight: 16,
     borderRightWidth: 1,
     borderRightColor: Colors.border,
     minWidth: 70,
   },
   dateMonth: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 12,
     color: Colors.primary,
     letterSpacing: 1,
   },
   dateDay: {
-    fontFamily: 'BebasNeue',
+    fontFamily: "BebasNeue",
     fontSize: 32,
     color: Colors.textPrimary,
     lineHeight: 34,
   },
   dateYear: {
-    fontFamily: 'DMSans-Regular',
+    fontFamily: "DMSans-Regular",
     fontSize: 10,
     color: Colors.textMuted,
   },
   statsCol: {
     flex: 1,
     paddingLeft: 16,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   statGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 12,
   },
   statBox: {
     minWidth: 60,
   },
   statLabel: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 9,
     color: Colors.textMuted,
     letterSpacing: 1,
     marginBottom: 4,
   },
   statValueRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
+    flexDirection: "row",
+    alignItems: "baseline",
     gap: 2,
   },
   statValue: {
-    fontFamily: 'BebasNeue',
+    fontFamily: "BebasNeue",
     fontSize: 20,
     color: Colors.textPrimary,
   },
   statUnit: {
-    fontFamily: 'DMSans-Medium',
+    fontFamily: "DMSans-Medium",
     fontSize: 10,
     color: Colors.textTertiary,
   },
@@ -238,28 +263,28 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.border,
   },
   notesText: {
-    fontFamily: 'DMSans-Regular',
+    fontFamily: "DMSans-Regular",
     fontSize: 12,
     color: Colors.textSecondary,
-    fontStyle: 'italic',
+    fontStyle: "italic",
   },
   emptyState: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingTop: 100,
   },
   emptyTitle: {
-    fontFamily: 'ArchivoBlack',
+    fontFamily: "ArchivoBlack",
     fontSize: 18,
     color: Colors.textSecondary,
     marginTop: 16,
   },
   emptyText: {
-    fontFamily: 'DMSans-Regular',
+    fontFamily: "DMSans-Regular",
     fontSize: 14,
     color: Colors.textMuted,
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: 8,
     maxWidth: 240,
   },

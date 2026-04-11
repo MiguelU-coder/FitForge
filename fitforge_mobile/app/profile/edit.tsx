@@ -1,50 +1,62 @@
 // app/profile/edit.tsx
-import { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Colors } from '../../src/theme/colors';
-import { useAuthStore } from '../../src/stores/useAuthStore';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { apiClient } from '../../src/api/client';
+import { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  Pressable,
+  ScrollView,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { Colors } from "../../src/theme/colors";
+import { useAuthStore } from "../../src/stores/useAuthStore";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { apiClient } from "../../src/api/client";
 
 export default function EditProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, updateProfile } = useAuthStore();
 
-  const [displayName, setDisplayName] = useState(user?.displayName || '');
-  const [defaultRestSeconds, setDefaultRestSeconds] = useState(user?.defaultRestSeconds?.toString() || '90');
-  
+  const [displayName, setDisplayName] = useState(user?.displayName || "");
+  const [defaultRestSeconds, setDefaultRestSeconds] = useState(
+    user?.defaultRestSeconds?.toString() || "90",
+  );
+
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handleSave = async () => {
     if (!displayName.trim()) {
-      setError('Display name is required');
+      setError("El nombre es requerido");
       return;
     }
 
     setIsLoading(true);
-    setError('');
+    setError("");
 
     try {
       await updateProfile({
         displayName: displayName.trim(),
         defaultRestSeconds: parseInt(defaultRestSeconds, 10) || 90,
       });
-      
+
       router.back();
     } catch (e: any) {
-      setError(e.message || 'Failed to update profile');
+      setError(e.message || "Error al actualizar el perfil");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
@@ -54,13 +66,16 @@ export default function EditProfileScreen() {
         <View style={{ width: 44 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.card}>
-          <Text style={styles.label}>DISPLAY NAME</Text>
+          <Text style={styles.label}>NOMBRE</Text>
           <View style={styles.inputWrap}>
             <TextInput
               style={styles.input}
-              placeholder="Your name"
+              placeholder="Tu nombre"
               placeholderTextColor={Colors.textMuted}
               value={displayName}
               onChangeText={setDisplayName}
@@ -69,7 +84,7 @@ export default function EditProfileScreen() {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.label}>DEFAULT REST TIME (SECONDS)</Text>
+          <Text style={styles.label}>DESCANSO POR DEFECTO (SEGUNDOS)</Text>
           <View style={styles.inputWrap}>
             <TextInput
               style={styles.input}
@@ -88,7 +103,7 @@ export default function EditProfileScreen() {
           </View>
         ) : null}
 
-        <Pressable 
+        <Pressable
           style={[styles.saveBtn, isLoading && styles.saveBtnDisabled]}
           onPress={handleSave}
           disabled={isLoading}
@@ -96,10 +111,9 @@ export default function EditProfileScreen() {
           {isLoading ? (
             <ActivityIndicator color="#FFF" />
           ) : (
-            <Text style={styles.saveBtnText}>SAVE CHANGES</Text>
+            <Text style={styles.saveBtnText}>GUARDAR CAMBIOS</Text>
           )}
         </Pressable>
-
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -108,73 +122,75 @@ export default function EditProfileScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
   title: {
-    fontFamily: 'BebasNeue',
+    fontFamily: "BebasNeue",
     fontSize: 24,
     color: Colors.textPrimary,
     letterSpacing: 1,
   },
   backBtn: {
-    width: 44, height: 44,
-    justifyContent: 'center', alignItems: 'center',
+    width: 44,
+    height: 44,
+    justifyContent: "center",
+    alignItems: "center",
     borderRadius: 22,
     backgroundColor: `${Colors.elevated}80`,
   },
   backBtnText: { color: Colors.textPrimary, fontSize: 24 },
   content: { padding: 20 },
   card: { marginBottom: 24 },
-  label: { 
-    fontFamily: 'DMSans-Bold', 
-    fontSize: 12, 
-    letterSpacing: 1.5, 
-    color: Colors.textTertiary, 
-    marginBottom: 8 
+  label: {
+    fontFamily: "DMSans-Bold",
+    fontSize: 12,
+    letterSpacing: 1.5,
+    color: Colors.textTertiary,
+    marginBottom: 8,
   },
   inputWrap: {
     backgroundColor: `${Colors.elevated}80`,
-    borderRadius: 12, 
-    borderWidth: 1, 
+    borderRadius: 12,
+    borderWidth: 1,
     borderColor: `${Colors.border}80`,
     paddingHorizontal: 16,
   },
-  input: { 
-    fontFamily: 'DMSans-Medium', 
-    fontSize: 16, 
-    color: Colors.textPrimary, 
-    paddingVertical: 16 
+  input: {
+    fontFamily: "DMSans-Medium",
+    fontSize: 16,
+    color: Colors.textPrimary,
+    paddingVertical: 16,
   },
-  errorBox: { 
-    backgroundColor: `${Colors.error}1A`, 
-    borderRadius: 8, 
-    padding: 12, 
-    marginBottom: 24 
+  errorBox: {
+    backgroundColor: `${Colors.error}1A`,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 24,
   },
-  errorText: { 
-    fontFamily: 'DMSans-Regular', 
-    fontSize: 14, 
-    color: Colors.error 
+  errorText: {
+    fontFamily: "DMSans-Regular",
+    fontSize: 14,
+    color: Colors.error,
   },
   saveBtn: {
-    height: 54, 
-    borderRadius: 14, 
+    height: 54,
+    borderRadius: 14,
     backgroundColor: Colors.primary,
-    justifyContent: 'center', 
-    alignItems: 'center', 
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 16,
   },
   saveBtnDisabled: { opacity: 0.5 },
-  saveBtnText: { 
-    fontFamily: 'DMSans-Bold', 
-    fontSize: 15, 
-    letterSpacing: 1.5, 
-    color: '#FFF' 
+  saveBtnText: {
+    fontFamily: "DMSans-Bold",
+    fontSize: 15,
+    letterSpacing: 1.5,
+    color: "#FFF",
   },
 });

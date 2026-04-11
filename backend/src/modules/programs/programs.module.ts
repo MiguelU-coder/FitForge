@@ -15,16 +15,12 @@ import {
   HttpCode,
   HttpStatus,
   Logger,
-  Inject,
-  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import type { AuthUser } from '../auth/strategies/jwt.strategy';
 import { z } from 'zod';
-import { RoutinesModule } from '../routines/routines.module';
-import { RoutinesService } from '../routines/routines.module';
 
 // ── DTOs ──────────────────────────────────────────────────────────────────────
 
@@ -81,11 +77,7 @@ type UpdateRoutineItemDto = z.infer<typeof UpdateRoutineItemSchema>;
 export class ProgramsService {
   private readonly logger = new Logger(ProgramsService.name);
 
-  constructor(
-    private readonly prisma: PrismaService,
-    @Inject(forwardRef(() => RoutinesService))
-    private readonly routinesService: RoutinesService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   // ── Programs ────────────────────────────────────────────────────────────────
 
@@ -349,13 +341,144 @@ export class ProgramsService {
     }
     await this.prisma.routine.deleteMany({ where: { programId } });
 
-    // Generate new routines using RoutinesService
-    await this.routinesService.generateInitialRoutine(userId, {
-      trainingLevel: user.trainingLevel,
-      mainGoal: user.mainGoal || 'GAIN_MUSCLE_MASS',
-    });
+    // Get split config and generate new routines
+    const trainingLevel = user.trainingLevel;
+    const { LEVEL_SPLIT_MAP, getPhaseForWeek } = await import('../routines/config/training.config');
+    const { ExerciseSelectionService } = await import('../routines/services/exercise-selection.service');
+
+    const splitConfig = LEVEL_SPLIT_MAP[trainingLevel as keyof typeof LEVEL_SPLIT_MAP];
+    const phase = getPhaseForWeek(1, trainingLevel as any);
+
+    // Materialize days (AB rotation)
+    const materializeDays = (config: typeof splitConfig) => {
+      const { days, daysPerWeek, rotationMode } = config;
+      if (rotationMode === 'AB' && daysPerWeek > days.length) {
+        const result: any[] = [];
+        let dayIndex = 0;
+        for (let i = 0; i < daysPerWeek; i++) {
+          result.push(days[dayIndex % days.length]);
+          dayIndex++;
+        }
+        return result;
+      }
+      return days;
+    };
+
+    // Get exercises from DB
+
+    // Get exercises from DB
+    const dbExercises = await this.prisma.$queryRaw<Array<{
+      id: string;
+      name: string;
+      primary_muscles: string;
+      secondary_muscles: string;
+      is_compound: boolean;
+      movement_pattern: string | null;
+      equipment: string | null;
+    }>>`SELECT id, name, primary_muscles, secondary_muscles, is_compound, movement_pattern, equipment FROM exercises WHERE is_active = true`;
+
+    const parseArrayField = (value: string | string[]): string[] => {
+      if (Array.isArray(value)) return value;
+      if (typeof value === 'string') {
+        try {
+          const parsed = JSON.parse(value);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      }
+      return [];
+    };
+
+    const exercisesMeta = dbExercises.map((e) => ({
+      id: e.id,
+      name: e.name,
+      primaryMuscles: parseArrayField(e.primary_muscles) as string[],
+      secondaryMuscles: parseArrayField(e.secondary_muscles) as string[],
+      exerciseType: null as any,
+      fatigueLevel: null as any,
+      isCompound: e.is_compound,
+      movementPattern: e.movement_pattern,
+      equipment: e.equipment ?? undefined,
+    }));
+
+    // Create exercise selection service instance
+    const exerciseSelectionService = new ExerciseSelectionService();
+
+    const materializedDays = materializeDays(splitConfig);
+
+    for (const [dayIndex, day] of materializedDays.entries()) {
+      const routine = await this.prisma.routine.create({
+        data: {
+          userId,
+          programId,
+          name: day.dayName,
+          dayOfWeek: dayIndex,
+          sortOrder: dayIndex,
+        },
+      });
+
+      const usedExerciseIds = new Set<string>();
+      const routineItems: Array<{
+        routineId: string;
+        exerciseId: string;
+        sortOrder: number;
+        targetSets: number;
+        targetReps: number;
+        targetRir: number;
+        restSeconds: number;
+        notes: string;
+      }> = [];
+
+      for (const [slotIndex, slot] of day.slots.entries()) {
+        const targetMuscle = slot.muscleTarget || this.getPrimaryMuscleForPattern(slot.movementPattern);
+
+        const exerciseId = exerciseSelectionService.selectExerciseForSlot(
+          slot,
+          exercisesMeta,
+          usedExerciseIds,
+          targetMuscle,
+        );
+
+        if (!exerciseId) {
+          this.logger.warn(`No exercise found for slot ${slotIndex} (${targetMuscle}) in ${day.dayName}`);
+          continue;
+        }
+
+        usedExerciseIds.add(exerciseId);
+        routineItems.push({
+          routineId: routine.id,
+          exerciseId,
+          sortOrder: slotIndex,
+          targetSets: slot.sets,
+          targetReps: slot.repsMin,
+          targetRir: phase.rirTarget[trainingLevel as keyof typeof phase.rirTarget] || 2,
+          restSeconds: slot.restSeconds,
+          notes: slot.notes || phase.notes || '8-12 reps',
+        });
+      }
+
+      if (routineItems.length > 0) {
+        await this.prisma.routineItem.createMany({ data: routineItems });
+      }
+    }
 
     return this.getProgram(userId, programId);
+  }
+
+  private getPrimaryMuscleForPattern(pattern: string | null): string {
+    const muscleMap: Record<string, string> = {
+      SQUAT: 'QUADS',
+      HINGE: 'HAMSTRINGS',
+      PUSH_HORIZONTAL: 'CHEST',
+      PUSH_VERTICAL: 'SHOULDERS',
+      PULL_HORIZONTAL: 'BACK',
+      PULL_VERTICAL: 'LATS',
+      LUNGE: 'QUADS',
+      CORE: 'ABS',
+      CARRY: 'ABS',
+    };
+    return pattern ? muscleMap[pattern] || 'CHEST' : 'CHEST';
   }
 }
 
@@ -477,7 +600,6 @@ export class ProgramsController {
 @Module({
   controllers: [ProgramsController],
   providers: [ProgramsService],
-  imports: [forwardRef(() => RoutinesModule)],
   exports: [ProgramsService],
 })
 export class ProgramsModule {}

@@ -144,11 +144,11 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <Text style={styles.profileName}>{user?.displayName ?? "Athlete"}</Text>
+        <Text style={styles.profileName}>{user?.displayName ?? "Atleta"}</Text>
         <Text style={styles.profileEmail}>{user?.email ?? ""}</Text>
         <View style={styles.memberBadge}>
           <View style={styles.memberDot} />
-          <Text style={styles.memberBadgeText}>ACTIVE MEMBER</Text>
+          <Text style={styles.memberBadgeText}>MIEMBRO ACTIVO</Text>
         </View>
       </LinearGradient>
 
@@ -159,24 +159,24 @@ export default function ProfileScreen() {
             <Text style={styles.statValue}>
               {history?.length?.toString() ?? "0"}
             </Text>
-            <Text style={styles.statLabel}>Workouts</Text>
+            <Text style={styles.statLabel}>Entrenamientos</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Text style={styles.statValue}>0</Text>
-            <Text style={styles.statLabel}>Exercises</Text>
+            <Text style={styles.statLabel}>Ejercicios</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Text style={styles.statValue}>0m</Text>
-            <Text style={styles.statLabel}>Total Time</Text>
+            <Text style={styles.statLabel}>Tiempo Total</Text>
           </View>
         </View>
       </View>
 
       {/* ── Preferences Section ── */}
       <View style={styles.sectionLabel}>
-        <Text style={styles.sectionLabelText}>PREFERENCES</Text>
+        <Text style={styles.sectionLabelText}>PREFERENCIAS</Text>
       </View>
 
       <View style={styles.settingsCard}>
@@ -223,7 +223,7 @@ export default function ProfileScreen() {
 
       {/* ── Account Section ── */}
       <View style={styles.sectionLabel}>
-        <Text style={styles.sectionLabelText}>ACCOUNT</Text>
+        <Text style={styles.sectionLabelText}>CUENTA</Text>
       </View>
 
       <View style={styles.settingsCard}>

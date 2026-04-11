@@ -1,34 +1,46 @@
 // app/exercise/create.tsx
-import { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, Pressable, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Colors } from '../../src/theme/colors';
-import { MUSCLE_GROUPS, formatLabel } from '../../src/types/exercise';
-import { useExerciseStore } from '../../src/stores/useExerciseStore';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  ScrollView,
+  Pressable,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { Colors } from "../../src/theme/colors";
+import { MUSCLE_GROUPS, formatLabel } from "../../src/types/exercise";
+import { useExerciseStore } from "../../src/stores/useExerciseStore";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function CreateExerciseScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { createCustom, isLoading } = useExerciseStore();
 
-  const [name, setName] = useState('');
+  const [name, setName] = useState("");
   const [selectedMuscles, setSelectedMuscles] = useState<string[]>([]);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const toggleMuscle = (muscle: string) => {
-    setSelectedMuscles((prev) => 
-      prev.includes(muscle) ? prev.filter((m) => m !== muscle) : [...prev, muscle]
+    setSelectedMuscles((prev) =>
+      prev.includes(muscle)
+        ? prev.filter((m) => m !== muscle)
+        : [...prev, muscle],
     );
   };
 
   const handleSave = async () => {
     if (!name.trim()) {
-      setError('Please enter an exercise name');
+      setError("Introduce el nombre del ejercicio");
       return;
     }
     if (selectedMuscles.length === 0) {
-      setError('Please select at least one primary muscle');
+      setError("Selecciona al menos un músculo");
       return;
     }
 
@@ -36,14 +48,14 @@ export default function CreateExerciseScreen() {
       await createCustom(name.trim(), selectedMuscles);
       router.back();
     } catch (e: any) {
-      setError(e.message || 'Failed to create exercise');
+      setError(e.message || "Error al crear el ejercicio");
     }
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
@@ -53,14 +65,16 @@ export default function CreateExerciseScreen() {
         <View style={{ width: 44 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.card}>
           <Text style={styles.label}>EXERCISE NAME</Text>
           <View style={styles.inputWrap}>
             <TextInput
               style={styles.input}
-              placeholder="e.g. Barbell Bench Press"
+              placeholder="e.g. Press de banca con barra"
               placeholderTextColor={Colors.textMuted}
               value={name}
               onChangeText={setName}
@@ -69,7 +83,9 @@ export default function CreateExerciseScreen() {
         </View>
 
         <Text style={styles.sectionTitle}>PRIMARY MUSCLES</Text>
-        <Text style={styles.sectionSub}>Select the main muscles targeted by this exercise.</Text>
+        <Text style={styles.sectionSub}>
+          Selecciona los músculos principales
+        </Text>
 
         <View style={styles.grid}>
           {MUSCLE_GROUPS.map((muscle) => {
@@ -80,7 +96,12 @@ export default function CreateExerciseScreen() {
                 onPress={() => toggleMuscle(muscle)}
                 style={[styles.gridItem, isSelected && styles.gridItemSelected]}
               >
-                <Text style={[styles.gridItemText, isSelected && styles.gridItemTextSelected]}>
+                <Text
+                  style={[
+                    styles.gridItemText,
+                    isSelected && styles.gridItemTextSelected,
+                  ]}
+                >
                   {formatLabel(muscle)}
                 </Text>
               </Pressable>
@@ -94,15 +115,19 @@ export default function CreateExerciseScreen() {
           </View>
         ) : null}
 
-        <Pressable 
-          style={[styles.saveBtn, (isLoading || !name || selectedMuscles.length === 0) && styles.saveBtnDisabled]}
+        <Pressable
+          style={[
+            styles.saveBtn,
+            (isLoading || !name || selectedMuscles.length === 0) &&
+              styles.saveBtnDisabled,
+          ]}
           onPress={handleSave}
           disabled={isLoading || !name || selectedMuscles.length === 0}
         >
           {isLoading ? (
             <ActivityIndicator color="#FFF" />
           ) : (
-            <Text style={styles.saveBtnText}>CREATE EXERCISE</Text>
+            <Text style={styles.saveBtnText}>CREAR EJERCICIO</Text>
           )}
         </Pressable>
 
@@ -115,23 +140,25 @@ export default function CreateExerciseScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
   title: {
-    fontFamily: 'BebasNeue',
+    fontFamily: "BebasNeue",
     fontSize: 24,
     color: Colors.textPrimary,
     letterSpacing: 1,
   },
   backBtn: {
-    width: 44, height: 44,
-    justifyContent: 'center', alignItems: 'center',
+    width: 44,
+    height: 44,
+    justifyContent: "center",
+    alignItems: "center",
     borderRadius: 22,
     backgroundColor: `${Colors.elevated}80`,
   },
@@ -140,42 +167,42 @@ const styles = StyleSheet.create({
   card: {
     marginBottom: 32,
   },
-  label: { 
-    fontFamily: 'DMSans-Bold', 
-    fontSize: 12, 
-    letterSpacing: 1.5, 
-    color: Colors.textTertiary, 
-    marginBottom: 8 
+  label: {
+    fontFamily: "DMSans-Bold",
+    fontSize: 12,
+    letterSpacing: 1.5,
+    color: Colors.textTertiary,
+    marginBottom: 8,
   },
   inputWrap: {
     backgroundColor: `${Colors.elevated}80`,
-    borderRadius: 12, 
-    borderWidth: 1, 
+    borderRadius: 12,
+    borderWidth: 1,
     borderColor: `${Colors.border}80`,
     paddingHorizontal: 16,
   },
-  input: { 
-    fontFamily: 'DMSans-Medium', 
-    fontSize: 16, 
-    color: Colors.textPrimary, 
-    paddingVertical: 16 
+  input: {
+    fontFamily: "DMSans-Medium",
+    fontSize: 16,
+    color: Colors.textPrimary,
+    paddingVertical: 16,
   },
   sectionTitle: {
-    fontFamily: 'BebasNeue',
+    fontFamily: "BebasNeue",
     fontSize: 20,
     letterSpacing: 1,
     color: Colors.textPrimary,
   },
   sectionSub: {
-    fontFamily: 'DMSans-Regular',
+    fontFamily: "DMSans-Regular",
     fontSize: 14,
     color: Colors.textSecondary,
     marginTop: 4,
     marginBottom: 16,
   },
   grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 12,
   },
   gridItem: {
@@ -191,38 +218,38 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary,
   },
   gridItemText: {
-    fontFamily: 'DMSans-Medium',
+    fontFamily: "DMSans-Medium",
     fontSize: 14,
     color: Colors.textSecondary,
   },
   gridItemTextSelected: {
     color: Colors.primaryBright,
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
   },
-  errorBox: { 
-    backgroundColor: `${Colors.error}1A`, 
-    borderRadius: 8, 
-    padding: 12, 
-    marginTop: 24 
+  errorBox: {
+    backgroundColor: `${Colors.error}1A`,
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 24,
   },
-  errorText: { 
-    fontFamily: 'DMSans-Regular', 
-    fontSize: 14, 
-    color: Colors.error 
+  errorText: {
+    fontFamily: "DMSans-Regular",
+    fontSize: 14,
+    color: Colors.error,
   },
   saveBtn: {
-    height: 54, 
-    borderRadius: 14, 
+    height: 54,
+    borderRadius: 14,
     backgroundColor: Colors.primary,
-    justifyContent: 'center', 
-    alignItems: 'center', 
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 32,
   },
   saveBtnDisabled: { opacity: 0.5 },
-  saveBtnText: { 
-    fontFamily: 'DMSans-Bold', 
-    fontSize: 15, 
-    letterSpacing: 1.5, 
-    color: '#FFF' 
+  saveBtnText: {
+    fontFamily: "DMSans-Bold",
+    fontSize: 15,
+    letterSpacing: 1.5,
+    color: "#FFF",
   },
 });
