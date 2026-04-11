@@ -320,8 +320,8 @@ export default function HomeScreen() {
               </View>
             </View>
           </View>
-        ) : activeSession ? (
-          <View style={styles.activeSessionContainer}>
+        ) : activeSession?.id && activeSession?.name && !activeSession?.finishedAt ? (
+          <View style={{ marginHorizontal: 16 }}>
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => router.push("/workout/active")}

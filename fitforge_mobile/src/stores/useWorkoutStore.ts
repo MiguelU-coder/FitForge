@@ -64,7 +64,8 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
       const sessionData = response.data;
 
       // Map exerciseBlocks with exercise names from backend
-      const session: WorkoutSession | null = sessionData ? {
+      // Only treat as active if session exists and is not finished
+      const session: WorkoutSession | null = (sessionData && !sessionData.finishedAt) ? {
         ...sessionData,
         exerciseBlocks: sessionData.exerciseBlocks?.map((block: any) => ({
           ...block,

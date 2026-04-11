@@ -1,7 +1,7 @@
 // app/workout/active.tsx
 // Design: Industrial Premium Athletic — "Carbon Forge"
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -80,6 +80,15 @@ export default function ActiveSessionScreen() {
   const [plateCalcVisible, setPlateCalcVisible] = useState(false);
   const [plateCalcWeight, setPlateCalcWeight] = useState("");
   const [setTypes, setSetTypes] = useState<Record<string, SetType>>({});
+  const isNavigating = useRef(false);
+
+  // Navigate away when session is cleared - MUST be before any conditional returns
+  useEffect(() => {
+    if (!isLoading && !activeSession && !isNavigating.current) {
+      isNavigating.current = true;
+      router.replace("/(tabs)");
+    }
+  }, [activeSession, isLoading, router]);
 
   const onDismissTimer = useCallback(() => setTimerVisible(false), []);
   const onTimerEnd = useCallback(() => setTimerVisible(false), []);
@@ -119,13 +128,6 @@ export default function ActiveSessionScreen() {
     const pad = (n: number) => n.toString().padStart(2, "0");
     return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
   };
-
-  useEffect(() => {
-    if (!activeSession && !isLoading) {
-      if (router.canGoBack()) router.back();
-      else router.replace("/(tabs)/templates");
-    }
-  }, [activeSession, isLoading]);
 
   // ── Collapse helpers ──
   const toggleCollapsed = (blockId: string) => {
@@ -337,6 +339,7 @@ export default function ActiveSessionScreen() {
     }));
   };
 
+  // Show loading state
   if (isLoading && !activeSession) {
     return (
       <View style={styles.center}>
@@ -345,13 +348,7 @@ export default function ActiveSessionScreen() {
     );
   }
 
-  // Navigate away when session is cleared (must be in useEffect, not during render)
-  useEffect(() => {
-    if (!isLoading && !activeSession) {
-      router.replace("/(tabs)");
-    }
-  }, [activeSession, isLoading]);
-
+  // Show nothing while navigating away
   if (!activeSession) {
     return null;
   }
