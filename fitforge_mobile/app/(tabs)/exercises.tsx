@@ -263,7 +263,7 @@ export default function ExercisesScreen() {
 
               {/* Equipment */}
               <View style={styles.filterSection}>
-                <Text style={styles.sectionTitle}>EQUIPMENT</Text>
+                <Text style={styles.sectionTitle}>EQUIPAMIENTO</Text>
                 <View style={styles.chipWrap}>
                   <Pressable
                     style={[

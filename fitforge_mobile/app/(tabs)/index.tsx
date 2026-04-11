@@ -22,7 +22,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
   const { user, logout } = useAuthStore();
-  const { activeSession, startSession, history, fetchHistory } = useWorkoutStore();
+  const { activeSession, startSession, history, fetchHistory } =
+    useWorkoutStore();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [startError, setStartError] = useState("");
@@ -32,21 +33,21 @@ export default function HomeScreen() {
     fetchHistory();
   }, []);
 
-  const name = user?.displayName?.split(" ")[0] ?? "Athlete";
+  const name = user?.displayName?.split(" ")[0] ?? "Atleta";
   const hour = new Date().getHours();
   const greeting =
-    hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+    hour < 12 ? "Buenos días" : hour < 18 ? "Buenas tardes" : "Buenas noches";
   const motivation =
     hour < 12
-      ? "Ready to crush it today?"
+      ? "¿Listo para romperla hoy?"
       : hour < 18
-        ? "Keep pushing, you're doing great!"
-        : "Evening grind hits different";
+        ? "¡Sigue empujando, lo estás haciendo genial!"
+        : "El esfuerzo de la noche es diferente";
 
   const now = new Date();
-  const dateStr = now.toLocaleDateString("en-US", {
+  const dateStr = now.toLocaleDateString("es-ES", {
     weekday: "long",
-    month: "short",
+    month: "long",
     day: "numeric",
   });
 
@@ -122,20 +123,24 @@ export default function HomeScreen() {
   const weekProgress = Math.min(weekStats.count / weeklyGoal, 1);
 
   const handleLogout = () => {
-    Alert.alert("Log Out", "Are you sure you want to log out?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Log Out", style: "destructive", onPress: logout },
-    ]);
+    Alert.alert(
+      "Cerrar sesión",
+      "¿Estás seguro de que quieres cerrar sesión?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Cerrar sesión", style: "destructive", onPress: logout },
+      ],
+    );
   };
 
   const handleProfileMenu = () => {
     Alert.alert(
-      "Profile",
+      "Perfil",
       "",
       [
-        { text: "View Profile", onPress: () => router.push("/(tabs)/profile") },
-        { text: "Log Out", style: "destructive", onPress: handleLogout },
-        { text: "Cancel", style: "cancel" },
+        { text: "Ver perfil", onPress: () => router.push("/(tabs)/profile") },
+        { text: "Cerrar sesión", style: "destructive", onPress: handleLogout },
+        { text: "Cancelar", style: "cancel" },
       ],
       { cancelable: true },
     );
@@ -189,14 +194,14 @@ export default function HomeScreen() {
                 />
               </View>
               <View style={{ flex: 1, marginLeft: 16 }}>
-                <Text style={styles.activeTag}>IN PROGRESS</Text>
+                <Text style={styles.activeTag}>EN PROGRESO</Text>
                 <Text style={styles.activeTitle} numberOfLines={1}>
                   {activeSession.name}
                 </Text>
-                <Text style={styles.activeTime}>00:00 elapsed</Text>
+                <Text style={styles.activeTime}>00:00 transcurrido</Text>
               </View>
               <View style={styles.resumeBtn}>
-                <Text style={styles.resumeBtnText}>Resume</Text>
+                <Text style={styles.resumeBtnText}>Reanudar</Text>
               </View>
             </View>
           </LinearGradient>
@@ -210,7 +215,7 @@ export default function HomeScreen() {
               router.push("/workout/active");
             } catch (e: unknown) {
               const msg =
-                e instanceof Error ? e.message : "Error starting session";
+                e instanceof Error ? e.message : "Error al iniciar sesión";
               setStartError(msg);
             }
           }}
@@ -226,9 +231,11 @@ export default function HomeScreen() {
                 <Ionicons name="add" size={28} color={Colors.primary} />
               </View>
               <View style={{ flex: 1, marginLeft: 18 }}>
-                <Text style={styles.quickStartTitle}>Start Workout</Text>
+                <Text style={styles.quickStartTitle}>
+                  Iniciar entrenamiento
+                </Text>
                 <Text style={styles.quickStartSubtitle}>
-                  Tap to begin a new session
+                  Toca para comenzar una nueva sesión
                 </Text>
               </View>
               <Ionicons
@@ -240,7 +247,6 @@ export default function HomeScreen() {
           </LinearGradient>
         </Pressable>
       )}
-
 
       {/* ── Start Error Banner ── */}
       {startError ? (
@@ -267,10 +273,10 @@ export default function HomeScreen() {
           </View>
           <View style={{ flex: 1, marginLeft: 16 }}>
             <Text style={[styles.cardTitle, { marginLeft: 0 }]}>
-              Ready to start your day?
+              ¿Listo para comenzar tu día?
             </Text>
             <Text style={[styles.motivationText, { marginTop: 4 }]}>
-              No workouts yet — let's change that!
+              No hay entrenamientos todavía — ¡vamos a cambiar eso!
             </Text>
           </View>
         </View>
@@ -280,9 +286,12 @@ export default function HomeScreen() {
             <View style={styles.flameIconWrap}>
               <Ionicons name="flame" size={22} color={Colors.primary} />
             </View>
-            <Text style={styles.cardTitle}>Today's Training</Text>
+            <Text style={styles.cardTitle}>Entrenamiento de hoy</Text>
             <View style={styles.cardPill}>
-              <Text style={styles.cardPillText}>{todayStats.count} {todayStats.count === 1 ? 'workout' : 'workouts'}</Text>
+              <Text style={styles.cardPillText}>
+                {todayStats.count}{" "}
+                {todayStats.count === 1 ? "entrenamiento" : "entrenamientos"}
+              </Text>
             </View>
           </View>
 
@@ -299,8 +308,10 @@ export default function HomeScreen() {
               <View style={styles.statIconCircle}>
                 <Ionicons name="trending-up" size={18} color={Colors.primary} />
               </View>
-              <Text style={styles.statNumberBig}>{todayStats.tonnage > 0 ? `${todayStats.tonnage}kg` : '—'}</Text>
-              <Text style={styles.statLabelMuted}>Volume</Text>
+              <Text style={styles.statNumberBig}>
+                {todayStats.tonnage > 0 ? `${todayStats.tonnage}kg` : "—"}
+              </Text>
+              <Text style={styles.statLabelMuted}>Volumen</Text>
             </View>
           </View>
         </View>
@@ -309,7 +320,7 @@ export default function HomeScreen() {
       {/* ── This Week ── */}
       <View style={styles.glassCard}>
         <View style={styles.cardHeaderRowSpace}>
-          <Text style={styles.sectionLabel}>THIS WEEK</Text>
+          <Text style={styles.sectionLabel}>ESTA SEMANA</Text>
         </View>
 
         <View style={styles.statsRow}>
@@ -318,7 +329,7 @@ export default function HomeScreen() {
               <Ionicons name="calendar" size={16} color={Colors.primary} />
             </View>
             <Text style={styles.statNumberSmall}>{weekStats.count}</Text>
-            <Text style={styles.sectionLabel}>WORKOUTS</Text>
+            <Text style={styles.sectionLabel}>ENTRENAMIENTOS</Text>
           </View>
           <View style={styles.statVerticalDividerShort} />
           <View style={styles.statItemThird}>
@@ -326,7 +337,7 @@ export default function HomeScreen() {
               <Ionicons name="barbell" size={16} color={Colors.primary} />
             </View>
             <Text style={styles.statNumberSmall}>{weekStats.sets}</Text>
-            <Text style={styles.sectionLabel}>SETS</Text>
+            <Text style={styles.sectionLabel}>SERIES</Text>
           </View>
           <View style={styles.statVerticalDividerShort} />
           <View style={styles.statItemThird}>
@@ -334,7 +345,7 @@ export default function HomeScreen() {
               <Ionicons name="timer" size={16} color={Colors.primary} />
             </View>
             <Text style={styles.statNumberSmall}>{weekStats.durationMin}M</Text>
-            <Text style={styles.sectionLabel}>TIME</Text>
+            <Text style={styles.sectionLabel}>TIEMPO</Text>
           </View>
         </View>
 
@@ -344,12 +355,19 @@ export default function HomeScreen() {
               colors={[Colors.primary, Colors.primaryBright]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
-              style={[styles.progressBarFill, { width: `${Math.round(weekProgress * 100)}%` }]}
+              style={[
+                styles.progressBarFill,
+                { width: `${Math.round(weekProgress * 100)}%` },
+              ]}
             />
           </View>
           <View style={styles.progressTextRow}>
-            <Text style={styles.progressTextLeft}>{weekStats.count}/{weeklyGoal} workouts</Text>
-            <Text style={styles.progressTextRight}>+{weekStats.tonnage}kg vol</Text>
+            <Text style={styles.progressTextLeft}>
+              {weekStats.count}/{weeklyGoal} entrenamientos
+            </Text>
+            <Text style={styles.progressTextRight}>
+              +{weekStats.tonnage}kg vol
+            </Text>
           </View>
         </View>
       </View>
@@ -383,7 +401,7 @@ export default function HomeScreen() {
               </LinearGradient>
               <View style={styles.streakTextCol}>
                 <Text style={styles.streakNumber}>{history.length}</Text>
-                <Text style={styles.streakLabel}>Total workouts</Text>
+                <Text style={styles.streakLabel}>Total entrenamientos</Text>
               </View>
             </View>
           </View>
@@ -720,7 +738,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.primary,
   },
-
 
   // Streak Row
   streakRow: {

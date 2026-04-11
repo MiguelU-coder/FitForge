@@ -2,14 +2,21 @@
 // Port of profile_screen.dart — "Industrial Premium Athletic" design
 // Reference: lib/features/profile/presentation/screens/profile_screen.dart
 
-import { ScrollView, View, Text, Pressable, StyleSheet, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Shadows, Gradients } from '../../src/theme/colors';
-import { useAuthStore } from '../../src/stores/useAuthStore';
-import { useWorkoutStore } from '../../src/stores/useWorkoutStore';
+import {
+  ScrollView,
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  Alert,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Colors, Shadows, Gradients } from "../../src/theme/colors";
+import { useAuthStore } from "../../src/stores/useAuthStore";
+import { useWorkoutStore } from "../../src/stores/useWorkoutStore";
 
 type IoniconName = keyof typeof Ionicons.glyphMap;
 
@@ -21,7 +28,13 @@ interface SettingsRowProps {
   isLast?: boolean;
 }
 
-function SettingsRow({ icon, label, value, onPress, isLast }: SettingsRowProps) {
+function SettingsRow({
+  icon,
+  label,
+  value,
+  onPress,
+  isLast,
+}: SettingsRowProps) {
   return (
     <Pressable
       style={({ pressed }) => [
@@ -41,7 +54,11 @@ function SettingsRow({ icon, label, value, onPress, isLast }: SettingsRowProps) 
       <View style={styles.settingsRowRight}>
         {value ? <Text style={styles.settingsValue}>{value}</Text> : null}
         {onPress ? (
-          <Ionicons name="chevron-forward" size={16} color={Colors.textTertiary} />
+          <Ionicons
+            name="chevron-forward"
+            size={16}
+            color={Colors.textTertiary}
+          />
         ) : null}
       </View>
     </Pressable>
@@ -54,21 +71,21 @@ export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const initials = (user?.displayName ?? 'A')
-    .split(' ')
+  const initials = (user?.displayName ?? "A")
+    .split(" ")
     .map((n) => n[0])
-    .join('')
+    .join("")
     .toUpperCase()
     .slice(0, 2);
 
   const handleLogout = () => {
     Alert.alert(
-      'Log Out',
-      'Are you sure you want to log out?',
+      "Cerrar sesión",
+      "¿Estás seguro de que quieres cerrar sesión?",
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Log Out', style: 'destructive', onPress: logout },
-      ]
+        { text: "Cancelar", style: "cancel" },
+        { text: "Cerrar sesión", style: "destructive", onPress: logout },
+      ],
     );
   };
 
@@ -76,16 +93,16 @@ export default function ProfileScreen() {
     title: string,
     options: string[],
     currentValue: string,
-    onSelect: (val: string) => void
+    onSelect: (val: string) => void,
   ) => {
     Alert.alert(
       `Select ${title}`,
-      '',
+      "",
       options.map((option) => ({
         text: option.toUpperCase(),
         onPress: () => onSelect(option),
       })),
-      { cancelable: true }
+      { cancelable: true },
     );
   };
 
@@ -97,15 +114,19 @@ export default function ProfileScreen() {
     >
       {/* ── Header ── */}
       <View style={styles.headerBar}>
-        <Text style={styles.headerTitle}>PROFILE</Text>
+        <Text style={styles.headerTitle}>PERFIL</Text>
         <Pressable onPress={handleLogout} style={styles.logoutIconBtn}>
-          <Ionicons name="log-out-outline" size={20} color={Colors.textSecondary} />
+          <Ionicons
+            name="log-out-outline"
+            size={20}
+            color={Colors.textSecondary}
+          />
         </Pressable>
       </View>
 
       {/* ── Avatar + name ── */}
       <LinearGradient
-        colors={['#0A1F1480', Colors.background]}
+        colors={["#0A1F1480", Colors.background]}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
         style={styles.profileHero}
@@ -123,8 +144,8 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <Text style={styles.profileName}>{user?.displayName ?? 'Athlete'}</Text>
-        <Text style={styles.profileEmail}>{user?.email ?? ''}</Text>
+        <Text style={styles.profileName}>{user?.displayName ?? "Athlete"}</Text>
+        <Text style={styles.profileEmail}>{user?.email ?? ""}</Text>
         <View style={styles.memberBadge}>
           <View style={styles.memberDot} />
           <Text style={styles.memberBadgeText}>ACTIVE MEMBER</Text>
@@ -136,7 +157,7 @@ export default function ProfileScreen() {
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
             <Text style={styles.statValue}>
-              {history?.length?.toString() ?? '0'}
+              {history?.length?.toString() ?? "0"}
             </Text>
             <Text style={styles.statLabel}>Workouts</Text>
           </View>
@@ -162,26 +183,26 @@ export default function ProfileScreen() {
         <SettingsRow
           icon="scale-outline"
           label="Weight Unit"
-          value={user?.weightUnit?.toUpperCase() ?? 'KG'}
+          value={user?.weightUnit?.toUpperCase() ?? "KG"}
           onPress={() =>
             showSelectionDialog(
-              'Weight Unit',
-              ['kg', 'lbs'],
-              user?.weightUnit ?? 'kg',
-              (val) => updateProfile({ weightUnit: val })
+              "Weight Unit",
+              ["kg", "lbs"],
+              user?.weightUnit ?? "kg",
+              (val) => updateProfile({ weightUnit: val }),
             )
           }
         />
         <SettingsRow
           icon="resize-outline"
           label="Height Unit"
-          value={user?.heightUnit?.toUpperCase() ?? 'CM'}
+          value={user?.heightUnit?.toUpperCase() ?? "CM"}
           onPress={() =>
             showSelectionDialog(
-              'Height Unit',
-              ['cm', 'in'],
-              user?.heightUnit ?? 'cm',
-              (val) => updateProfile({ heightUnit: val })
+              "Height Unit",
+              ["cm", "in"],
+              user?.heightUnit ?? "cm",
+              (val) => updateProfile({ heightUnit: val }),
             )
           }
         />
@@ -191,10 +212,10 @@ export default function ProfileScreen() {
           value={`${user?.defaultRestSeconds ?? 90}s`}
           onPress={() =>
             showSelectionDialog(
-              'Default Rest',
-              ['30', '60', '90', '120', '180', '240'],
+              "Default Rest",
+              ["30", "60", "90", "120", "180", "240"],
               `${user?.defaultRestSeconds ?? 90}`,
-              (val) => updateProfile({ defaultRestSeconds: parseInt(val, 10) })
+              (val) => updateProfile({ defaultRestSeconds: parseInt(val, 10) }),
             )
           }
         />
@@ -209,7 +230,7 @@ export default function ProfileScreen() {
         <SettingsRow
           icon="person-outline"
           label="Edit Profile"
-          onPress={() => router.push('/profile/edit')}
+          onPress={() => router.push("/profile/edit")}
         />
         <SettingsRow
           icon="lock-closed-outline"
@@ -244,14 +265,14 @@ const styles = StyleSheet.create({
 
   // Header
   headerBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 12,
   },
   headerTitle: {
-    fontFamily: 'BebasNeue',
+    fontFamily: "BebasNeue",
     fontSize: 28,
     letterSpacing: 2,
     color: Colors.textPrimary,
@@ -261,15 +282,15 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 12,
     backgroundColor: Colors.elevated,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 1,
     borderColor: Colors.border,
   },
 
   // Profile Hero
   profileHero: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingHorizontal: 24,
     paddingTop: 28,
     paddingBottom: 32,
@@ -280,8 +301,8 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     borderWidth: 1.5,
     borderColor: `${Colors.primary}66`,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 16,
     ...Shadows.primaryGlow,
   },
@@ -292,30 +313,30 @@ const styles = StyleSheet.create({
     width: 84,
     height: 84,
     borderRadius: 42,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   avatarInitials: {
-    fontFamily: 'BebasNeue',
+    fontFamily: "BebasNeue",
     fontSize: 34,
     letterSpacing: 1,
-    color: '#FFF',
+    color: "#FFF",
   },
   profileName: {
-    fontFamily: 'BebasNeue',
+    fontFamily: "BebasNeue",
     fontSize: 28,
     letterSpacing: 1,
     color: Colors.textPrimary,
   },
   profileEmail: {
-    fontFamily: 'DMSans-Regular',
+    fontFamily: "DMSans-Regular",
     fontSize: 13,
     color: Colors.textSecondary,
     marginTop: 4,
   },
   memberBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     marginTop: 12,
     paddingHorizontal: 12,
@@ -332,7 +353,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   memberBadgeText: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 10,
     letterSpacing: 1.5,
     color: Colors.primary,
@@ -349,21 +370,21 @@ const styles = StyleSheet.create({
     ...Shadows.card,
   },
   statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
   },
   statItem: {
-    alignItems: 'center',
+    alignItems: "center",
     flex: 1,
   },
   statValue: {
-    fontFamily: 'BebasNeue',
+    fontFamily: "BebasNeue",
     fontSize: 28,
     color: Colors.textPrimary,
   },
   statLabel: {
-    fontFamily: 'DMSans-Regular',
+    fontFamily: "DMSans-Regular",
     fontSize: 12,
     color: Colors.textSecondary,
     marginTop: 2,
@@ -381,7 +402,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   sectionLabelText: {
-    fontFamily: 'DMSans-Bold',
+    fontFamily: "DMSans-Bold",
     fontSize: 11,
     letterSpacing: 1.5,
     color: Colors.textTertiary,
@@ -394,12 +415,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: Colors.border,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   settingsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
@@ -411,8 +432,8 @@ const styles = StyleSheet.create({
     backgroundColor: `${Colors.primary}0D`,
   },
   settingsRowLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
   settingsIconWrap: {
@@ -420,24 +441,23 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 8,
     backgroundColor: `${Colors.primary}1A`,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   settingsLabel: {
-    fontFamily: 'DMSans-Medium',
+    fontFamily: "DMSans-Medium",
     fontSize: 14,
     color: Colors.textPrimary,
   },
   settingsRowRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   settingsValue: {
-    fontFamily: 'DMSans-Regular',
+    fontFamily: "DMSans-Regular",
     fontSize: 13,
-    fontWeight: '300',
+    fontWeight: "300",
     color: Colors.textSecondary,
   },
 });
-

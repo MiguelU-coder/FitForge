@@ -83,7 +83,7 @@ export class ProgramsService {
 
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(forwardRef(() => RoutinesModule))
+    @Inject(forwardRef(() => RoutinesService))
     private readonly routinesService: RoutinesService,
   ) {}
 
@@ -477,7 +477,7 @@ export class ProgramsController {
 @Module({
   controllers: [ProgramsController],
   providers: [ProgramsService],
-  imports: [RoutinesModule],
+  imports: [forwardRef(() => RoutinesModule)],
   exports: [ProgramsService],
 })
 export class ProgramsModule {}
