@@ -15,6 +15,53 @@ import {
   getRemainingSets,
 } from '../config/volume.config';
 
+const MUSCLE_NORMALIZATION: Record<string, string> = {
+  'bicep': 'BICEPS',
+  'tricep': 'TRICEPS',
+  'calf': 'CALVES',
+  'quad': 'QUADS',
+  'quad_isolation': 'QUADS',
+  'hamstring': 'HAMSTRINGS',
+  'hamstring_isolation': 'HAMSTRINGS',
+  'glute': 'GLUTES',
+  'hip_thrust': 'GLUTES',
+  'chest': 'CHEST',
+  'incline': 'CHEST',
+  'back': 'BACK',
+  'lats': 'LATS',
+  'pullup': 'LATS',
+  'pullover': 'LATS',
+  'shoulder': 'SHOULDERS',
+  'lateral': 'SHOULDERS',
+  'overhead_press': 'SHOULDERS',
+  'abs': 'ABS',
+  'core': 'ABS',
+  'rdl': 'HAMSTRINGS',
+  'leg_curl_rdl': 'HAMSTRINGS',
+  'deadlift': 'BACK',
+  'leg_curl': 'HAMSTRINGS',
+  'hamstring_curl': 'HAMSTRINGS',
+  'leg_press': 'QUADS',
+  'machine': 'QUADS',
+  'hack_squat': 'QUADS',
+  'dip': 'TRICEPS',
+  'dips': 'TRICEPS',
+  'dips_isolation': 'TRICEPS',
+  'row': 'BACK',
+  'face_pull': 'TRAPS',
+  'shrugs': 'TRAPS',
+  'lat_pulldown': 'LATS',
+  'chest_supported_row': 'BACK',
+  'close_grip': 'TRICEPS',
+  'chest_fly_cable': 'CHEST',
+  'isolation': 'CHEST',
+};
+
+function normalizeMuscle(muscle: string): string {
+  const normalized = MUSCLE_NORMALIZATION[muscle.toLowerCase()];
+  return normalized || muscle.toUpperCase();
+}
+
 export interface ExerciseWithMeta {
   id: string;
   name: string;
@@ -293,19 +340,24 @@ export class ExerciseSelectionService {
   ): string | null {
     let pool = allExercises.filter((e) => !usedIds.has(e.id));
 
+    // Normalize target muscle before matching
+    const normalizedMuscle = normalizeMuscle(targetMuscle);
+
     // Filter by movement pattern if specified
     if (slot.movementPattern !== null) {
       pool = pool.filter((e) => e.movementPattern === slot.movementPattern);
     }
 
-    // STRICT muscle validation - must match target muscle
+    // STRICT muscle validation - must match target muscle (normalized)
     const muscleMatchedPool = pool.filter((e) => {
+      const normalizedPrimary = e.primaryMuscles.map(m => m.toUpperCase());
+      const normalizedSecondary = e.secondaryMuscles?.map(m => m.toUpperCase()) || [];
       // Check primary muscles
-      if (e.primaryMuscles.includes(targetMuscle)) {
+      if (normalizedPrimary.includes(normalizedMuscle)) {
         return true;
       }
       // Check secondary muscles
-      if (e.secondaryMuscles?.includes(targetMuscle)) {
+      if (normalizedSecondary.includes(normalizedMuscle)) {
         return true;
       }
       return false;
@@ -313,7 +365,7 @@ export class ExerciseSelectionService {
 
     if (muscleMatchedPool.length === 0) {
       this.logger.error(
-        `No exercise found for muscle ${targetMuscle} with pattern ${slot.movementPattern}`,
+        `No exercise found for muscle ${normalizedMuscle} (original: ${targetMuscle}) with pattern ${slot.movementPattern}`,
       );
       return null; // NO random fallback
     }
@@ -345,7 +397,7 @@ export class ExerciseSelectionService {
     allExercises: ExerciseWithMeta[],
     requireCompound?: boolean,
   ): ExerciseWithMeta[] {
-    const muscleUpper = muscle.toUpperCase();
+    const muscleUpper = normalizeMuscle(muscle);
 
     const matches = allExercises.filter((e) => {
       const primaryMatch = e.primaryMuscles.some((m) => m.toUpperCase() === muscleUpper);

@@ -18,7 +18,6 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "strict": true,
-    "types": ["jest", "node"],
     "paths": {
       "@common/*":   ["src/common/*"],
       "@modules/*":  ["src/modules/*"],
@@ -28,6 +27,6 @@
       "@jobs/*":     ["src/jobs/*"]
     }
   },
-  "include": ["src/**/*", "prisma/seed.ts", "scripts/**/*"],
+  "include": ["src/**/*", "prisma/**/*", "scripts/**/*"],
   "exclude": ["node_modules", "dist"]
 }
