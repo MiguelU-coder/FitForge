@@ -344,7 +344,8 @@ export class ProgramsService {
     // Get split config and generate new routines
     const trainingLevel = user.trainingLevel;
     const { LEVEL_SPLIT_MAP, getPhaseForWeek } = await import('../routines/config/training.config');
-    const { ExerciseSelectionService } = await import('../routines/services/exercise-selection.service');
+    const { ExerciseSelectionService } =
+      await import('../routines/services/exercise-selection.service');
 
     const splitConfig = LEVEL_SPLIT_MAP[trainingLevel as keyof typeof LEVEL_SPLIT_MAP];
     const phase = getPhaseForWeek(1, trainingLevel as any);
@@ -367,15 +368,17 @@ export class ProgramsService {
     // Get exercises from DB
 
     // Get exercises from DB
-    const dbExercises = await this.prisma.$queryRaw<Array<{
-      id: string;
-      name: string;
-      primary_muscles: string;
-      secondary_muscles: string;
-      is_compound: boolean;
-      movement_pattern: string | null;
-      equipment: string | null;
-    }>>`SELECT id, name, primary_muscles, secondary_muscles, is_compound, movement_pattern, equipment FROM exercises WHERE is_active = true`;
+    const dbExercises = await this.prisma.$queryRaw<
+      Array<{
+        id: string;
+        name: string;
+        primary_muscles: string;
+        secondary_muscles: string;
+        is_compound: boolean;
+        movement_pattern: string | null;
+        equipment: string | null;
+      }>
+    >`SELECT id, name, primary_muscles, secondary_muscles, is_compound, movement_pattern, equipment FROM exercises WHERE is_active = true`;
 
     const parseArrayField = (value: string | string[]): string[] => {
       if (Array.isArray(value)) return value;
@@ -431,7 +434,8 @@ export class ProgramsService {
       }> = [];
 
       for (const [slotIndex, slot] of day.slots.entries()) {
-        const targetMuscle = slot.muscleTarget || this.getPrimaryMuscleForPattern(slot.movementPattern);
+        const targetMuscle =
+          slot.muscleTarget || this.getPrimaryMuscleForPattern(slot.movementPattern);
 
         const exerciseId = exerciseSelectionService.selectExerciseForSlot(
           slot,
@@ -441,7 +445,9 @@ export class ProgramsService {
         );
 
         if (!exerciseId) {
-          this.logger.warn(`No exercise found for slot ${slotIndex} (${targetMuscle}) in ${day.dayName}`);
+          this.logger.warn(
+            `No exercise found for slot ${slotIndex} (${targetMuscle}) in ${day.dayName}`,
+          );
           continue;
         }
 
@@ -587,10 +593,7 @@ export class ProgramsController {
 
   @Post(':id/regenerate')
   @HttpCode(HttpStatus.OK)
-  async regenerateProgram(
-    @CurrentUser() user: AuthUser,
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
+  async regenerateProgram(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.programsService.regenerateProgram(user.id, id);
   }
 }

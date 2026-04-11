@@ -26,7 +26,13 @@ export interface WeeklyTotal {
 
 export interface PersonalRecord {
   id?: string;
-  exerciseName: string;
+  exerciseId?: string;
+  exerciseName?: string;
+  exercise?: {
+    name?: string;
+  };
   prType: string;
   value: number;
+  achievedAt?: string;
+  sessionId?: string;
 }

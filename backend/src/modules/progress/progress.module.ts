@@ -84,8 +84,14 @@ export class ProgressService {
       orderBy: { achievedAt: 'desc' },
     });
 
-    await this.redis.setJson(cacheKey, prs, 5 * 60);
-    return prs;
+    const enrichedPRs = prs.map((pr) => ({
+      ...pr,
+      exerciseName: pr.exercise?.name ?? 'Unknown',
+      achievedAt: pr.achievedAt?.toISOString(),
+    }));
+
+    await this.redis.setJson(cacheKey, enrichedPRs, 5 * 60);
+    return enrichedPRs;
   }
 
   async getExercisePRs(userId: string, exerciseId: string): Promise<unknown> {

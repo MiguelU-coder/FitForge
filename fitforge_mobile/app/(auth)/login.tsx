@@ -14,9 +14,11 @@ import {
   StyleSheet,
   Animated,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Link, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { Colors, Gradients, Shadows } from "../../src/theme/colors";
 import { Typography } from "../../src/theme/typography";
 import { Spacing, Radius } from "../../src/theme/spacing";
@@ -24,10 +26,22 @@ import { useAuthStore } from "../../src/stores/useAuthStore";
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login, signInWithGoogle, isLoading, error, clearError } =
+  const { login, signInWithGoogle, isLoading, error, clearError, isAuthenticated, user } =
     useAuthStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  // Navigate when authenticated
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      console.log('[Login] Authenticated, navigating...');
+      if (user?.hasCompletedOnboarding) {
+        router.replace('/(tabs)');
+      } else {
+        router.replace('/(auth)/onboarding');
+      }
+    }
+  }, [isAuthenticated, isLoading, user?.hasCompletedOnboarding]);
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState("");
   const [passError, setPassError] = useState("");
@@ -73,7 +87,13 @@ export default function LoginScreen() {
   const handleSubmit = async () => {
     if (!validate()) return;
     clearError();
-    await login(email.trim(), password);
+    console.log('[Login] Starting login...');
+    try {
+      await login(email.trim(), password);
+      console.log('[Login] login() completed');
+    } catch (e) {
+      console.log('[Login] Error:', e);
+    }
   };
 
   return (
@@ -81,6 +101,12 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
+      <LinearGradient
+        colors={[Colors.background, `${Colors.primary}08`]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"

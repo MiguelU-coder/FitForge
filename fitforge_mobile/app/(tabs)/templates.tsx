@@ -66,6 +66,12 @@ export default function TemplatesScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <LinearGradient
+        colors={[Colors.background, `${Colors.primary}08`]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
       {/* ── Header ── */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>

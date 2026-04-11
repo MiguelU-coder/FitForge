@@ -10,6 +10,7 @@ import {
   Query,
   Delete,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PrismaService } from '../../database/prisma.service';
 import * as argon2 from 'argon2';
@@ -25,6 +26,7 @@ export class OrganizationMembersController {
     private readonly organizationsService: OrganizationsService,
   ) {}
 
+  @Throttle({ default: { ttl: 60000, limit: 60 } })
   @Get(':id/members')
   async getMembers(
     @Param('id') organizationId: string,
@@ -149,6 +151,7 @@ export class OrganizationMembersController {
     };
   }
 
+  @Throttle({ default: { ttl: 60000, limit: 60 } })
   @Get(':id/members/:memberId')
   async getMemberDetails(
     @Param('id') organizationId: string,
@@ -251,6 +254,7 @@ export class OrganizationMembersController {
     };
   }
 
+  @Throttle({ default: { ttl: 60000, limit: 20 } })
   @Post(':id/members')
   async registerMember(
     @Param('id') organizationId: string,
@@ -305,6 +309,7 @@ export class OrganizationMembersController {
     return org?.name || 'your organization';
   }
 
+  @Throttle({ default: { ttl: 60000, limit: 30 } })
   @Patch(':id/members/:memberId')
   async updateMember(
     @Param('id') organizationId: string,
@@ -344,6 +349,7 @@ export class OrganizationMembersController {
     return { success: true };
   }
 
+  @Throttle({ default: { ttl: 60000, limit: 20 } })
   @Post(':id/members/:memberId/assign-routine')
   async assignRoutine(
     @Param('id') organizationId: string,

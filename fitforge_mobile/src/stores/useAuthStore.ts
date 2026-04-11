@@ -55,8 +55,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   isAuthenticated: false,
 
   _updateUserFromSession: (session: Session) => {
+    console.log('[AuthStore] _updateUserFromSession START');
     const user = parseUserFromSupabase(session.user);
+    console.log('[AuthStore] User parsed:', user.email);
     set({ user, isAuthenticated: true, isLoading: false });
+    console.log('[AuthStore] set() DONE');
   },
 
   _restoreSession: async () => {
@@ -74,6 +77,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
   _initAuthListener: () => {
     supabase.auth.onAuthStateChange((_event, session) => {
+      console.log('[AuthStore] onAuthStateChange event:', _event, 'session:', !!session);
       if (session) {
         get()._updateUserFromSession(session);
       } else {
@@ -88,12 +92,20 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   login: async (email, password) => {
     set({ isLoading: true, error: null });
     try {
+      console.log('[AuthStore] Signing in with:', email);
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
+      console.log('[AuthStore] SignIn result, error:', error?.message, 'session:', !!data.session);
+      if (error) {
+        set({ isLoading: false, error: error.message });
+        return;
+      }
       if (data.session) {
+        console.log('[AuthStore] Calling _updateUserFromSession...');
         get()._updateUserFromSession(data.session);
+        console.log('[AuthStore] _updateUserFromSession done');
       }
     } catch (e) {
+      console.log('[AuthStore] Catch error:', e);
       const message = (e as AuthError)?.message ?? 'Error al iniciar sesión';
       set({ isLoading: false, error: message });
     }

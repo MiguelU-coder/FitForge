@@ -9,6 +9,7 @@ import {
   Patch,
   Delete,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PrismaService } from '../../database/prisma.service';
 
@@ -17,6 +18,7 @@ import { PrismaService } from '../../database/prisma.service';
 export class OrganizationClassesController {
   constructor(private readonly prisma: PrismaService) {}
 
+  @Throttle({ default: { ttl: 60000, limit: 60 } })
   @Get(':id/classes')
   async getClasses(@Param('id') organizationId: string, @Request() req: any) {
     const classes = await this.prisma.gymClass.findMany({
@@ -54,6 +56,7 @@ export class OrganizationClassesController {
     };
   }
 
+  @Throttle({ default: { ttl: 60000, limit: 60 } })
   @Get(':id/classes/:classId')
   async getClassDetails(
     @Param('id') organizationId: string,
@@ -87,6 +90,7 @@ export class OrganizationClassesController {
     };
   }
 
+  @Throttle({ default: { ttl: 60000, limit: 20 } })
   @Post(':id/classes')
   async createClass(
     @Param('id') organizationId: string,

@@ -40,7 +40,10 @@ import { RoutinesModule } from './modules/routines/routines.module';
 // Guards, filters, interceptors
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
-import { GlobalExceptionFilter } from './common/pipes/zod-validation.pipe';
+import { SecurityGuard } from './common/guards/security.guard';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { ZodExceptionFilter } from './common/filters/zod-exception.filter';
 import {
   TransformInterceptor,
   LoggingInterceptor,
@@ -63,7 +66,16 @@ import { AppController } from './app.controller';
     }),
 
     // ── Rate limiting ─────────────────────────────────────────────────────
-    ThrottlerModule.forRoot([{ name: 'global', ttl: 60_000, limit: 100 }]),
+    // Límites optimizados para uso normal simultáneo de app móvil:
+    // - global: 200/min para absorber picos de muchos usuarios
+    // - Los endpoints específicos tienen sus propios límites más estrictos
+    ThrottlerModule.forRoot([
+      { name: 'global', ttl: 60_000, limit: 200 },
+      { name: 'auth', ttl: 60_000, limit: 50 },
+      { name: 'ai', ttl: 60_000, limit: 30 },
+      { name: 'stripe', ttl: 60_000, limit: 10 },
+      { name: 'admin', ttl: 60_000, limit: 30 },
+    ]),
 
     // ── BullMQ — conexión global ──────────────────────────────────────────
     BullModule.forRootAsync({
@@ -114,9 +126,12 @@ import { AppController } from './app.controller';
   ],
 
   providers: [
+    { provide: APP_GUARD, useClass: SecurityGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },
+    { provide: APP_FILTER, useClass: HttpExceptionFilter },
+    { provide: APP_FILTER, useClass: ZodExceptionFilter },
     { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
     { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },
     { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },

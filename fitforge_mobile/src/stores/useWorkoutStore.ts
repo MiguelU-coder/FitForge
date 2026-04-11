@@ -60,15 +60,20 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
   checkForActiveSession: async () => {
     set({ isLoading: true, error: null });
     try {
-      const response = await apiClient.get('/workouts/sessions/active').catch(() => ({ data: null }));
+      const response = await apiClient.get('/workouts/sessions/active');
       const session = response.data ? (response.data as WorkoutSession) : null;
       set({ activeSession: session, isLoading: false });
 
-      if (session) {
+      if (session?.exerciseBlocks?.length) {
         session.exerciseBlocks.forEach((block) => get().fetchLastPerformance(block.exerciseId));
       }
     } catch (e: any) {
-      set({ isLoading: false, error: e.message });
+      // 404 means no active session - this is expected, not an error
+      if (e.response?.status === 404) {
+        set({ activeSession: null, isLoading: false });
+      } else {
+        set({ isLoading: false, error: e.message });
+      }
     }
   },
 
@@ -91,7 +96,7 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
 
   addExercise: async (exerciseId, exerciseName) => {
     const session = get().activeSession;
-    if (!session) return;
+    if (!session?.id) return;
     try {
       const response = await apiClient.post(`/workouts/sessions/${session.id}/blocks`, {
         exerciseId,
@@ -119,7 +124,7 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
 
   logSet: async ({ blockId, setId, setNumber, weightKg, reps, rir, isFailed = false, setType = 'WORKING' }) => {
     const session = get().activeSession;
-    if (!session) return;
+    if (!session || !blockId) return;
 
     try {
       const body: any = { setNumber, setType, isFailed };
@@ -155,7 +160,7 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
 
   deleteSet: async (blockId, setId) => {
     const session = get().activeSession;
-    if (!session) return;
+    if (!session || !blockId || !setId) return;
     try {
       await apiClient.delete(`/workouts/blocks/${blockId}/sets/${setId}`);
       const updatedBlocks = session.exerciseBlocks.map((block) => {
@@ -170,7 +175,7 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
 
   unlogSet: async (blockId, setId) => {
     const session = get().activeSession;
-    if (!session) return;
+    if (!session || !blockId || !setId) return;
     try {
       const response = await apiClient.patch(`/workouts/blocks/${blockId}/sets/${setId}`, { unlog: true });
       const unloggedSet = response.data as SetLog;
@@ -187,7 +192,7 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
 
   removeExercise: async (blockId) => {
     const session = get().activeSession;
-    if (!session) return;
+    if (!session?.id || !blockId) return;
     try {
       await apiClient.delete(`/workouts/sessions/${session.id}/blocks/${blockId}`);
       const updatedBlocks = session.exerciseBlocks.filter((b) => b.id !== blockId);
@@ -199,7 +204,7 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
 
   finishSession: async (rpe) => {
     const session = get().activeSession;
-    if (!session) return;
+    if (!session?.id) return;
     set({ isLoading: true, error: null });
     try {
       const body: any = {};
@@ -220,20 +225,21 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
 
   cancelSession: async () => {
     const session = get().activeSession;
-    if (!session) return;
-    set({ isLoading: true, error: null });
+    // Always clear local state first so UI updates immediately
+    set({ activeSession: null, lastPerformances: {}, isLoading: false });
+    if (!session?.id) return;
     try {
       await apiClient.delete(`/workouts/sessions/${session.id}`);
-      set({ activeSession: null, lastPerformances: {}, isLoading: false });
       get().fetchHistory();
     } catch (e: any) {
-      set({ isLoading: false, error: e.message });
+      // Session might already be deleted on backend — local state is already cleared
+      get().fetchHistory();
     }
   },
 
   reorderExercises: async (oldIndex, newIndex) => {
     const session = get().activeSession;
-    if (!session) return;
+    if (!session?.id) return;
     
     if (oldIndex < newIndex) {
       newIndex -= 1;
@@ -269,17 +275,28 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
 
   // ── History ──
   fetchHistory: async (page = 1) => {
+    set({ isLoading: true });
     try {
       const response = await apiClient.get('/workouts/sessions', { params: { page, limit: 15 }});
-      let historyData = [];
+      let historyData: WorkoutSession[] = [];
       if (Array.isArray(response.data)) {
         historyData = response.data;
-      } else if (response.data && response.data.sessions) {
+      } else if (response.data?.sessions) {
         historyData = response.data.sessions;
       }
-      set({ history: historyData });
+      const mappedHistory = historyData.map((session: any) => ({
+        ...session,
+        exerciseBlocks: session.exerciseBlocks?.map((block: any) => ({
+          ...block,
+          exerciseName: block.exercise?.name || 'Unknown',
+          primaryMuscles: block.exercise?.primaryMuscles || [],
+          isUnilateral: block.exercise?.isUnilateral || false,
+          sets: block.sets || [],
+        })) || [],
+      }));
+      set({ history: mappedHistory, isLoading: false });
     } catch (e: any) {
-      set({ error: e.message });
+      set({ error: e.message, isLoading: false, history: [] });
     }
   },
 
@@ -287,8 +304,23 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await apiClient.get(`/workouts/sessions/${id}`);
+      const sessionData = response.data as any;
+      if (!sessionData) return null;
+      
+      // Map exerciseBlocks with exercise names and muscle groups
+      const mappedSession = {
+        ...sessionData,
+        exerciseBlocks: sessionData.exerciseBlocks?.map((block: any) => ({
+          ...block,
+          exerciseName: block.exercise?.name || 'Exercise',
+          primaryMuscles: block.exercise?.primaryMuscles || [],
+          isUnilateral: block.exercise?.isUnilateral || false,
+          sets: block.sets || [],
+        })) || [],
+      };
+      
       set({ isLoading: false });
-      return response.data as WorkoutSession;
+      return mappedSession as WorkoutSession;
     } catch (e: any) {
       set({ isLoading: false, error: e.message });
       return null;

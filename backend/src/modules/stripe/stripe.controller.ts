@@ -12,6 +12,7 @@ import {
   Inject,
   forwardRef,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { StripeService } from './stripe.service';
 import { Public } from '../../common/decorators/public.decorator';
 import { Response, Request } from 'express';
@@ -80,6 +81,7 @@ export class StripeController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { ttl: 60000, limit: 10 }, stripe: { ttl: 60000, limit: 10 } })
   @Post('checkout')
   async createCheckout(@Req() req: any, @Body() body: { planId: string; organizationId?: string }) {
     const userId = req.user.id;

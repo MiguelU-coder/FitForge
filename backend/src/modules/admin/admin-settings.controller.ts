@@ -1,4 +1,5 @@
 import { Controller, Get, Put, Body, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PrismaService } from '../../database/prisma.service';
 import { UserRole } from '@prisma/client';
@@ -9,6 +10,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 export class AdminSettingsController {
   constructor(private readonly prisma: PrismaService) {}
 
+  @Throttle({ default: { ttl: 60000, limit: 30 }, admin: { ttl: 60000, limit: 30 } })
   @Get('global-settings')
   @Roles(UserRole.GLOBAL_ADMIN)
   async getGlobalSettings() {
@@ -44,6 +46,7 @@ export class AdminSettingsController {
     };
   }
 
+  @Throttle({ default: { ttl: 60000, limit: 30 }, admin: { ttl: 60000, limit: 30 } })
   @Put('global-settings')
   @Roles(UserRole.GLOBAL_ADMIN)
   async updateGlobalSettings(

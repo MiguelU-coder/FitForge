@@ -21,7 +21,7 @@ export class AuthController {
 
   // ── POST /auth/register ──────────────────────────────────────────────────
   @Public()
-  @Throttle({ default: { ttl: 60000, limit: 5 } }) // 5 registros/min por IP
+  @Throttle({ default: { ttl: 60000, limit: 10 }, auth: { ttl: 60000, limit: 10 } })
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   async register(
@@ -36,7 +36,7 @@ export class AuthController {
 
   // ── POST /auth/login ─────────────────────────────────────────────────────
   @Public()
-  @Throttle({ default: { ttl: 300000, limit: 10 } }) // 10 intentos/5min por IP
+  @Throttle({ default: { ttl: 60000, limit: 20 }, auth: { ttl: 60000, limit: 20 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(
@@ -51,7 +51,7 @@ export class AuthController {
 
   // ── POST /auth/refresh ───────────────────────────────────────────────────
   @Public()
-  @Throttle({ default: { ttl: 60000, limit: 30 } }) // 30 refreshes/min
+  @Throttle({ default: { ttl: 60000, limit: 60 }, auth: { ttl: 60000, limit: 60 } })
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   async refresh(
@@ -65,6 +65,7 @@ export class AuthController {
   }
 
   // ── POST /auth/logout ────────────────────────────────────────────────────
+  @Throttle({ default: { ttl: 60000, limit: 30 }, auth: { ttl: 60000, limit: 30 } })
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   async logout(

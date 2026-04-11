@@ -25,7 +25,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import RestTimer from "../../src/components/RestTimer";
 import ExercisePickerModal from "../../src/components/ExercisePickerModal";
-import WorkoutSetRow from "../../src/components/WorkoutSetRow";
+import WorkoutSetRow, { SetType } from "../../src/components/WorkoutSetRow";
 import AiRecommendationCard from "../../src/components/AiRecommendationCard";
 import FinishWorkoutModal from "../../src/components/FinishWorkoutModal";
 import PlateCalculator from "../../src/components/PlateCalculator";
@@ -79,15 +79,17 @@ export default function ActiveSessionScreen() {
   >({});
   const [plateCalcVisible, setPlateCalcVisible] = useState(false);
   const [plateCalcWeight, setPlateCalcWeight] = useState("");
+  const [setTypes, setSetTypes] = useState<Record<string, SetType>>({});
 
   const onDismissTimer = useCallback(() => setTimerVisible(false), []);
   const onTimerEnd = useCallback(() => setTimerVisible(false), []);
 
   // ── Session stats ──
   const stats = useMemo(() => {
-    if (!activeSession) return { sets: 0, tonnage: 0 };
+    if (!activeSession?.exerciseBlocks?.length) return { sets: 0, tonnage: 0 };
     return activeSession.exerciseBlocks.reduce(
       (acc, block) => {
+        if (!block.sets?.length) return acc;
         block.sets.forEach((set) => {
           if (set.weightKg != null && set.reps != null) {
             acc.sets += 1;
@@ -136,7 +138,7 @@ export default function ActiveSessionScreen() {
   };
 
   const collapseAll = () => {
-    if (!activeSession) return;
+    if (!activeSession?.exerciseBlocks?.length) return;
     setCollapsedBlocks(new Set(activeSession.exerciseBlocks.map((b) => b.id)));
   };
 
@@ -155,12 +157,16 @@ export default function ActiveSessionScreen() {
       rpe: rpe.toString(),
     };
 
-    await finishSession(rpe);
-
-    // Navigate to summary with params
+    // Navigate FIRST, then finish session in background
+    // This prevents the component from unmounting before navigation
     router.replace({
       pathname: "/workout/summary",
       params: summaryData,
+    });
+
+    // Finish session after navigation (don't await to avoid blocking)
+    finishSession(rpe).catch(() => {
+      // Session will be cleaned up on next app start if this fails
     });
   };
 
@@ -174,7 +180,10 @@ export default function ActiveSessionScreen() {
           text: "Sí, Descartar",
           style: "destructive",
           onPress: async () => {
-            await cancelSession();
+            if (activeSession?.id) {
+              await cancelSession();
+            }
+            router.replace("/(tabs)");
           },
         },
       ],
@@ -264,7 +273,7 @@ export default function ActiveSessionScreen() {
 
       // Only trigger rest timer and coach feedback if we actually logged data
       if (input.weight && input.reps) {
-        if (user && activeSession) {
+        if (user && activeSession?.exerciseBlocks) {
           const block = activeSession.exerciseBlocks.find(
             (b) => b.id === blockId,
           );
@@ -274,7 +283,7 @@ export default function ActiveSessionScreen() {
             setTimerVisible(true);
 
             const formattedSets = [
-              ...block.sets,
+              ...(block.sets || []),
               {
                 weightKg: parseFloat(input.weight),
                 reps: parseInt(input.reps, 10),
@@ -324,15 +333,25 @@ export default function ActiveSessionScreen() {
     );
   }
 
-  if (!activeSession) return null;
+  if (!activeSession) {
+    // Session was cleared (finished/canceled) — navigate to home
+    router.replace("/(tabs)");
+    return null;
+  }
 
-  const totalBlocks = activeSession.exerciseBlocks.length;
+  const totalBlocks = activeSession.exerciseBlocks?.length ?? 0;
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
+      <LinearGradient
+        colors={[Colors.background, `${Colors.primary}08`]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
       {/* ── Header ── */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <Pressable onPress={handleCancel} style={styles.cancelBtn} hitSlop={8}>
@@ -436,14 +455,15 @@ export default function ActiveSessionScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {activeSession.exerciseBlocks.map((block, blockIndex) => {
+        {activeSession.exerciseBlocks?.map((block, blockIndex) => {
           const isCollapsed = collapsedBlocks.has(block.id);
           const isMenuOpen = openMenuBlockId === block.id;
 
-          const completedSets = block.sets.filter(
+          const blockSets = block.sets || [];
+          const completedSets = blockSets.filter(
             (s) => s.weightKg != null && s.reps != null,
           ).length;
-          const blockTonnage = block.sets.reduce((acc, s) => {
+          const blockTonnage = blockSets.reduce((acc, s) => {
             if (s.weightKg != null && s.reps != null)
               acc += Math.round(s.weightKg * s.reps);
             return acc;
@@ -452,7 +472,7 @@ export default function ActiveSessionScreen() {
           const blockDrafts = drafts[block.id] || [];
           const nextSetNumber =
             Math.max(
-              block.sets.reduce(
+              blockSets.reduce(
                 (max, s) => Math.max(max, s.setNumber || 0),
                 0,
               ) || 0,
@@ -506,7 +526,7 @@ export default function ActiveSessionScreen() {
                             ]}
                           >
                             {completedSets}/
-                            {block.sets.length + blockDrafts.length} sets
+                            {blockSets.length + blockDrafts.length} sets
                           </Text>
                         </View>
                         {blockTonnage > 0 && (
@@ -517,8 +537,8 @@ export default function ActiveSessionScreen() {
                       </>
                     ) : (
                       <Text style={styles.metaEmpty}>
-                        {block.sets.length > 0
-                          ? `${block.sets.length} sets planned`
+                        {blockSets.length > 0
+                          ? `${blockSets.length} sets planned`
                           : "No sets yet"}
                       </Text>
                     )}
@@ -572,13 +592,13 @@ export default function ActiveSessionScreen() {
 
               {!isCollapsed && (
                 <View style={styles.blockBody}>
-                  {block.sets.length + blockDrafts.length > 0 && (
+                  {blockSets.length + blockDrafts.length > 0 && (
                     <View style={styles.progressBar}>
                       <View
                         style={[
                           styles.progressBarFill,
                           {
-                            width: `${Math.min((completedSets / (block.sets.length + blockDrafts.length)) * 100, 100)}%`,
+                            width: `${Math.min((completedSets / (blockSets.length + blockDrafts.length)) * 100, 100)}%`,
                           },
                         ]}
                       />
@@ -608,7 +628,7 @@ export default function ActiveSessionScreen() {
                     <View style={{ width: 70, marginLeft: 4 }} />
                   </View>
 
-                  {block.sets.map((set) => {
+                  {blockSets.map((set) => {
                     const inputValue = inputs[set.id] || {
                       weight: set.weightKg?.toString() ?? "",
                       reps: set.reps?.toString() ?? "",
@@ -624,12 +644,16 @@ export default function ActiveSessionScreen() {
                         weight={inputValue.weight}
                         reps={inputValue.reps}
                         rir={inputValue.rir}
+                        setType={setTypes[set.id] ?? 'normal'}
                         isCompleted={isCompleted}
                         onWeightChange={(val) =>
                           updateInput(set.id, "weight", val)
                         }
                         onRepsChange={(val) => updateInput(set.id, "reps", val)}
                         onRirChange={(val) => updateInput(set.id, "rir", val)}
+                        onSetTypeChange={(type) =>
+                          setSetTypes((prev) => ({ ...prev, [set.id]: type }))
+                        }
                         onCheck={() => {
                           if (isCompleted) unlogSet(block.id, set.id);
                           else {
@@ -667,6 +691,7 @@ export default function ActiveSessionScreen() {
                         weight={inputValue.weight}
                         reps={inputValue.reps}
                         rir={inputValue.rir}
+                        setType={setTypes[draft.tempId] ?? 'normal'}
                         isCompleted={false}
                         onWeightChange={(val) =>
                           updateInput(draft.tempId, "weight", val)
@@ -676,6 +701,9 @@ export default function ActiveSessionScreen() {
                         }
                         onRirChange={(val) =>
                           updateInput(draft.tempId, "rir", val)
+                        }
+                        onSetTypeChange={(type) =>
+                          setSetTypes((prev) => ({ ...prev, [draft.tempId]: type }))
                         }
                         onCheck={() =>
                           handleLogSet(

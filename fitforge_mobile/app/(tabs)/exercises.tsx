@@ -14,6 +14,7 @@ import {
   Modal,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import { Colors, Shadows } from "../../src/theme/colors";
 import { useExerciseStore } from "../../src/stores/useExerciseStore";
 import {
@@ -61,6 +62,12 @@ export default function ExercisesScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <LinearGradient
+        colors={[Colors.background, `${Colors.primary}08`]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
       {/* ── Header & Search ── */}
       <View style={styles.headerSection}>
         <View style={styles.header}>

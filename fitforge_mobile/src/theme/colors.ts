@@ -52,9 +52,9 @@ export const Colors = {
   // TEXT — Warm whites over neutral gray backgrounds
   // ═══════════════════════════════════════════════════════════════════════════
   textPrimary: '#F5F5F5',
-  textSecondary: '#A3A3A3',
-  textTertiary: '#6B6B6B',
-  textMuted: '#3D3D3D',
+  textSecondary: '#C8C8C8',
+  textTertiary: '#888888',
+  textMuted: '#606060',
   /// Text on primary green — white for contrast
   textOnPrimary: '#FFFFFF',
 

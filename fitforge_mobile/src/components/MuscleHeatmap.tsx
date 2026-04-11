@@ -46,7 +46,7 @@ export default function MuscleHeatmap({ volumeData }: MuscleHeatmapProps) {
   // Aggregate data specifically by muscle
   const muscleSets: Record<string, number> = {};
 
-  volumeData.forEach((vol) => {
+  volumeData?.forEach((vol) => {
     if (vol.muscleGroup) {
       const slug = mapMuscle(vol.muscleGroup);
       if (slug) {
@@ -99,15 +99,15 @@ export default function MuscleHeatmap({ volumeData }: MuscleHeatmapProps) {
       <View style={styles.legendRow}>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: "#10B981" }]} />
-          <Text style={styles.legendText}>Optimal</Text>
+          <Text style={styles.legendText}>Óptimo</Text>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: "#EF4444" }]} />
-          <Text style={styles.legendText}>Overload</Text>
+          <Text style={styles.legendText}>Sobrecarga</Text>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: "#F59E0B" }]} />
-          <Text style={styles.legendText}>Under MEV</Text>
+          <Text style={styles.legendText}>Bajo MEV</Text>
         </View>
       </View>
     </View>

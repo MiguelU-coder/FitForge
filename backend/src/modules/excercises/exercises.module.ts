@@ -661,11 +661,7 @@ export class ExercisesService {
     const exerciseName = ex.fitforgeName || ex.name;
 
     // Infer movement pattern from exercise characteristics
-    const movementPattern = this.inferMovementPattern(
-      exerciseName,
-      primaryMuscles,
-      equipmentStr,
-    );
+    const movementPattern = this.inferMovementPattern(exerciseName, primaryMuscles, equipmentStr);
 
     // 4. Create
     const newExercise = await this.prisma.exercise.create({
@@ -689,7 +685,10 @@ export class ExercisesService {
    * Re-process all existing external exercises to set movement patterns.
    * Call this after deploying the movement pattern inference logic.
    */
-  async updateExistingExercisesWithMovementPatterns(): Promise<{ updated: number; errors: string[] }> {
+  async updateExistingExercisesWithMovementPatterns(): Promise<{
+    updated: number;
+    errors: string[];
+  }> {
     const exercises = await this.prisma.exercise.findMany({
       where: {
         isCustom: false,
@@ -804,7 +803,9 @@ export class ExercisesController {
   // Admin endpoint to update existing exercises with movement patterns
   @Post('admin/migrate-movement-patterns')
   @HttpCode(HttpStatus.OK)
-  async migrateMovementPatterns(@CurrentUser() user: AuthUser): Promise<{ updated: number; errors: string[] }> {
+  async migrateMovementPatterns(
+    @CurrentUser() user: AuthUser,
+  ): Promise<{ updated: number; errors: string[] }> {
     // Check if user is admin (you may want to add proper admin role check)
     return this.exercisesService.updateExistingExercisesWithMovementPatterns();
   }

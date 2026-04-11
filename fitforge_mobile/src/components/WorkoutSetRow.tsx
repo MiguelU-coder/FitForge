@@ -1,20 +1,40 @@
-import { View, Text, StyleSheet, TextInput, Pressable, Animated } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Pressable, Animated, Modal } from 'react-native';
+import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
 import { Swipeable } from 'react-native-gesture-handler';
 
 export type RirValue = undefined | 0 | 1 | 2 | 3 | 4;
+export type SetType = 'normal' | 'warmup' | 'dropset' | 'failure' | 'unilateral';
+
+interface SetTypeConfig {
+  label: string;
+  shortLabel: string;
+  description: string;
+  color: string;
+  icon: string;
+}
+
+const SET_TYPE_CONFIG: Record<SetType, SetTypeConfig> = {
+  normal:     { label: 'Normal',       shortLabel: '',  description: 'Serie estándar de trabajo',         color: Colors.textSecondary, icon: 'fitness-outline' },
+  warmup:     { label: 'Calentamiento',shortLabel: 'W', description: 'Peso reducido para activar músculos', color: '#F59E0B',             icon: 'sunny-outline' },
+  dropset:    { label: 'Drop Set',     shortLabel: 'D', description: 'Reduce el peso sin descanso',       color: '#0EA5E9',             icon: 'trending-down-outline' },
+  failure:    { label: 'Al Fallo',     shortLabel: 'F', description: 'Hasta el fallo muscular',           color: '#EF4444',             icon: 'flame-outline' },
+  unilateral: { label: 'Unilateral',   shortLabel: 'U', description: 'Un lado a la vez',                 color: '#A855F7',             icon: 'body-outline' },
+};
 
 export interface WorkoutSetRowProps {
   setNumber: number;
   weight: string;
   reps: string;
   rir: RirValue;
+  setType?: SetType;
   isCompleted?: boolean;
   isEmptyRow?: boolean;
   onWeightChange: (val: string) => void;
   onRepsChange: (val: string) => void;
   onRirChange?: (val: RirValue) => void;
+  onSetTypeChange?: (type: SetType) => void;
   onCheck: () => void;
   onDelete?: () => void;
   onBlur?: () => void;
@@ -32,9 +52,11 @@ const RIR_COLORS: Record<number, string> = {
 };
 
 export default function WorkoutSetRow({
-  setNumber, weight, reps, rir, isCompleted, isEmptyRow,
-  onWeightChange, onRepsChange, onRirChange, onCheck, onDelete, onBlur, onOpenCalculator
+  setNumber, weight, reps, rir, setType = 'normal', isCompleted, isEmptyRow,
+  onWeightChange, onRepsChange, onRirChange, onSetTypeChange, onCheck, onDelete, onBlur, onOpenCalculator
 }: WorkoutSetRowProps) {
+  const [typeModalVisible, setTypeModalVisible] = useState(false);
+  const typeConfig = SET_TYPE_CONFIG[setType];
 
   const renderRightActions = (_progress: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>) => {
     const scale = dragX.interpolate({
@@ -59,13 +81,27 @@ export default function WorkoutSetRow({
       friction={2}
     >
       <View style={styles.container}>
-        {/* Set Number */}
+        {/* Set Number — tap to change set type */}
         <View style={styles.setNumberWrap}>
-          <View style={[styles.setNumberBox, isCompleted && styles.setNumberBoxActive]}>
-            <Text style={[styles.setNumberText, isCompleted && styles.setNumberTextActive]}>
-              {setNumber}
-            </Text>
-          </View>
+          <Pressable
+            style={[
+              styles.setNumberBox,
+              isCompleted && styles.setNumberBoxActive,
+              setType !== 'normal' && { borderColor: typeConfig.color, backgroundColor: `${typeConfig.color}1A` },
+            ]}
+            onPress={() => onSetTypeChange && setTypeModalVisible(true)}
+            disabled={!onSetTypeChange}
+          >
+            {setType !== 'normal' ? (
+              <Text style={[styles.setTypeShortLabel, { color: typeConfig.color }]}>
+                {typeConfig.shortLabel}
+              </Text>
+            ) : (
+              <Text style={[styles.setNumberText, isCompleted && styles.setNumberTextActive]}>
+                {setNumber}
+              </Text>
+            )}
+          </Pressable>
         </View>
 
         {/* Weight Input */}
@@ -164,6 +200,57 @@ export default function WorkoutSetRow({
           </Pressable>
         </View>
       </View>
+
+      {/* ── Set Type Picker Modal ── */}
+      <Modal
+        visible={typeModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setTypeModalVisible(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setTypeModalVisible(false)}>
+          <Pressable style={styles.modalSheet} onPress={() => {}}>
+            {/* Handle */}
+            <View style={styles.modalHandle} />
+
+            <Text style={styles.modalTitle}>Tipo de Serie — Set {setNumber}</Text>
+            <Text style={styles.modalSubtitle}>Selecciona el tipo para esta serie</Text>
+
+            <View style={styles.modalOptions}>
+              {(Object.keys(SET_TYPE_CONFIG) as SetType[]).map((type) => {
+                const cfg = SET_TYPE_CONFIG[type];
+                const isSelected = setType === type;
+                return (
+                  <Pressable
+                    key={type}
+                    style={[
+                      styles.modalOption,
+                      isSelected && { borderColor: cfg.color, backgroundColor: `${cfg.color}12` },
+                    ]}
+                    onPress={() => {
+                      onSetTypeChange?.(type);
+                      setTypeModalVisible(false);
+                    }}
+                  >
+                    <View style={[styles.modalOptionIcon, { backgroundColor: `${cfg.color}20` }]}>
+                      <Ionicons name={cfg.icon as any} size={20} color={cfg.color} />
+                    </View>
+                    <View style={styles.modalOptionText}>
+                      <Text style={[styles.modalOptionLabel, isSelected && { color: cfg.color }]}>
+                        {cfg.label}
+                      </Text>
+                      <Text style={styles.modalOptionDesc}>{cfg.description}</Text>
+                    </View>
+                    {isSelected && (
+                      <Ionicons name="checkmark-circle" size={20} color={cfg.color} />
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </Swipeable>
   );
 }
@@ -202,6 +289,11 @@ const styles = StyleSheet.create({
   },
   setNumberTextActive: {
     color: Colors.primary,
+  },
+  setTypeShortLabel: {
+    fontFamily: 'DMSans-Bold',
+    fontSize: 12,
+    letterSpacing: 0.5,
   },
   inputWrap: {
     width: 38,
@@ -295,5 +387,76 @@ const styles = StyleSheet.create({
   },
   calcBtnPlaceholder: {
     width: 38,
-  }
+  },
+
+  // ── Set Type Modal ──
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: Colors.surface,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 36,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderColor: Colors.border,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.border,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontFamily: 'DMSans-Bold',
+    fontSize: 16,
+    color: Colors.textPrimary,
+    marginBottom: 4,
+  },
+  modalSubtitle: {
+    fontFamily: 'DMSans-Regular',
+    fontSize: 13,
+    color: Colors.textSecondary,
+    marginBottom: 20,
+  },
+  modalOptions: {
+    gap: 10,
+  },
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.elevated,
+    gap: 14,
+  },
+  modalOptionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalOptionText: {
+    flex: 1,
+  },
+  modalOptionLabel: {
+    fontFamily: 'DMSans-SemiBold',
+    fontSize: 15,
+    color: Colors.textPrimary,
+  },
+  modalOptionDesc: {
+    fontFamily: 'DMSans-Regular',
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
 });

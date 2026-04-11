@@ -1,5 +1,9 @@
 import { ExerciseType, FatigueLevel } from '@prisma/client';
-import { ExerciseSelectionService, ExerciseWithMeta, VolumeTracker } from './exercise-selection.service';
+import {
+  ExerciseSelectionService,
+  ExerciseWithMeta,
+  VolumeTracker,
+} from './exercise-selection.service';
 
 describe('ExerciseSelectionService', () => {
   let service: ExerciseSelectionService;

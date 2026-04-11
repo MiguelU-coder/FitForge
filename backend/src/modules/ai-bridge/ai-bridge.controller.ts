@@ -1,4 +1,5 @@
 import { Controller, Post, Body, Req, HttpCode, HttpStatus } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { Request } from 'express';
 import { AiBridgeService } from './ai-bridge.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -27,6 +28,7 @@ export class AiBridgeController {
   }
 
   /** Progressive overload recommendation */
+  @Throttle({ default: { ttl: 60000, limit: 20 }, ai: { ttl: 60000, limit: 20 } })
   @Post('progression')
   @HttpCode(HttpStatus.OK)
   async progression(@Body() dto: ProgressionRequestDto, @Req() req: Request) {
@@ -34,6 +36,7 @@ export class AiBridgeController {
   }
 
   /** Real-time next-set suggestion (called during active workout) */
+  @Throttle({ default: { ttl: 60000, limit: 30 }, ai: { ttl: 60000, limit: 30 } })
   @Post('suggestion')
   @HttpCode(HttpStatus.OK)
   async suggestion(@Body() dto: WorkoutSuggestionRequestDto, @Req() req: Request) {
@@ -41,6 +44,7 @@ export class AiBridgeController {
   }
 
   /** Weekly volume MEV/MAV/MRV analysis */
+  @Throttle({ default: { ttl: 60000, limit: 30 }, ai: { ttl: 60000, limit: 30 } })
   @Post('volume')
   @HttpCode(HttpStatus.OK)
   async volume(@Body() dto: VolumeAnalysisRequestDto, @Req() req: Request) {
@@ -48,6 +52,7 @@ export class AiBridgeController {
   }
 
   /** Accumulated fatigue assessment */
+  @Throttle({ default: { ttl: 60000, limit: 30 }, ai: { ttl: 60000, limit: 30 } })
   @Post('fatigue')
   @HttpCode(HttpStatus.OK)
   async fatigue(@Body() dto: FatigueRequestDto, @Req() req: Request) {
@@ -55,6 +60,7 @@ export class AiBridgeController {
   }
 
   /** Muscle recovery prediction */
+  @Throttle({ default: { ttl: 60000, limit: 30 }, ai: { ttl: 60000, limit: 30 } })
   @Post('recovery')
   @HttpCode(HttpStatus.OK)
   async recovery(@Body() dto: RecoveryRequestDto, @Req() req: Request) {
@@ -62,6 +68,7 @@ export class AiBridgeController {
   }
 
   /** Injury risk assessment */
+  @Throttle({ default: { ttl: 60000, limit: 30 }, ai: { ttl: 60000, limit: 30 } })
   @Post('injury-risk')
   @HttpCode(HttpStatus.OK)
   async injuryRisk(@Body() dto: InjuryRiskRequestDto, @Req() req: Request) {
@@ -69,6 +76,7 @@ export class AiBridgeController {
   }
 
   /** PR prediction */
+  @Throttle({ default: { ttl: 60000, limit: 30 }, ai: { ttl: 60000, limit: 30 } })
   @Post('pr-prediction')
   @HttpCode(HttpStatus.OK)
   async prPrediction(@Body() dto: PRPredictionRequestDto, @Req() req: Request) {
@@ -79,6 +87,7 @@ export class AiBridgeController {
    * Phase 3 — LLM-powered AI Coach
    * Forwards to ai-services on port 8001.
    */
+  @Throttle({ default: { ttl: 60000, limit: 15 }, ai: { ttl: 60000, limit: 15 } })
   @Post('coach')
   @HttpCode(HttpStatus.OK)
   async coachAnalyze(@Body() dto: CoachAnalyzeRequestDto, @Req() req: Request) {
@@ -88,6 +97,7 @@ export class AiBridgeController {
   /**
    * Phase 3 — LLM-powered AI Coach Session Summary
    */
+  @Throttle({ default: { ttl: 60000, limit: 15 }, ai: { ttl: 60000, limit: 15 } })
   @Post('coach/session')
   @HttpCode(HttpStatus.OK)
   async coachSession(@Body() dto: SessionCoachAnalyzeRequestDto, @Req() req: Request) {
@@ -98,6 +108,7 @@ export class AiBridgeController {
    * Generate and save a personalized workout routine based on user profile.
    * Called from Flutter onboarding flow.
    */
+  @Throttle({ default: { ttl: 60000, limit: 10 }, ai: { ttl: 60000, limit: 10 } })
   @Post('coach/routine')
   @HttpCode(HttpStatus.OK)
   async coachRoutine(

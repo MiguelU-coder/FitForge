@@ -12,6 +12,7 @@ import {
   Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "../../src/theme/colors";
 import { MUSCLE_GROUPS, formatLabel } from "../../src/types/exercise";
 import { useExerciseStore } from "../../src/stores/useExerciseStore";
@@ -57,6 +58,12 @@ export default function CreateExerciseScreen() {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
+      <LinearGradient
+        colors={[Colors.background, `${Colors.primary}08`]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backBtnText}>←</Text>

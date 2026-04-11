@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useProgressStore } from "../../src/stores/useProgressStore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, Shadows } from "../../src/theme/colors";
@@ -29,6 +30,12 @@ export default function MetricsHistoryScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <LinearGradient
+        colors={[Colors.background, `${Colors.primary}08`]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
       {/* ── Header ── */}
       <View style={styles.header}>
         <Pressable
@@ -219,7 +226,7 @@ const styles = StyleSheet.create({
   dateYear: {
     fontFamily: "DMSans-Regular",
     fontSize: 10,
-    color: Colors.textMuted,
+    color: "#18B97A",
   },
   statsCol: {
     flex: 1,
@@ -236,10 +243,10 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontFamily: "DMSans-Bold",
-    fontSize: 9,
-    color: Colors.textMuted,
-    letterSpacing: 1,
-    marginBottom: 4,
+    fontSize: 12,
+    color: "#18B97A",
+    letterSpacing: 0.5,
+    marginBottom: 6,
   },
   statValueRow: {
     flexDirection: "row",
@@ -254,7 +261,8 @@ const styles = StyleSheet.create({
   statUnit: {
     fontFamily: "DMSans-Medium",
     fontSize: 10,
-    color: Colors.textTertiary,
+    color: "#18B97A",
+    gap: 3,
   },
   notesBox: {
     marginTop: 12,

@@ -2,7 +2,7 @@
 // Port of home_screen.dart — Home dashboard
 // Design: Industrial Premium Athletic — "Carbon Forge"
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -10,8 +10,10 @@ import {
   Pressable,
   StyleSheet,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import { Colors, Shadows, Gradients } from "../../src/theme/colors";
 import { Typography } from "../../src/theme/typography";
 import { useAuthStore } from "../../src/stores/useAuthStore";
@@ -22,16 +24,49 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
   const { user, logout } = useAuthStore();
-  const { activeSession, startSession, history, fetchHistory } =
+  const { activeSession, checkForActiveSession, startSession, history, fetchHistory, isLoading, error: storeError, clearError } =
     useWorkoutStore();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [startError, setStartError] = useState("");
+  const [sessionElapsed, setSessionElapsed] = useState(0);
+  const hasCheckedOnce = useRef(false);
 
-  // Refresh history when screen mounts
+  // Clear local error when store error changes
   useEffect(() => {
-    fetchHistory();
-  }, []);
+    if (storeError) {
+      setStartError(storeError);
+    }
+  }, [storeError]);
+
+  // Check for active session when screen gains focus (handles app resume)
+  // Only call checkForActiveSession if we don't already have a local session
+  useFocusEffect(
+    useCallback(() => {
+      if (!hasCheckedOnce.current || !useWorkoutStore.getState().activeSession) {
+        checkForActiveSession();
+      }
+      hasCheckedOnce.current = true;
+      fetchHistory();
+    }, [checkForActiveSession, fetchHistory]),
+  );
+
+  // Live timer for active session
+  useEffect(() => {
+    if (!activeSession?.startedAt) {
+      setSessionElapsed(0);
+      return;
+    }
+
+    const start = new Date(activeSession.startedAt).getTime();
+    const updateElapsed = () => {
+      setSessionElapsed(Math.floor((Date.now() - start) / 1000));
+    };
+
+    updateElapsed();
+    const interval = setInterval(updateElapsed, 1000);
+    return () => clearInterval(interval);
+  }, [activeSession?.startedAt]);
 
   const name = user?.displayName?.split(" ")[0] ?? "Atleta";
   const hour = new Date().getHours();
@@ -51,12 +86,22 @@ export default function HomeScreen() {
     day: "numeric",
   });
 
+  // Helper to format seconds as MM:SS or HH:MM:SS
+  const formatDuration = (seconds: number): string => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+  };
+
   // ── Metric Calculations ──
   const todayStats = useMemo(() => {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const todaySessions = history.filter((s) => {
-      const d = new Date(s.finishedAt ?? s.startedAt);
+      if (!s.finishedAt) return false;
+      const d = new Date(s.finishedAt);
       return d >= todayStart;
     });
     let sets = 0;
@@ -81,7 +126,8 @@ export default function HomeScreen() {
     monday.setHours(0, 0, 0, 0);
 
     const weekSessions = history.filter((s) => {
-      const d = new Date(s.finishedAt ?? s.startedAt);
+      if (!s.finishedAt) return false;
+      const d = new Date(s.finishedAt);
       return d >= monday;
     });
     let sets = 0;
@@ -109,7 +155,8 @@ export default function HomeScreen() {
       const dayStart = new Date(check);
       dayStart.setHours(0, 0, 0, 0);
       const hasSession = history.some((s) => {
-        const d = new Date(s.finishedAt ?? s.startedAt);
+        if (!s.finishedAt) return false;
+        const d = new Date(s.finishedAt);
         return d >= dayStart && d <= check;
       });
       if (!hasSession) break;
@@ -147,272 +194,304 @@ export default function HomeScreen() {
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top }]}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* ── Hero Header ── */}
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <LinearGradient
-        colors={["#0A2016", Colors.background]}
+        colors={[Colors.background, `${Colors.primary}08`]}
         start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.heroHeader}
+        end={{ x: 0, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[styles.content]}
+        showsVerticalScrollIndicator={false}
       >
-        <View style={styles.heroLeft}>
-          <View style={styles.datePill}>
-            <Text style={styles.datePillText}>{dateStr}</Text>
-          </View>
-          <Text style={styles.greetingText}>{greeting}</Text>
-          <Text style={styles.nameText}>{name}</Text>
-          <View style={styles.motivationRow}>
-            <View style={styles.motivationAccent} />
-            <Text style={styles.motivationText}>{motivation}</Text>
-          </View>
-        </View>
-        <Pressable style={styles.avatarBtn} onPress={handleProfileMenu}>
-          <Ionicons name="person-outline" size={24} color={Colors.primary} />
-        </Pressable>
-      </LinearGradient>
-
-      {/* ── Dynamic Main Card (Active Session or Quick Start) ── */}
-      {activeSession ? (
-        <Pressable onPress={() => router.push("/workout/active")}>
-          <LinearGradient
-            colors={["#18B97A1A", "#0F3D2240"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.activeCard}
-          >
-            <View style={styles.activeContent}>
-              <View style={styles.activeIconContainer}>
-                <Ionicons
-                  name="play"
-                  size={20}
-                  color={Colors.primary}
-                  style={{ marginLeft: 2 }}
-                />
-              </View>
-              <View style={{ flex: 1, marginLeft: 16 }}>
-                <Text style={styles.activeTag}>EN PROGRESO</Text>
-                <Text style={styles.activeTitle} numberOfLines={1}>
-                  {activeSession.name}
-                </Text>
-                <Text style={styles.activeTime}>00:00 transcurrido</Text>
-              </View>
-              <View style={styles.resumeBtn}>
-                <Text style={styles.resumeBtnText}>Reanudar</Text>
-              </View>
+        {/* ── Hero Header ── */}
+        <View style={styles.heroHeader}>
+          <View style={styles.heroLeft}>
+            <View style={styles.datePill}>
+              <Text style={styles.datePillText}>{dateStr}</Text>
             </View>
-          </LinearGradient>
-        </Pressable>
-      ) : (
-        <Pressable
-          onPress={async () => {
-            try {
-              setStartError("");
-              await startSession();
-              router.push("/workout/active");
-            } catch (e: unknown) {
-              const msg =
-                e instanceof Error ? e.message : "Error al iniciar sesión";
-              setStartError(msg);
-            }
-          }}
-        >
-          <LinearGradient
-            colors={["#0F3D22", "#18B97A59"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.quickStartCard}
+            <Text style={styles.greetingText}>{greeting}</Text>
+            <Text style={styles.nameText}>{name}</Text>
+            <View style={styles.motivationRow}>
+              <View style={styles.motivationAccent} />
+              <Text style={styles.motivationText}>{motivation}</Text>
+            </View>
+          </View>
+          <Pressable style={styles.avatarBtn} onPress={handleProfileMenu}>
+            <Ionicons name="person-outline" size={24} color={Colors.primary} />
+          </Pressable>
+        </View>
+
+        {/* ── Dynamic Main Card (Active Session or Quick Start) ── */}
+        {activeSession ? (
+          <Pressable onPress={() => router.push("/workout/active")}>
+            <LinearGradient
+              colors={["#18B97A1A", "#0F3D2240"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.activeCard}
+            >
+              <View style={styles.activeContent}>
+                <View style={styles.activeIconContainer}>
+                  <Ionicons
+                    name="play"
+                    size={20}
+                    color={Colors.primary}
+                    style={{ marginLeft: 2 }}
+                  />
+                </View>
+                <View style={{ flex: 1, marginLeft: 16 }}>
+                  <Text style={styles.activeTag}>EN PROGRESO</Text>
+                  <Text style={styles.activeTitle} numberOfLines={1}>
+                    {activeSession.name}
+                  </Text>
+                  <Text style={styles.activeTime}>
+                    {formatDuration(sessionElapsed)} transcurrido
+                  </Text>
+                </View>
+                <View style={styles.resumeBtn}>
+                  <Text style={styles.resumeBtnText}>Reanudar</Text>
+                </View>
+              </View>
+            </LinearGradient>
+          </Pressable>
+        ) : (
+          <Pressable
+            disabled={isLoading}
+            onPress={async () => {
+              try {
+                setStartError("");
+                await startSession();
+                router.push("/workout/active");
+              } catch (e: unknown) {
+                const msg =
+                  e instanceof Error ? e.message : "Error al iniciar sesión";
+                setStartError(msg);
+              }
+            }}
           >
-            <View style={styles.quickStartContent}>
-              <View style={styles.quickStartIconWrap}>
-                <Ionicons name="add" size={28} color={Colors.primary} />
+            <LinearGradient
+              colors={["#0F3D22", "#18B97A59"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[styles.quickStartCard, isLoading && styles.quickStartCardDisabled]}
+            >
+              <View style={styles.quickStartContent}>
+                <View style={styles.quickStartIconWrap}>
+                  {isLoading ? (
+                    <ActivityIndicator size="small" color={Colors.primary} />
+                  ) : (
+                    <Ionicons name="add" size={28} color={Colors.primary} />
+                  )}
+                </View>
+                <View style={{ flex: 1, marginLeft: 18 }}>
+                  <Text style={styles.quickStartTitle}>
+                    {isLoading ? "Iniciando..." : "Iniciar entrenamiento"}
+                  </Text>
+                  <Text style={styles.quickStartSubtitle}>
+                    {isLoading
+                      ? "Preparando tu sesión..."
+                      : "Toca para comenzar una nueva sesión"}
+                  </Text>
+                </View>
+                {!isLoading && (
+                  <Ionicons
+                    name="chevron-forward"
+                    size={16}
+                    color={Colors.primary}
+                  />
+                )}
               </View>
-              <View style={{ flex: 1, marginLeft: 18 }}>
-                <Text style={styles.quickStartTitle}>
-                  Iniciar entrenamiento
-                </Text>
-                <Text style={styles.quickStartSubtitle}>
-                  Toca para comenzar una nueva sesión
-                </Text>
-              </View>
+            </LinearGradient>
+          </Pressable>
+        )}
+
+        {/* ── Start Error Banner ── */}
+        {startError ? (
+          <View style={styles.startErrorBanner}>
+            <View style={styles.errorContent}>
               <Ionicons
-                name="chevron-forward"
+                name="alert-circle-outline"
                 size={16}
-                color={Colors.primary}
+                color={Colors.error}
               />
+              <Text style={styles.startErrorText}>{startError}</Text>
             </View>
-          </LinearGradient>
-        </Pressable>
-      )}
-
-      {/* ── Start Error Banner ── */}
-      {startError ? (
-        <View style={styles.startErrorBanner}>
-          <Ionicons
-            name="alert-circle-outline"
-            size={16}
-            color={Colors.error}
-          />
-          <Text style={styles.startErrorText}>{startError}</Text>
-        </View>
-      ) : null}
-
-      {/* ── Today's Training ── */}
-      {history.length === 0 && !activeSession ? (
-        <View
-          style={[
-            styles.glassCard,
-            { flexDirection: "row", alignItems: "center" },
-          ]}
-        >
-          <View style={[styles.flameIconWrap, { borderRadius: 26 }]}>
-            <Ionicons name="flash" size={26} color={Colors.primary} />
+            <Pressable
+              onPress={() => {
+                setStartError("");
+                clearError?.();
+              }}
+              style={styles.clearErrorBtn}
+            >
+              <Ionicons name="close" size={18} color={Colors.error} />
+            </Pressable>
           </View>
-          <View style={{ flex: 1, marginLeft: 16 }}>
-            <Text style={[styles.cardTitle, { marginLeft: 0 }]}>
-              ¿Listo para comenzar tu día?
-            </Text>
-            <Text style={[styles.motivationText, { marginTop: 4 }]}>
-              No hay entrenamientos todavía — ¡vamos a cambiar eso!
-            </Text>
-          </View>
-        </View>
-      ) : (
-        <View style={styles.glassCard}>
-          <View style={styles.cardHeaderRow}>
-            <View style={styles.flameIconWrap}>
-              <Ionicons name="flame" size={22} color={Colors.primary} />
+        ) : null}
+
+        {/* ── Today's Training ── */}
+        {history.length === 0 && !activeSession ? (
+          <View
+            style={[
+              styles.glassCard,
+              { flexDirection: "row", alignItems: "center" },
+            ]}
+          >
+            <View style={[styles.flameIconWrap, { borderRadius: 26 }]}>
+              <Ionicons name="flash" size={26} color={Colors.primary} />
             </View>
-            <Text style={styles.cardTitle}>Entrenamiento de hoy</Text>
-            <View style={styles.cardPill}>
-              <Text style={styles.cardPillText}>
-                {todayStats.count}{" "}
-                {todayStats.count === 1 ? "entrenamiento" : "entrenamientos"}
+            <View style={{ flex: 1, marginLeft: 16 }}>
+              <Text style={[styles.cardTitle, { marginLeft: 0 }]}>
+                ¿Listo para comenzar tu día?
+              </Text>
+              <Text style={[styles.motivationText, { marginTop: 4 }]}>
+                No hay entrenamientos todavía — ¡vamos a cambiar eso!
               </Text>
             </View>
+          </View>
+        ) : (
+          <View style={styles.glassCard}>
+            <View style={styles.cardHeaderRow}>
+              <View style={styles.flameIconWrap}>
+                <Ionicons name="flame" size={22} color={Colors.primary} />
+              </View>
+              <Text style={styles.cardTitle}>Entrenamiento de hoy</Text>
+              <View style={styles.cardPill}>
+                <Text style={styles.cardPillText}>
+                  {todayStats.count}{" "}
+                  {todayStats.count === 1 ? "entrenamiento" : "entrenamientos"}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.statsRow}>
+              <View style={styles.statItemHalf}>
+                <View style={styles.statIconCircle}>
+                  <Ionicons name="barbell" size={18} color={Colors.primary} />
+                </View>
+                <Text style={styles.statNumberBig}>{todayStats.sets}</Text>
+                <Text style={styles.statLabelMuted}>Sets</Text>
+              </View>
+              <View style={styles.statVerticalDivider} />
+              <View style={styles.statItemHalf}>
+                <View style={styles.statIconCircle}>
+                  <Ionicons
+                    name="trending-up"
+                    size={18}
+                    color={Colors.primary}
+                  />
+                </View>
+                <Text style={styles.statNumberBig}>
+                  {todayStats.tonnage > 0 ? `${todayStats.tonnage}kg` : "—"}
+                </Text>
+                <Text style={styles.statLabelMuted}>Volumen</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* ── This Week ── */}
+        <View style={styles.glassCard}>
+          <View style={styles.cardHeaderRowSpace}>
+            <Text style={styles.sectionLabel}>ESTA SEMANA</Text>
           </View>
 
           <View style={styles.statsRow}>
-            <View style={styles.statItemHalf}>
+            <View style={styles.statItemThird}>
               <View style={styles.statIconCircle}>
-                <Ionicons name="barbell" size={18} color={Colors.primary} />
+                <Ionicons name="calendar" size={16} color={Colors.primary} />
               </View>
-              <Text style={styles.statNumberBig}>{todayStats.sets}</Text>
-              <Text style={styles.statLabelMuted}>Sets</Text>
+              <Text style={styles.statNumberSmall}>{weekStats.count}</Text>
+              <Text style={styles.sectionLabel}>ENTRENAMIENTOS</Text>
             </View>
-            <View style={styles.statVerticalDivider} />
-            <View style={styles.statItemHalf}>
+            <View style={styles.statVerticalDividerShort} />
+            <View style={styles.statItemThird}>
               <View style={styles.statIconCircle}>
-                <Ionicons name="trending-up" size={18} color={Colors.primary} />
+                <Ionicons name="barbell" size={16} color={Colors.primary} />
               </View>
-              <Text style={styles.statNumberBig}>
-                {todayStats.tonnage > 0 ? `${todayStats.tonnage}kg` : "—"}
+              <Text style={styles.statNumberSmall}>{weekStats.sets}</Text>
+              <Text style={styles.sectionLabel}>SERIES</Text>
+            </View>
+            <View style={styles.statVerticalDividerShort} />
+            <View style={styles.statItemThird}>
+              <View style={styles.statIconCircle}>
+                <Ionicons name="timer" size={16} color={Colors.primary} />
+              </View>
+              <Text style={styles.statNumberSmall}>
+                {weekStats.durationMin}M
               </Text>
-              <Text style={styles.statLabelMuted}>Volumen</Text>
+              <Text style={styles.sectionLabel}>TIEMPO</Text>
             </View>
           </View>
-        </View>
-      )}
 
-      {/* ── This Week ── */}
-      <View style={styles.glassCard}>
-        <View style={styles.cardHeaderRowSpace}>
-          <Text style={styles.sectionLabel}>ESTA SEMANA</Text>
-        </View>
-
-        <View style={styles.statsRow}>
-          <View style={styles.statItemThird}>
-            <View style={styles.statIconCircle}>
-              <Ionicons name="calendar" size={16} color={Colors.primary} />
-            </View>
-            <Text style={styles.statNumberSmall}>{weekStats.count}</Text>
-            <Text style={styles.sectionLabel}>ENTRENAMIENTOS</Text>
-          </View>
-          <View style={styles.statVerticalDividerShort} />
-          <View style={styles.statItemThird}>
-            <View style={styles.statIconCircle}>
-              <Ionicons name="barbell" size={16} color={Colors.primary} />
-            </View>
-            <Text style={styles.statNumberSmall}>{weekStats.sets}</Text>
-            <Text style={styles.sectionLabel}>SERIES</Text>
-          </View>
-          <View style={styles.statVerticalDividerShort} />
-          <View style={styles.statItemThird}>
-            <View style={styles.statIconCircle}>
-              <Ionicons name="timer" size={16} color={Colors.primary} />
-            </View>
-            <Text style={styles.statNumberSmall}>{weekStats.durationMin}M</Text>
-            <Text style={styles.sectionLabel}>TIEMPO</Text>
-          </View>
-        </View>
-
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBarBg}>
-            <LinearGradient
-              colors={[Colors.primary, Colors.primaryBright]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={[
-                styles.progressBarFill,
-                { width: `${Math.round(weekProgress * 100)}%` },
-              ]}
-            />
-          </View>
-          <View style={styles.progressTextRow}>
-            <Text style={styles.progressTextLeft}>
-              {weekStats.count}/{weeklyGoal} entrenamientos
-            </Text>
-            <Text style={styles.progressTextRight}>
-              +{weekStats.tonnage}kg vol
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* ── Streak & PRs ── */}
-      <View style={styles.streakRow}>
-        <View style={styles.streakCardWrapper}>
-          <View style={[styles.glassCard, styles.streakCard]}>
-            <View style={styles.streakCardContent}>
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBarBg}>
               <LinearGradient
-                colors={[`${Colors.warning}38`, `${Colors.warning}1A`]}
-                style={styles.streakIconWrap}
-              >
-                <Ionicons name="flame" size={24} color={Colors.warning} />
-              </LinearGradient>
-              <View style={styles.streakTextCol}>
-                <Text style={styles.streakNumber}>{streak}</Text>
-                <Text style={styles.streakLabel}>Racha diaria</Text>
+                colors={[Colors.primary, Colors.primaryBright]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[
+                  styles.progressBarFill,
+                  { width: `${Math.round(weekProgress * 100)}%` },
+                ]}
+              />
+            </View>
+            <View style={styles.progressTextRow}>
+              <Text style={styles.progressTextLeft}>
+                {weekStats.count}/{weeklyGoal} entrenamientos
+              </Text>
+              <Text style={styles.progressTextRight}>
+                +{weekStats.tonnage}kg vol
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* ── Streak & PRs ── */}
+        <View style={styles.streakRow}>
+          <View style={styles.streakCardWrapper}>
+            <View style={[styles.glassCard, styles.streakCard]}>
+              <View style={styles.streakCardContent}>
+                <LinearGradient
+                  colors={[`${Colors.warning}38`, `${Colors.warning}1A`]}
+                  style={styles.streakIconWrap}
+                >
+                  <Ionicons name="flame" size={24} color={Colors.warning} />
+                </LinearGradient>
+                <View style={styles.streakTextCol}>
+                  <Text style={styles.streakNumber}>{streak}</Text>
+                  <Text style={styles.streakLabel}>Racha diaria</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+          <View style={styles.streakCardWrapper}>
+            <View style={[styles.glassCard, styles.streakCard]}>
+              <View style={styles.streakCardContent}>
+                <LinearGradient
+                  colors={[`${Colors.pr}38`, `${Colors.pr}1A`]}
+                  style={styles.streakIconWrap}
+                >
+                  <Ionicons name="trophy" size={24} color={Colors.pr} />
+                </LinearGradient>
+                <View style={styles.streakTextCol}>
+                  <Text style={styles.streakNumber}>{history.length}</Text>
+                  <Text style={styles.streakLabel}>Total entrenamientos</Text>
+                </View>
               </View>
             </View>
           </View>
         </View>
-        <View style={styles.streakCardWrapper}>
-          <View style={[styles.glassCard, styles.streakCard]}>
-            <View style={styles.streakCardContent}>
-              <LinearGradient
-                colors={[`${Colors.pr}38`, `${Colors.pr}1A`]}
-                style={styles.streakIconWrap}
-              >
-                <Ionicons name="trophy" size={24} color={Colors.pr} />
-              </LinearGradient>
-              <View style={styles.streakTextCol}>
-                <Text style={styles.streakNumber}>{history.length}</Text>
-                <Text style={styles.streakLabel}>Total entrenamientos</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+  scrollView: { flex: 1 }, // ← Propiedad agregada
   content: { paddingBottom: 110 },
 
   // Hero
@@ -422,8 +501,8 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 20,
     alignItems: "flex-start",
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
+    borderBottomWidth: 0.5,
+    borderBottomColor: `${Colors.primary}1A`,
   },
   heroLeft: { flex: 1 },
   datePill: {
@@ -546,6 +625,9 @@ const styles = StyleSheet.create({
     padding: 20,
     ...Shadows.card,
   },
+  quickStartCardDisabled: {
+    opacity: 0.7,
+  },
   quickStartContent: {
     flexDirection: "row",
     alignItems: "center",
@@ -577,7 +659,7 @@ const styles = StyleSheet.create({
   startErrorBanner: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    justifyContent: "space-between",
     marginHorizontal: 16,
     marginTop: 12,
     backgroundColor: `${Colors.error}1A`,
@@ -587,11 +669,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
+  errorContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
+  },
   startErrorText: {
     fontFamily: "DMSans-Regular",
     fontSize: 13,
     color: Colors.error,
     flex: 1,
+    marginLeft: 8,
+  },
+  clearErrorBtn: {
+    padding: 4,
   },
 
   // GlassCard

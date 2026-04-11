@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Patch, Body, Param, Delete, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { OrganizationsService } from './organizations.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -10,6 +11,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 export class OrganizationsController {
   constructor(private readonly organizationsService: OrganizationsService) {}
 
+  @Throttle({ default: { ttl: 60000, limit: 60 } })
   @Post()
   @Roles(UserRole.GLOBAL_ADMIN)
   async create(@Body() body: any) {
@@ -17,6 +19,7 @@ export class OrganizationsController {
     return { success: true, data: org };
   }
 
+  @Throttle({ default: { ttl: 60000, limit: 60 } })
   @Get()
   @Roles(UserRole.GLOBAL_ADMIN)
   async findAll() {
@@ -24,12 +27,14 @@ export class OrganizationsController {
     return { success: true, data: orgs };
   }
 
+  @Throttle({ default: { ttl: 60000, limit: 60 } })
   @Get(':id')
   async findOne(@Param('id') id: string) {
     const org = await this.organizationsService.findOne(id);
     return { success: true, data: org };
   }
 
+  @Throttle({ default: { ttl: 60000, limit: 30 } })
   @Patch(':id')
   @Roles(UserRole.GLOBAL_ADMIN, UserRole.ORG_ADMIN)
   async update(
@@ -40,6 +45,7 @@ export class OrganizationsController {
     return { success: true, data: org };
   }
 
+  @Throttle({ default: { ttl: 60000, limit: 30 } })
   @Delete(':id')
   @Roles(UserRole.GLOBAL_ADMIN)
   async remove(@Param('id') id: string) {
@@ -47,6 +53,7 @@ export class OrganizationsController {
     return { success: true, message: 'Organization removed successfully' };
   }
 
+  @Throttle({ default: { ttl: 60000, limit: 30 } })
   @Post(':id/users')
   @Roles(UserRole.ORG_ADMIN, UserRole.GLOBAL_ADMIN)
   async addUser(
@@ -57,12 +64,14 @@ export class OrganizationsController {
     return { success: true, data: userOrg };
   }
 
+  @Throttle({ default: { ttl: 60000, limit: 30 } })
   @Delete(':id/users/:userId')
   @Roles(UserRole.ORG_ADMIN, UserRole.GLOBAL_ADMIN)
   removeUser(@Param('id') organizationId: string, @Param('userId') userId: string) {
     return this.organizationsService.removeUser(organizationId, userId);
   }
 
+  @Throttle({ default: { ttl: 60000, limit: 30 } })
   @Post(':id/portal-session')
   @Roles(UserRole.GLOBAL_ADMIN)
   createPortalSession(@Param('id') id: string) {

@@ -61,7 +61,8 @@ function fuzzyMatchMuscles(exerciseMuscles: string[], targetMuscle: string): boo
   for (const exMuscle of exerciseMuscles) {
     const normalizedEx = normalizeMuscleForMatch(exMuscle);
     if (normalizedEx === normalizedTarget) return true;
-    if (targetKeywords.some(k => normalizedEx.includes(k) || k.includes(normalizedEx))) return true;
+    if (targetKeywords.some((k) => normalizedEx.includes(k) || k.includes(normalizedEx)))
+      return true;
   }
 
   return false;
@@ -70,45 +71,45 @@ function fuzzyMatchMuscles(exerciseMuscles: string[], targetMuscle: string): boo
 // ─── Muscle normalization ────────────────────────────────────────────────
 
 const MUSCLE_NORMALIZATION: Record<string, string> = {
-  'bicep': 'BICEPS',
-  'tricep': 'TRICEPS',
-  'calf': 'CALVES',
-  'quad': 'QUADS',
-  'quad_isolation': 'QUADS',
-  'hamstring': 'HAMSTRINGS',
-  'hamstring_isolation': 'HAMSTRINGS',
-  'glute': 'GLUTES',
-  'hip_thrust': 'GLUTES',
-  'chest': 'CHEST',
-  'incline': 'CHEST',
-  'back': 'BACK',
-  'lats': 'LATS',
-  'pullup': 'LATS',
-  'pullover': 'LATS',
-  'shoulder': 'SHOULDERS',
-  'lateral': 'SHOULDERS',
-  'overhead_press': 'SHOULDERS',
-  'abs': 'ABS',
-  'core': 'ABS',
-  'rdl': 'HAMSTRINGS',
-  'leg_curl_rdl': 'HAMSTRINGS',
-  'deadlift': 'BACK',
-  'leg_curl': 'HAMSTRINGS',
-  'hamstring_curl': 'HAMSTRINGS',
-  'leg_press': 'QUADS',
-  'machine': 'QUADS',
-  'hack_squat': 'QUADS',
-  'dip': 'TRICEPS',
-  'dips': 'TRICEPS',
-  'dips_isolation': 'TRICEPS',
-  'row': 'BACK',
-  'face_pull': 'TRAPS',
-  'shrugs': 'TRAPS',
-  'lat_pulldown': 'LATS',
-  'chest_supported_row': 'BACK',
-  'close_grip': 'TRICEPS',
-  'chest_fly_cable': 'CHEST',
-  'isolation': 'CHEST',
+  bicep: 'BICEPS',
+  tricep: 'TRICEPS',
+  calf: 'CALVES',
+  quad: 'QUADS',
+  quad_isolation: 'QUADS',
+  hamstring: 'HAMSTRINGS',
+  hamstring_isolation: 'HAMSTRINGS',
+  glute: 'GLUTES',
+  hip_thrust: 'GLUTES',
+  chest: 'CHEST',
+  incline: 'CHEST',
+  back: 'BACK',
+  lats: 'LATS',
+  pullup: 'LATS',
+  pullover: 'LATS',
+  shoulder: 'SHOULDERS',
+  lateral: 'SHOULDERS',
+  overhead_press: 'SHOULDERS',
+  abs: 'ABS',
+  core: 'ABS',
+  rdl: 'HAMSTRINGS',
+  leg_curl_rdl: 'HAMSTRINGS',
+  deadlift: 'BACK',
+  leg_curl: 'HAMSTRINGS',
+  hamstring_curl: 'HAMSTRINGS',
+  leg_press: 'QUADS',
+  machine: 'QUADS',
+  hack_squat: 'QUADS',
+  dip: 'TRICEPS',
+  dips: 'TRICEPS',
+  dips_isolation: 'TRICEPS',
+  row: 'BACK',
+  face_pull: 'TRAPS',
+  shrugs: 'TRAPS',
+  lat_pulldown: 'LATS',
+  chest_supported_row: 'BACK',
+  close_grip: 'TRICEPS',
+  chest_fly_cable: 'CHEST',
+  isolation: 'CHEST',
 };
 
 function normalizeMuscle(muscle: string): string {
@@ -178,7 +179,11 @@ export class VolumeTracker {
    * @param dayIndex - Which day of the week (0-6)
    */
   addVolume(muscle: string, sets: number, exerciseIds: string[], dayIndex: number): void {
-    const current = this.volumeMap.get(muscle) || { setsThisWeek: 0, exerciseIds: new Set(), lastAddedDay: -1 };
+    const current = this.volumeMap.get(muscle) || {
+      setsThisWeek: 0,
+      exerciseIds: new Set(),
+      lastAddedDay: -1,
+    };
     current.setsThisWeek += sets;
     for (const id of exerciseIds) {
       current.exerciseIds.add(id);
@@ -408,9 +413,8 @@ export class ExerciseSelectionService {
     const pool = allExercises.filter((e) => !usedIds.has(e.id));
 
     // 1. Exact or partial name match (ILIKE-style)
-    const nameMatched = pool.filter((e) =>
-      e.name.toLowerCase().includes(nameLower) ||
-      nameLower.includes(e.name.toLowerCase()),
+    const nameMatched = pool.filter(
+      (e) => e.name.toLowerCase().includes(nameLower) || nameLower.includes(e.name.toLowerCase()),
     );
 
     if (nameMatched.length > 0) {
@@ -421,9 +425,7 @@ export class ExerciseSelectionService {
     const targetMuscles = getFuzzyMuscles(fallbackMuscle);
     const muscleMatched = pool.filter((e) => {
       const exMuscles = [...e.primaryMuscles, ...(e.secondaryMuscles || [])];
-      return exMuscles.some((m) =>
-        targetMuscles.some((t) => fuzzyMatchMuscles([m], t)),
-      );
+      return exMuscles.some((m) => targetMuscles.some((t) => fuzzyMatchMuscles([m], t)));
     });
 
     if (muscleMatched.length > 0) {
@@ -433,8 +435,10 @@ export class ExerciseSelectionService {
     // 3. Last resort: any exercise matching the fallback muscle
     const strictMatch = pool.filter((e) => {
       const exMuscles = e.primaryMuscles.map((m) => m.toUpperCase());
-      return exMuscles.includes(fallbackMuscle.toUpperCase()) ||
-        exMuscles.includes(normalizeMuscle(fallbackMuscle));
+      return (
+        exMuscles.includes(fallbackMuscle.toUpperCase()) ||
+        exMuscles.includes(normalizeMuscle(fallbackMuscle))
+      );
     });
 
     if (strictMatch.length > 0) {
@@ -482,8 +486,8 @@ export class ExerciseSelectionService {
 
     // STRICT muscle validation - must match target muscle (normalized)
     const muscleMatchedPool = pool.filter((e) => {
-      const normalizedPrimary = e.primaryMuscles.map(m => m.toUpperCase());
-      const normalizedSecondary = e.secondaryMuscles?.map(m => m.toUpperCase()) || [];
+      const normalizedPrimary = e.primaryMuscles.map((m) => m.toUpperCase());
+      const normalizedSecondary = e.secondaryMuscles?.map((m) => m.toUpperCase()) || [];
       // Check primary muscles
       if (normalizedPrimary.includes(normalizedMuscle)) {
         return true;

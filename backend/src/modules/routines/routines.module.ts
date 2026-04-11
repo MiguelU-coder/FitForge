@@ -65,20 +65,24 @@ export class RoutinesService {
 
   async generateInitialRoutine(userId: string, dto: GenerateInitialRoutineDto) {
     const { trainingLevel, mainGoal } = dto;
-    this.logger.log(`Generating routine for user ${userId}, level: ${trainingLevel}, goal: ${mainGoal}`);
+    this.logger.log(
+      `Generating routine for user ${userId}, level: ${trainingLevel}, goal: ${mainGoal}`,
+    );
 
     const defaultRoutine = getDefaultRoutine(trainingLevel as TrainingLevel);
     const phase = getPhaseForWeek(1, trainingLevel as TrainingLevel);
     const totalWeeks = trainingLevel === 'ADVANCED' ? 9 : 8;
 
-    const dbExercises = await this.prisma.$queryRaw<Array<{
-      id: string;
-      name: string;
-      primary_muscles: string;
-      secondary_muscles: string;
-      is_compound: boolean;
-      movement_pattern: string | null;
-    }>>`SELECT id, name, primary_muscles, secondary_muscles, is_compound, movement_pattern FROM exercises WHERE is_active = true`;
+    const dbExercises = await this.prisma.$queryRaw<
+      Array<{
+        id: string;
+        name: string;
+        primary_muscles: string;
+        secondary_muscles: string;
+        is_compound: boolean;
+        movement_pattern: string | null;
+      }>
+    >`SELECT id, name, primary_muscles, secondary_muscles, is_compound, movement_pattern FROM exercises WHERE is_active = true`;
 
     const parseArrayField = (value: string | string[]): string[] => {
       if (Array.isArray(value)) return value;
@@ -123,9 +127,12 @@ export class RoutinesService {
       movementPattern: e.movementPattern,
     }));
 
-    const program = await this.prisma.$queryRaw<{ id: string; name: string }>`INSERT INTO programs (id, user_id, name, goal, weeks, days_per_week, is_active, started_at, progression_model, current_phase, created_at, updated_at)
+    const program = (await this.prisma.$queryRaw<{
+      id: string;
+      name: string;
+    }>`INSERT INTO programs (id, user_id, name, goal, weeks, days_per_week, is_active, started_at, progression_model, current_phase, created_at, updated_at)
       VALUES (gen_random_uuid(), ${userId}::uuid, ${`${trainingLevel.charAt(0) + trainingLevel.slice(1).toLowerCase()} Program`}, ${mainGoal || trainingLevel}, ${totalWeeks}, ${defaultRoutine.daysPerWeek}, true, ${new Date()}, ${phase.progressionStrategy}, ${phase.label}::"ProgramPhase", ${new Date()}, ${new Date()})
-      RETURNING id, name` as unknown as { id: string; name: string };
+      RETURNING id, name`) as unknown as { id: string; name: string };
 
     const goal = mainGoal as TrainingGoal | undefined;
     const createdRoutines: Array<{
@@ -175,7 +182,9 @@ export class RoutinesService {
         );
 
         if (!exerciseId) {
-          this.logger.warn(`No exercise found for "${slot.exerciseName}" (fallback: ${slot.fallbackMuscle}) in ${day.dayName}`);
+          this.logger.warn(
+            `No exercise found for "${slot.exerciseName}" (fallback: ${slot.fallbackMuscle}) in ${day.dayName}`,
+          );
           continue;
         }
 
@@ -221,9 +230,10 @@ export class RoutinesService {
     );
     const avgSetsPerDay = Math.round(totalSets / defaultRoutine.daysPerWeek);
 
-    const goalReps = mainGoal && GOAL_ADJUSTMENTS[mainGoal as TrainingGoal]
-      ? GOAL_ADJUSTMENTS[mainGoal as TrainingGoal].repsRange
-      : `${phase.repsMin}-${phase.repsMax}`;
+    const goalReps =
+      mainGoal && GOAL_ADJUSTMENTS[mainGoal as TrainingGoal]
+        ? GOAL_ADJUSTMENTS[mainGoal as TrainingGoal].repsRange
+        : `${phase.repsMin}-${phase.repsMax}`;
 
     return {
       program: {
@@ -238,9 +248,9 @@ export class RoutinesService {
       config: {
         sets: avgSetsPerDay,
         reps: goalReps,
-        rir: { 
-          min: phase.rirTarget[trainingLevel as TrainingLevel], 
-          max: phase.rirTarget[trainingLevel as TrainingLevel] + 1 
+        rir: {
+          min: phase.rirTarget[trainingLevel as TrainingLevel],
+          max: phase.rirTarget[trainingLevel as TrainingLevel] + 1,
         },
         restSeconds: 150,
       },
@@ -258,9 +268,12 @@ export class RoutinesService {
     config: { frequency: number; split: string },
     splitConfig: SplitConfig,
   ) {
-    const program = await this.prisma.$queryRaw<{ id: string; name: string }>`INSERT INTO programs (id, user_id, name, goal, weeks, days_per_week, is_active, started_at, progression_model, current_phase, created_at, updated_at)
+    const program = (await this.prisma.$queryRaw<{
+      id: string;
+      name: string;
+    }>`INSERT INTO programs (id, user_id, name, goal, weeks, days_per_week, is_active, started_at, progression_model, current_phase, created_at, updated_at)
       VALUES (gen_random_uuid(), ${userId}::uuid, ${`${trainingLevel.charAt(0) + trainingLevel.slice(1).toLowerCase()} Program`}, ${trainingLevel}, 8, ${config.frequency}, true, ${new Date()}, 'SET_INCREMENT', 'HYPERTROPHY'::"ProgramPhase", ${new Date()}, ${new Date()})
-      RETURNING id, name` as unknown as { id: string; name: string };
+      RETURNING id, name`) as unknown as { id: string; name: string };
 
     return {
       program: {

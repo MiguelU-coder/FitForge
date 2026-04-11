@@ -132,7 +132,9 @@ export class AiBridgeService {
     dto: CoachRoutineRequestDto,
     authToken?: string,
   ): Promise<any> {
-    this.logger.log(`Generating routine for user ${userId}, level: ${dto.level}, goal: ${dto.goal}`);
+    this.logger.log(
+      `Generating routine for user ${userId}, level: ${dto.level}, goal: ${dto.goal}`,
+    );
 
     // 1. Load exercises from DB
     const dbExercisesRaw = await this.prisma.exercise.findMany({
@@ -268,12 +270,29 @@ export class AiBridgeService {
     exercises: ExerciseWithMeta[],
     phase: ReturnType<typeof getPhaseForWeek>,
     trainingLevel: TrainingLevel,
-  ): { id: string; name: string; sets: number; reps: number; rir: number; rest_seconds: number; notes?: string }[] {
+  ): {
+    id: string;
+    name: string;
+    sets: number;
+    reps: number;
+    rir: number;
+    rest_seconds: number;
+    notes?: string;
+  }[] {
     const usedIds = new Set<string>();
-    const result: { id: string; name: string; sets: number; reps: number; rir: number; rest_seconds: number; notes?: string }[] = [];
+    const result: {
+      id: string;
+      name: string;
+      sets: number;
+      reps: number;
+      rir: number;
+      rest_seconds: number;
+      notes?: string;
+    }[] = [];
 
     for (const slot of day.slots) {
-      const targetMuscle = slot.muscleTarget || this.getPrimaryMuscleForPattern(slot.movementPattern);
+      const targetMuscle =
+        slot.muscleTarget || this.getPrimaryMuscleForPattern(slot.movementPattern);
 
       const exerciseId = this.exerciseSelectionService.selectExerciseForSlot(
         slot,
@@ -283,7 +302,9 @@ export class AiBridgeService {
       );
 
       if (!exerciseId) {
-        this.logger.warn(`No exercise found for slot (muscle: ${targetMuscle}, pattern: ${slot.movementPattern}) in ${day.dayName}`);
+        this.logger.warn(
+          `No exercise found for slot (muscle: ${targetMuscle}, pattern: ${slot.movementPattern}) in ${day.dayName}`,
+        );
         continue;
       }
 
@@ -342,7 +363,7 @@ export class AiBridgeService {
       CORE: 'ABS',
       CARRY: 'ABS',
     };
-    return pattern ? (muscleMap[pattern] || 'CHEST') : 'CHEST';
+    return pattern ? muscleMap[pattern] || 'CHEST' : 'CHEST';
   }
 
   /**
@@ -357,7 +378,10 @@ export class AiBridgeService {
         const parsed = JSON.parse(field);
         if (Array.isArray(parsed)) return parsed.map((s) => String(s).toUpperCase());
       } catch {
-        return field.split(/[,;]/).map((s) => s.trim().toUpperCase()).filter(Boolean);
+        return field
+          .split(/[,;]/)
+          .map((s) => s.trim().toUpperCase())
+          .filter(Boolean);
       }
     }
     return [];

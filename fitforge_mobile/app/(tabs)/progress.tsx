@@ -53,6 +53,7 @@ export default function ProgressScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabName>("RENDIMIENTO");
   const [showAddMetric, setShowAddMetric] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(["MAX_WEIGHT", "ONE_RM_ESTIMATED"]);
   const scrollViewRef = useRef<ScrollView>(null);
 
   // Modal States
@@ -80,6 +81,14 @@ export default function ProgressScreen() {
     const n = Number(val);
     if (isNaN(n)) return "--";
     return n.toFixed(decimals);
+  };
+
+  const toggleGroup = (group: string) => {
+    setExpandedGroups((prev) =>
+      prev.includes(group)
+        ? prev.filter((g) => g !== group)
+        : [...prev, group]
+    );
   };
 
   const tabs: TabName[] = ["RENDIMIENTO", "FÍSICO", "PREMIOS"];
@@ -111,15 +120,15 @@ export default function ProgressScreen() {
   // ── Derived chart data ──────────────────────────────────────────
   // Donut: muscle group distribution (current week)
   const MUSCLE_COLORS: Record<string, string> = {
-    chest: "#10B981",
-    "upper-back": "#3B82F6",
-    deltoids: "#F59E0B",
+    pecho: "#10B981",
+    "espalda-alta": "#3B82F6",
+    deltoides: "#F59E0B",
     biceps: "#8B5CF6",
     triceps: "#EC4899",
-    quadriceps: "#EF4444",
-    hamstring: "#06B6D4",
-    gluteal: "#F97316",
-    calves: "#84CC16",
+    cuadriceps: "#EF4444",
+    femorales: "#06B6D4",
+    gluteos: "#F97316",
+    pantorrillas: "#84CC16",
     abs: "#A78BFA",
   };
 
@@ -129,10 +138,32 @@ export default function ProgressScreen() {
       if (!v.muscleGroup) return;
       const slug = v.muscleGroup
         .toLowerCase()
-        .replace("espalda", "espalda-alta")
-        .replace("cuadriceps", "cuadriceps")
-        .replace("femorales", "femorales")
-        .replace("gluteos", "gluteos");
+        .replace(/[áéíóú]/g, (match) => {
+          const accents: Record<string, string> = {
+            á: "a",
+            é: "e",
+            í: "i",
+            ó: "o",
+            ú: "u",
+          };
+          return accents[match];
+        })
+        .replace("chest", "pecho")
+        .replace("upper back", "espalda-alta")
+        .replace("upper-back", "espalda-alta")
+        .replace("shoulders", "deltoides")
+        .replace("deltoids", "deltoides")
+        .replace("biceps", "biceps")
+        .replace("triceps", "triceps")
+        .replace("quadriceps", "cuadriceps")
+        .replace("quads", "cuadriceps")
+        .replace("hamstrings", "femorales")
+        .replace("hamstring", "femorales")
+        .replace("glutes", "gluteos")
+        .replace("gluteal", "gluteos")
+        .replace("calves", "pantorrillas")
+        .replace("abs", "abs")
+        .replace("abdominals", "abs");
       map[slug] = (map[slug] || 0) + v.totalSets;
     });
     return Object.entries(map)
@@ -142,7 +173,12 @@ export default function ProgressScreen() {
           .replace("-", " ")
           .replace(/^\w/, (c) => c.toUpperCase()),
         value,
-        color: MUSCLE_COLORS[label] || "#888888",
+        color:
+          MUSCLE_COLORS[label] ||
+          MUSCLE_COLORS[
+            label.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+          ] ||
+          "#888888",
       }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 6);
@@ -228,6 +264,12 @@ export default function ProgressScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <LinearGradient
+        colors={[Colors.background, `${Colors.primary}08`]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
       {/* ── Header ── */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>DASHBOARD</Text>
@@ -724,62 +766,156 @@ export default function ProgressScreen() {
                 <Text style={styles.loadingText}>Cargando...</Text>
               </View>
             ) : prs.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <View style={styles.emptyIconWrap}>
-                  <Ionicons
-                    name="trophy"
-                    size={48}
-                    color={Colors.textTertiary}
-                  />
+              <View style={styles.emptyCard}>
+                <View style={styles.prEmptyIconWrap}>
+                  <Ionicons name="trophy" size={32} color={Colors.pr} />
                 </View>
-                <Text style={styles.emptyTitle}>No hay premios todavía</Text>
+                <Text style={styles.emptyTitle}>Sin récords aún</Text>
                 <Text style={styles.emptySubtitle}>
-                  Alcanza nuevos récords personales para verlos aquí
+                  Completa entrenamientos para registrar tus primeros récords personales
                 </Text>
               </View>
             ) : (
-              <View style={styles.prsList}>
-                {prs.map((pr, idx) => (
-                  <View key={idx} style={styles.prCard}>
-                    <View
-                      style={[
-                        styles.prIconWrap,
-                        {
-                          backgroundColor:
-                            pr.prType === "ONE_RM_ESTIMATED"
-                              ? `${Colors.primary}1A`
-                              : `${Colors.pr}1A`,
-                        },
-                      ]}
-                    >
-                      <Ionicons
-                        name={
-                          pr.prType === "ONE_RM_ESTIMATED"
-                            ? "calculator"
-                            : "trophy"
-                        }
-                        size={20}
-                        color={
-                          pr.prType === "ONE_RM_ESTIMATED"
-                            ? Colors.primary
-                            : Colors.pr
-                        }
-                      />
+              <>
+                {/* ── Summary Banner ── */}
+                <View style={styles.prSummaryCard}>
+                  <View style={styles.prSummaryLeft}>
+                    <View style={styles.prSummaryIconWrap}>
+                      <Ionicons name="trophy" size={22} color={Colors.pr} />
                     </View>
-                    <View style={{ flex: 1, marginLeft: 12 }}>
-                      <Text style={styles.prExerciseName}>
-                        {pr.exerciseName}
-                      </Text>
-                      <Text style={styles.prType}>
-                        {pr.prType === "ONE_RM_ESTIMATED"
-                          ? "Estimated 1RM"
-                          : "Max Weight"}
+                    <View style={{ marginLeft: 14 }}>
+                      <Text style={styles.prSummaryEyebrow}>RÉCORDS PERSONALES</Text>
+                      <Text style={styles.prSummaryCount}>
+                        {prs.length} logro{prs.length !== 1 ? "s" : ""} desbloqueado{prs.length !== 1 ? "s" : ""}
                       </Text>
                     </View>
-                    <Text style={styles.prValue}>{formatNum(pr.value)} kg</Text>
                   </View>
-                ))}
-              </View>
+                  <View style={styles.prSummaryBadge}>
+                    <Text style={styles.prSummaryBadgeText}>{prs.length}</Text>
+                  </View>
+                </View>
+
+                {/* ── MAX WEIGHT Group ── */}
+                {prs.filter((p) => p.prType === "MAX_WEIGHT").length > 0 && (
+                  <View style={styles.accordionSection}>
+                    <Pressable style={styles.accordionHeader} onPress={() => toggleGroup("MAX_WEIGHT")}>
+                      <View style={styles.accordionHeaderLeft}>
+                        <Ionicons name="barbell" size={16} color={Colors.pr} />
+                        <Text style={styles.accordionTitle}>PESO MÁXIMO</Text>
+                        <View style={styles.accordionBadge}>
+                          <Text style={styles.accordionBadgeText}>
+                            {prs.filter((p) => p.prType === "MAX_WEIGHT").length}
+                          </Text>
+                        </View>
+                      </View>
+                      <Ionicons 
+                        name={expandedGroups.includes("MAX_WEIGHT") ? "chevron-up" : "chevron-down"} 
+                        size={20} 
+                        color={Colors.textTertiary} 
+                      />
+                    </Pressable>
+                    {expandedGroups.includes("MAX_WEIGHT") && (
+                      <View style={styles.accordionContent}>
+                        {prs
+                          .filter((p) => p.prType === "MAX_WEIGHT")
+                          .map((pr, idx) => {
+                            const achievedDate = pr.achievedAt 
+                              ? new Date(pr.achievedAt).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })
+                              : '';
+                            return (
+                              <View key={pr.id ?? `max-${idx}`} style={styles.prModalCard}>
+                                <View style={styles.prModalCardHeader}>
+                                  <View style={[styles.prRankMini, idx === 0 && styles.prRankGold, idx === 1 && styles.prRankSilver, idx === 2 && styles.prRankBronze]}>
+                                    <Text style={[styles.prRankMiniText, idx === 0 && styles.prRankGoldText]}>#{idx + 1}</Text>
+                                  </View>
+                                  <Text style={styles.prExerciseNameClean} numberOfLines={1}>
+                                    {pr.exerciseName || pr.exercise?.name || `Ejercicio ${pr.exerciseId?.slice(0, 8) || ''}`}
+                                  </Text>
+                                </View>
+                                <View style={styles.prModalCardMeta}>
+                                  <View style={styles.prCardCleanTag}>
+                                    <Ionicons name="barbell" size={10} color={Colors.pr} />
+                                    <Text style={styles.prCardCleanTagText}>Peso máximo</Text>
+                                  </View>
+                                  <View style={styles.prCardCleanDate}>
+                                    <Ionicons name="calendar-outline" size={10} color={Colors.textTertiary} />
+                                    <Text style={styles.prCardCleanDateText}>{achievedDate}</Text>
+                                  </View>
+                                </View>
+                                <View style={styles.prCardCleanValue}>
+                                  <Text style={styles.prValueClean}>{formatNum(pr.value)}</Text>
+                                  <Text style={styles.prUnitClean}>kg</Text>
+                                </View>
+                              </View>
+                            );
+                          })}
+                      </View>
+                    )}
+                  </View>
+                )}
+
+                {/* ── ONE RM ESTIMATED Group ── */}
+                {prs.filter((p) => p.prType === "ONE_RM_ESTIMATED").length > 0 && (
+                  <View style={[styles.accordionSection, { marginTop: 16 }]}>
+                    <Pressable style={styles.accordionHeader} onPress={() => toggleGroup("ONE_RM_ESTIMATED")}>
+                      <View style={styles.accordionHeaderLeft}>
+                        <Ionicons name="calculator" size={16} color={Colors.primary} />
+                        <Text style={[styles.accordionTitle, { color: Colors.primary }]}>1RM ESTIMADO</Text>
+                        <View style={[styles.accordionBadge, styles.accordionBadgeGreen]}>
+                          <Text style={[styles.accordionBadgeText, styles.accordionBadgeGreenText]}>
+                            {prs.filter((p) => p.prType === "ONE_RM_ESTIMATED").length}
+                          </Text>
+                        </View>
+                      </View>
+                      <Ionicons 
+                        name={expandedGroups.includes("ONE_RM_ESTIMATED") ? "chevron-up" : "chevron-down"} 
+                        size={20} 
+                        color={Colors.textTertiary} 
+                      />
+                    </Pressable>
+                    {expandedGroups.includes("ONE_RM_ESTIMATED") && (
+                      <View style={styles.accordionContent}>
+                        {prs
+                          .filter((p) => p.prType === "ONE_RM_ESTIMATED")
+                          .map((pr, idx) => {
+                            const achievedDate = pr.achievedAt 
+                              ? new Date(pr.achievedAt).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })
+                              : '';
+                            return (
+                              <View
+                                key={pr.id ?? `rm-${idx}`}
+                                style={[styles.prModalCard, styles.prModalCardGreen]}
+                              >
+                                <View style={styles.prModalCardHeader}>
+                                  <View style={[styles.prRankMini, styles.prRankGreen]}>
+                                    <Text style={[styles.prRankMiniText, styles.prRankGreenText]}>#{idx + 1}</Text>
+                                  </View>
+                                  <Text style={styles.prExerciseNameClean} numberOfLines={1}>
+                                    {pr.exerciseName || pr.exercise?.name || `Ejercicio ${pr.exerciseId?.slice(0, 8) || ''}`}
+                                  </Text>
+                                </View>
+                                <View style={styles.prModalCardMeta}>
+                                  <View style={[styles.prCardCleanTag, styles.prCardCleanTagGreen]}>
+                                    <Ionicons name="calculator" size={10} color={Colors.primary} />
+                                    <Text style={[styles.prCardCleanTagText, styles.prCardCleanTagGreenText]}>1RM estimado</Text>
+                                  </View>
+                                  <View style={styles.prCardCleanDate}>
+                                    <Ionicons name="calendar-outline" size={10} color={Colors.textTertiary} />
+                                    <Text style={styles.prCardCleanDateText}>{achievedDate}</Text>
+                                  </View>
+                                </View>
+                                <View style={styles.prCardCleanValue}>
+                                  <Text style={[styles.prValueClean, styles.prValueCleanGreen]}>{formatNum(pr.value)}</Text>
+                                  <Text style={[styles.prUnitClean, styles.prUnitCleanGreen]}>kg</Text>
+                                </View>
+                              </View>
+                            );
+                          })}
+                      </View>
+                    )}
+                  </View>
+                )}
+              </>
             )}
           </View>
         )}
@@ -1592,22 +1728,123 @@ const styles = StyleSheet.create({
   },
 
   // PRs List
+  prSummaryCard: {
+    backgroundColor: `${Colors.pr}14`,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: `${Colors.pr}33`,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+  prSummaryLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  prSummaryIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: `${Colors.pr}1A`,
+    borderWidth: 1,
+    borderColor: `${Colors.pr}40`,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  prSummaryEyebrow: {
+    fontFamily: "DMSans-Bold",
+    fontSize: 9,
+    letterSpacing: 1.5,
+    color: Colors.pr,
+  },
+  prSummaryCount: {
+    fontFamily: "DMSans-SemiBold",
+    fontSize: 14,
+    color: Colors.textPrimary,
+    marginTop: 2,
+  },
+  prSummaryBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.pr,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  prSummaryBadgeText: {
+    fontFamily: "BebasNeue",
+    fontSize: 18,
+    color: Colors.background,
+  },
+  prGroupHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+    gap: 6,
+  },
+  prGroupTitle: {
+    fontFamily: "DMSans-Bold",
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: Colors.pr,
+  },
   prsList: {
-    gap: 10,
+    gap: 8,
   },
   prCard: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: Colors.elevated,
     borderRadius: 14,
-    padding: 14,
-    borderWidth: 0.5,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: `${Colors.pr}22`,
+  },
+  prCardEstimated: {
+    borderColor: `${Colors.primary}22`,
+  },
+  prRankBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 7,
+    backgroundColor: Colors.card,
+    borderWidth: 1,
     borderColor: Colors.border,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+  },
+  prRankGold: {
+    backgroundColor: `${Colors.pr}20`,
+    borderColor: `${Colors.pr}60`,
+  },
+  prRankSilver: {
+    backgroundColor: "rgba(192,192,192,0.12)",
+    borderColor: "rgba(192,192,192,0.35)",
+  },
+  prRankBronze: {
+    backgroundColor: "rgba(205,127,50,0.12)",
+    borderColor: "rgba(205,127,50,0.35)",
+  },
+  prRankGreen: {
+    backgroundColor: `${Colors.primary}20`,
+    borderColor: `${Colors.primary}40`,
+  },
+  prRankText: {
+    fontFamily: "BebasNeue",
+    fontSize: 13,
+    color: Colors.textSecondary,
+  },
+  prRankTextGold: {
+    color: Colors.pr,
   },
   prIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: `${Colors.pr}1A`,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1619,15 +1856,229 @@ const styles = StyleSheet.create({
   prType: {
     fontFamily: "DMSans-Regular",
     fontSize: 11,
-    fontWeight: "300",
     color: Colors.textSecondary,
     marginTop: 2,
+  },
+  prCardEnhanced: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.elevated,
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: `${Colors.pr}22`,
+  },
+  prCardLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  prCardContent: {
+    flex: 1,
+    marginRight: 12,
+  },
+  prDateBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: Colors.card,
+    borderRadius: 6,
+    alignSelf: "flex-start",
+  },
+  prDateText: {
+    fontFamily: "DMSans-Medium",
+    fontSize: 10,
+    color: Colors.textTertiary,
+  },
+  prValueWrap: {
+    alignItems: "flex-end",
   },
   prValue: {
     fontFamily: "BebasNeue",
     fontSize: 22,
-    fontWeight: "800",
+    color: Colors.pr,
+  },
+  prValueUnit: {
+    fontFamily: "DMSans-Regular",
+    fontSize: 11,
+    color: Colors.pr,
+    marginTop: -2,
+  },
+  prCardClean: {
+    backgroundColor: Colors.elevated,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: `${Colors.pr}22`,
+  },
+  prCardCleanEstimated: {
+    borderColor: `${Colors.primary}22`,
+  },
+  prCardCleanHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  prRankMini: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: Colors.card,
+    marginRight: 10,
+  },
+  prRankMiniText: {
+    fontFamily: "DMSans-Bold",
+    fontSize: 11,
+    color: Colors.textSecondary,
+  },
+  prRankGoldText: {
+    color: Colors.pr,
+  },
+  prRankGreenText: {
     color: Colors.primary,
+  },
+  prExerciseNameClean: {
+    fontFamily: "DMSans-SemiBold",
+    fontSize: 15,
+    color: Colors.textPrimary,
+    flex: 1,
+  },
+  prCardCleanMeta: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  prCardCleanTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: `${Colors.pr}15`,
+    borderRadius: 6,
+  },
+  prCardCleanTagText: {
+    fontFamily: "DMSans-Medium",
+    fontSize: 10,
+    color: Colors.pr,
+  },
+  prCardCleanTagGreen: {
+    backgroundColor: `${Colors.primary}15`,
+  },
+  prCardCleanTagGreenText: {
+    color: Colors.primary,
+  },
+  prCardCleanDate: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  prCardCleanDateText: {
+    fontFamily: "DMSans-Regular",
+    fontSize: 11,
+    color: Colors.textTertiary,
+  },
+  prCardCleanValue: {
+    alignItems: "flex-end",
+  },
+  prValueClean: {
+    fontFamily: "BebasNeue",
+    fontSize: 28,
+    color: Colors.pr,
+  },
+  prUnitClean: {
+    fontFamily: "DMSans-Regular",
+    fontSize: 12,
+    color: Colors.pr,
+  },
+  prValueCleanGreen: {
+    color: Colors.primary,
+  },
+  prUnitCleanGreen: {
+    color: Colors.primaryBright,
+  },
+  accordionSection: {
+    marginBottom: 12,
+  },
+  accordionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: Colors.elevated,
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  accordionHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  accordionTitle: {
+    fontFamily: "ArchivoBlack",
+    fontSize: 14,
+    color: Colors.pr,
+    marginLeft: 10,
+  },
+  accordionBadge: {
+    marginLeft: 10,
+    backgroundColor: `${Colors.pr}20`,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  accordionBadgeText: {
+    fontFamily: "DMSans-Bold",
+    fontSize: 11,
+    color: Colors.pr,
+  },
+  accordionBadgeGreen: {
+    backgroundColor: `${Colors.primary}20`,
+  },
+  accordionBadgeGreenText: {
+    color: Colors.primary,
+  },
+  accordionContent: {
+    backgroundColor: Colors.card,
+    borderRadius: 14,
+    marginTop: 8,
+    padding: 12,
+  },
+  prModalCard: {
+    backgroundColor: Colors.elevated,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: `${Colors.pr}22`,
+  },
+  prModalCardGreen: {
+    borderColor: `${Colors.primary}22`,
+  },
+  prModalCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  prModalCardMeta: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  prEmptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: `${Colors.pr}15`,
+    borderWidth: 1,
+    borderColor: `${Colors.pr}33`,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
   },
 
   // Modal Design
