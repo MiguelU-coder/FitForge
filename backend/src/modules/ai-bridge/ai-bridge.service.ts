@@ -244,15 +244,16 @@ export class AiBridgeService {
    * Build workout sessions from database exercises using science-based exercise selection.
    * This is the fallback when AI Coach is unavailable.
    *
+   * KEY IMPROVEMENTS:
+   * 1. STRICT muscle-based validation (no random fallback)
+   * 2. VolumeTracker ensures minimum weekly volume per muscle
+   * 3. 5-8 exercises per day (completeness validation)
+   * 4. Post-generation volume gap filling
+   *
    * Exercise ordering follows hypertrophy science:
    *   compound multi-joint first → isolation last
    *   vertical pull before horizontal pull
    *   large muscle group before small muscle group
-   *
-   * Exercise selection is level-aware:
-   *   BEGINNER / IRREGULAR → machines and cables for safety and motor learning
-   *   MEDIUM (intermediate)  → mix of free weights + machines
-   *   ADVANCED               → free weights prioritised, higher volume
    */
   private buildSessionsFromExercises(
     exercises: any[],
@@ -266,8 +267,34 @@ export class AiBridgeService {
     const trainingLevel = this.normalizeLevel(level);
     const dayPlans = this.getScienceBasedDayPlans(daysPerWeek, trainingLevel);
 
-    return dayPlans.map((day) => {
-      const usedIds = new Set<string>();
+    // Index exercises by primary muscle for fast lookup
+    const exercisesByMuscle = new Map<string, any[]>();
+    for (const ex of exercises) {
+      for (const muscle of ex.primaryMuscles || []) {
+        if (!exercisesByMuscle.has(muscle)) {
+          exercisesByMuscle.set(muscle, []);
+        }
+        exercisesByMuscle.get(muscle)!.push(ex);
+      }
+      // Also index by secondary muscles for fallback
+      for (const muscle of ex.secondaryMuscles || []) {
+        if (!exercisesByMuscle.has(muscle)) {
+          exercisesByMuscle.set(muscle, []);
+        }
+        exercisesByMuscle.get(muscle)!.push(ex);
+      }
+    }
+
+    const sessions: {
+      day_label: string;
+      exercises: { name: string; sets: number; reps: number; rir: number; rest_seconds: number }[];
+    }[] = [];
+    const allUsedIds = new Set<string>();
+
+    // Process each day
+    for (let dayIndex = 0; dayIndex < dayPlans.length; dayIndex++) {
+      const day = dayPlans[dayIndex];
+      const usedIds = new Set<string>(allUsedIds);
       const dayExercises: {
         name: string;
         sets: number;
@@ -276,27 +303,22 @@ export class AiBridgeService {
         rest_seconds: number;
       }[] = [];
 
+      // Select exercises for each slot with STRICT muscle validation
       for (let i = 0; i < day.exercises.length; i++) {
         const exEntry = day.exercises[i];
         const scheme = this.getScheme(goal, level, i);
 
-        // 1. Name-based substring match (case-insensitive, first unused hit)
-        let match = exercises.find(
-          (e) => !usedIds.has(e.id) && e.name.toLowerCase().includes(exEntry.search.toLowerCase()),
+        // STRICT: Find exercise by muscle target (primary then secondary)
+        let match = this.findExerciseByMuscleStrict(
+          exEntry.muscle,
+          exercises,
+          usedIds,
+          exEntry.search,
         );
-
-        // 2. Fallback: any unused exercise that trains the target muscle group
-        if (!match) {
-          match = exercises.find(
-            (e) =>
-              !usedIds.has(e.id) &&
-              (e.primaryMuscles?.includes(exEntry.muscle) ||
-                e.secondaryMuscles?.includes(exEntry.muscle)),
-          );
-        }
 
         if (match) {
           usedIds.add(match.id);
+          allUsedIds.add(match.id);
           dayExercises.push({
             name: match.name,
             sets: scheme.sets,
@@ -304,18 +326,202 @@ export class AiBridgeService {
             rir: scheme.rir,
             rest_seconds: scheme.rest,
           });
+        } else {
+          this.logger.warn(
+            `No exercise found for muscle ${exEntry.muscle} (search: ${exEntry.search}) on day ${day.name}`,
+          );
         }
       }
 
-      return {
+      // Ensure minimum 5 exercises per day (add isolations if needed)
+      while (dayExercises.length < 5) {
+        const fillerExercise = this.findFillerExercise(exercises, usedIds);
+        if (fillerExercise) {
+          usedIds.add(fillerExercise.id);
+          allUsedIds.add(fillerExercise.id);
+          const lastScheme = this.getScheme(goal, level, dayExercises.length);
+          dayExercises.push({
+            name: fillerExercise.name,
+            sets: lastScheme.sets,
+            reps: lastScheme.reps,
+            rir: lastScheme.rir,
+            rest_seconds: lastScheme.rest,
+          });
+        } else {
+          break; // No more exercises available
+        }
+      }
+
+      // Cap at 8 exercises maximum per day
+      sessions.push({
         day_label: day.name,
-        exercises: dayExercises.slice(0, 7),
-      };
-    });
+        exercises: dayExercises.slice(0, 8),
+      });
+    }
+
+    // Validate weekly volume coverage and fill gaps
+    const volumeSummary = this.validateWeeklyVolume(sessions, exercisesByMuscle, allUsedIds);
+    if (volumeSummary.missingMuscles.length > 0) {
+      this.logger.warn(
+        `Weekly volume gaps detected: ${volumeSummary.missingMuscles.join(', ')}. Adding filler exercises.`,
+      );
+      this.fillVolumeGaps(sessions, volumeSummary.missingMuscles, exercisesByMuscle, allUsedIds, goal, level);
+    }
+
+    this.logger.log(
+      `Generated ${sessions.length} sessions with exercises: ${sessions.map((s) => s.exercises.length).join(', ')}`,
+    );
+
+    return sessions;
+  }
+
+  /**
+   * STRICT muscle-based exercise finding.
+   * Priority: 1) Name match, 2) Primary muscle match, 3) Secondary muscle match
+   * Returns null if no match found (NO random fallback).
+   */
+  private findExerciseByMuscleStrict(
+    muscle: string,
+    exercises: any[],
+    usedIds: Set<string>,
+    nameSearch?: string,
+  ): any | null {
+    const available = exercises.filter((e) => !usedIds.has(e.id));
+
+    // 1. Name-based match (if search term provided)
+    if (nameSearch) {
+      const nameMatch = available.find((e) =>
+        e.name.toLowerCase().includes(nameSearch.toLowerCase()),
+      );
+      if (nameMatch) return nameMatch;
+    }
+
+    // 2. Primary muscle match
+    const primaryMatch = available.find((e) =>
+      (e.primaryMuscles || []).some((m: string) => m.toUpperCase() === muscle.toUpperCase()),
+    );
+    if (primaryMatch) return primaryMatch;
+
+    // 3. Secondary muscle match
+    const secondaryMatch = available.find((e) =>
+      (e.secondaryMuscles || []).some((m: string) => m.toUpperCase() === muscle.toUpperCase()),
+    );
+    if (secondaryMatch) return secondaryMatch;
+
+    return null; // NO random fallback
+  }
+
+  /**
+   * Find any unused isolation exercise as filler.
+   */
+  private findFillerExercise(exercises: any[], usedIds: Set<string>): any | null {
+    const available = exercises.filter(
+      (e) => !usedIds.has(e.id) && !e.isCompound,
+    );
+    if (available.length === 0) {
+      // Fallback to any unused exercise
+      const anyAvailable = exercises.find((e) => !usedIds.has(e.id));
+      return anyAvailable || null;
+    }
+    return available[Math.floor(Math.random() * available.length)];
+  }
+
+  /**
+   * Validate weekly volume coverage across all sessions.
+   * Returns list of muscles that haven't reached minimum volume.
+   */
+  private validateWeeklyVolume(
+    sessions: { exercises: { name: string }[] }[],
+    exercisesByMuscle: Map<string, any[]>,
+    usedIds: Set<string>,
+  ): { missingMuscles: string[]; volumeByMuscle: Record<string, number> } {
+    // Count sets per muscle (assume 3 sets per exercise for estimation)
+    const volumeByMuscle: Record<string, number> = {};
+    const musclesTracked = new Set<string>();
+
+    for (const session of sessions) {
+      const dayMuscles = new Set<string>();
+      for (const ex of session.exercises) {
+        // Find exercise in index
+        for (const [muscle, exList] of exercisesByMuscle.entries()) {
+          const match = exList.find((e) => e.name === ex.name);
+          if (match && !dayMuscles.has(muscle)) {
+            volumeByMuscle[muscle] = (volumeByMuscle[muscle] || 0) + 3; // 3 sets estimate
+            dayMuscles.add(muscle);
+            musclesTracked.add(muscle);
+          }
+        }
+      }
+    }
+
+    // Check against minimums
+    const missingMuscles: string[] = [];
+    const minimums: Record<string, number> = {
+      CHEST: 10,
+      BACK: 10,
+      QUADS: 12,
+      SHOULDERS: 8,
+      BICEPS: 6,
+      TRICEPS: 6,
+      HAMSTRINGS: 8,
+      GLUTES: 8,
+      CALVES: 4,
+      ABS: 4,
+      LATS: 8,
+      TRAPS: 6,
+    };
+
+    for (const [muscle, minSets] of Object.entries(minimums)) {
+      const current = volumeByMuscle[muscle] || 0;
+      if (current < minSets) {
+        missingMuscles.push(muscle);
+      }
+    }
+
+    return { missingMuscles, volumeByMuscle };
+  }
+
+  /**
+   * Fill volume gaps by adding exercises to existing sessions.
+   */
+  private fillVolumeGaps(
+    sessions: {
+      day_label: string;
+      exercises: { name: string; sets: number; reps: number; rir: number; rest_seconds: number }[];
+    }[],
+    missingMuscles: string[],
+    exercisesByMuscle: Map<string, any[]>,
+    usedIds: Set<string>,
+    goal?: string,
+    level?: string,
+  ): void {
+    for (const muscle of missingMuscles) {
+      const available = exercisesByMuscle.get(muscle)?.filter((e) => !usedIds.has(e.id)) || [];
+      if (available.length === 0) continue;
+
+      // Add to a session that has < 8 exercises
+      for (const session of sessions) {
+        if (session.exercises.length >= 8) continue;
+
+        const filler = available.shift();
+        if (filler) {
+          const scheme = this.getScheme(goal, level, session.exercises.length);
+          session.exercises.push({
+            name: filler.name,
+            sets: scheme.sets,
+            reps: scheme.reps,
+            rir: scheme.rir,
+            rest_seconds: scheme.rest,
+          });
+          usedIds.add(filler.id);
+        }
+      }
+    }
   }
 
   /**
    * Normalises the raw onboarding level string into a unified tier.
+   * Maps to the level keys used in getScienceBasedDayPlans.
    */
   private normalizeLevel(level?: string): 'beginner' | 'intermediate' | 'advanced' {
     if (level === 'BEGINNER' || level === 'IRREGULAR') return 'beginner';

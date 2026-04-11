@@ -70,6 +70,7 @@ export function parseExercisesPage(json: Record<string, unknown>): ExercisesPage
 export const MUSCLE_GROUPS = [
   'CHEST', 'BACK', 'SHOULDERS', 'BICEPS', 'TRICEPS',
   'QUADS', 'HAMSTRINGS', 'GLUTES', 'CALVES', 'ABS',
+  'LATS', 'TRAPS', 'CORE', 'FOREARMS', 'HIP_FLEXORS',
 ] as const;
 
 export const EQUIPMENT_LIST = [

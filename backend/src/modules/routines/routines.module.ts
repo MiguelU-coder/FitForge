@@ -169,14 +169,18 @@ export class RoutinesService {
       }> = [];
 
       for (const [slotIndex, slot] of day.slots.entries()) {
+        // Determine target muscle: use muscleTarget if specified, otherwise derive from movement pattern
+        const targetMuscle = slot.muscleTarget || this.getPrimaryMuscleForPattern(slot.movementPattern);
+
         const exerciseId = this.exerciseSelectionService.selectExerciseForSlot(
           slot,
           exercisesMeta,
           usedExerciseIds,
+          targetMuscle,
         );
 
         if (!exerciseId) {
-          this.logger.warn(`No exercise found for slot ${slotIndex} in ${day.dayName}`);
+          this.logger.warn(`No exercise found for slot ${slotIndex} (${targetMuscle}) in ${day.dayName}`);
           continue;
         }
 
@@ -244,6 +248,25 @@ export class RoutinesService {
         weeks: phase.weeks,
       },
     };
+  }
+
+  /**
+   * Get primary muscle group for a movement pattern.
+   * Used as fallback when slot.muscleTarget is not specified.
+   */
+  private getPrimaryMuscleForPattern(pattern: string | null): string {
+    const muscleMap: Record<string, string> = {
+      SQUAT: 'QUADS',
+      HINGE: 'HAMSTRINGS',
+      PUSH_HORIZONTAL: 'CHEST',
+      PUSH_VERTICAL: 'SHOULDERS',
+      PULL_HORIZONTAL: 'BACK',
+      PULL_VERTICAL: 'LATS',
+      LUNGE: 'QUADS',
+      CORE: 'ABS',
+      CARRY: 'ABS',
+    };
+    return pattern ? muscleMap[pattern] || 'CHEST' : 'CHEST';
   }
 
   private async createPlaceholderProgram(

@@ -102,8 +102,44 @@ export const REST_SECONDS = {
 
 // ─── Split definitions ───────────────────────────────────────────────────────
 
-const FULL_BODY_SPLIT: SplitConfig = {
-  splitName: 'FULL_BODY',
+/**
+ * Full Body 2-day split for IRREGULAR users (minimal frequency).
+ * A/B rotation ensures full body coverage across the week.
+ */
+const FULL_BODY_2DAY_SPLIT: SplitConfig = {
+  splitName: 'FULL_BODY_2DAY',
+  daysPerWeek: 2,
+  rotationMode: 'AB',
+  days: [
+    {
+      dayName: 'Day A',
+      focus: 'Full Body — Squat + Push/Pull Horizontal',
+      slots: [
+        { movementPattern: 'SQUAT', sets: 3, repsMin: 8, repsMax: 8, isHeavy: true, restSeconds: REST_SECONDS.BEGINNER, notes: 'Main compound' },
+        { movementPattern: 'PUSH_HORIZONTAL', sets: 3, repsMin: 8, repsMax: 8, restSeconds: REST_SECONDS.BEGINNER, notes: 'Main compound' },
+        { movementPattern: 'PULL_HORIZONTAL', sets: 3, repsMin: 10, repsMax: 10, restSeconds: REST_SECONDS.BEGINNER },
+        { movementPattern: 'CORE', sets: 3, repsMin: 30, repsMax: 30, isCoreOrCardio: true, restSeconds: REST_SECONDS.ISOLATION_SHORT, notes: '30s hold' },
+      ],
+    },
+    {
+      dayName: 'Day B',
+      focus: 'Full Body — Hinge + Push/Pull Vertical',
+      slots: [
+        { movementPattern: 'HINGE', sets: 3, repsMin: 8, repsMax: 8, isHeavy: true, restSeconds: REST_SECONDS.BEGINNER, notes: 'Main compound' },
+        { movementPattern: 'PUSH_VERTICAL', sets: 3, repsMin: 10, repsMax: 10, restSeconds: REST_SECONDS.BEGINNER },
+        { movementPattern: 'PULL_VERTICAL', sets: 3, repsMin: 10, repsMax: 10, restSeconds: REST_SECONDS.BEGINNER },
+        { movementPattern: null, muscleTarget: 'bicep', sets: 2, repsMin: 12, repsMax: 12, restSeconds: REST_SECONDS.ISOLATION_SHORT },
+      ],
+    },
+  ],
+};
+
+/**
+ * Full Body 3-day split for BEGINNER users (optimal frequency for novices).
+ * A/B/A rotation provides balanced stimulus with recovery.
+ */
+const FULL_BODY_3DAY_SPLIT: SplitConfig = {
+  splitName: 'FULL_BODY_3DAY',
   daysPerWeek: 3,
   rotationMode: 'AB',
   days: [
@@ -129,6 +165,10 @@ const FULL_BODY_SPLIT: SplitConfig = {
   ],
 };
 
+/**
+ * Upper/Lower 4-day split for MEDIUM (intermediate) users.
+ * Provides higher frequency and volume for continued progress.
+ */
 const UPPER_LOWER_SPLIT: SplitConfig = {
   splitName: 'UPPER_LOWER',
   daysPerWeek: 4,
@@ -138,10 +178,10 @@ const UPPER_LOWER_SPLIT: SplitConfig = {
       dayName: 'Upper A',
       focus: 'Upper — Strength',
       slots: [
-        { movementPattern: 'PUSH_HORIZONTAL', sets: 4, repsMin: 6, repsMax: 8, isHeavy: true, restSeconds: REST_SECONDS.IRREGULAR },
-        { movementPattern: 'PULL_HORIZONTAL', sets: 4, repsMin: 6, repsMax: 8, restSeconds: REST_SECONDS.IRREGULAR },
-        { movementPattern: 'PUSH_VERTICAL', sets: 3, repsMin: 8, repsMax: 8, restSeconds: REST_SECONDS.IRREGULAR },
-        { movementPattern: 'PULL_VERTICAL', muscleTarget: 'bicep', sets: 3, repsMin: 10, repsMax: 10, restSeconds: REST_SECONDS.IRREGULAR },
+        { movementPattern: 'PUSH_HORIZONTAL', sets: 4, repsMin: 6, repsMax: 8, isHeavy: true, restSeconds: REST_SECONDS.MEDIUM },
+        { movementPattern: 'PULL_HORIZONTAL', sets: 4, repsMin: 6, repsMax: 8, restSeconds: REST_SECONDS.MEDIUM },
+        { movementPattern: 'PUSH_VERTICAL', sets: 3, repsMin: 8, repsMax: 8, restSeconds: REST_SECONDS.MEDIUM },
+        { movementPattern: 'PULL_VERTICAL', muscleTarget: 'bicep', sets: 3, repsMin: 10, repsMax: 10, restSeconds: REST_SECONDS.MEDIUM },
         { movementPattern: null, muscleTarget: 'tricep', sets: 3, repsMin: 10, repsMax: 10, restSeconds: REST_SECONDS.MEDIUM },
       ],
     },
@@ -149,9 +189,9 @@ const UPPER_LOWER_SPLIT: SplitConfig = {
       dayName: 'Lower A',
       focus: 'Lower — Quad',
       slots: [
-        { movementPattern: 'SQUAT', sets: 4, repsMin: 6, repsMax: 8, isHeavy: true, restSeconds: REST_SECONDS.IRREGULAR },
-        { movementPattern: 'HINGE', muscleTarget: 'leg_curl_rdl', sets: 3, repsMin: 10, repsMax: 10, restSeconds: REST_SECONDS.IRREGULAR },
-        { movementPattern: 'LUNGE', sets: 3, repsMin: 10, repsMax: 10, restSeconds: REST_SECONDS.IRREGULAR },
+        { movementPattern: 'SQUAT', sets: 4, repsMin: 6, repsMax: 8, isHeavy: true, restSeconds: REST_SECONDS.MEDIUM },
+        { movementPattern: 'HINGE', muscleTarget: 'leg_curl_rdl', sets: 3, repsMin: 10, repsMax: 10, restSeconds: REST_SECONDS.MEDIUM },
+        { movementPattern: 'LUNGE', sets: 3, repsMin: 10, repsMax: 10, restSeconds: REST_SECONDS.MEDIUM },
         { movementPattern: null, muscleTarget: 'calf', sets: 4, repsMin: 12, repsMax: 12, restSeconds: REST_SECONDS.ISOLATION_SHORT },
       ],
     },
@@ -159,8 +199,8 @@ const UPPER_LOWER_SPLIT: SplitConfig = {
       dayName: 'Upper B',
       focus: 'Upper — Hypertrophy',
       slots: [
-        { movementPattern: 'PUSH_HORIZONTAL', muscleTarget: 'incline', sets: 3, repsMin: 8, repsMax: 10, restSeconds: REST_SECONDS.IRREGULAR },
-        { movementPattern: 'PULL_VERTICAL', sets: 3, repsMin: 8, repsMax: 10, restSeconds: REST_SECONDS.IRREGULAR },
+        { movementPattern: 'PUSH_HORIZONTAL', muscleTarget: 'incline', sets: 3, repsMin: 8, repsMax: 10, restSeconds: REST_SECONDS.MEDIUM },
+        { movementPattern: 'PULL_VERTICAL', sets: 3, repsMin: 8, repsMax: 10, restSeconds: REST_SECONDS.MEDIUM },
         { movementPattern: 'PUSH_VERTICAL', muscleTarget: 'lateral', sets: 3, repsMin: 15, repsMax: 15, restSeconds: REST_SECONDS.ISOLATION_SHORT },
         { movementPattern: 'PULL_HORIZONTAL', muscleTarget: 'bicep', sets: 3, repsMin: 12, repsMax: 12, restSeconds: REST_SECONDS.ISOLATION_SHORT },
       ],
@@ -169,8 +209,8 @@ const UPPER_LOWER_SPLIT: SplitConfig = {
       dayName: 'Lower B',
       focus: 'Lower — Posterior Chain',
       slots: [
-        { movementPattern: 'HINGE', muscleTarget: 'rdl', sets: 4, repsMin: 8, repsMax: 8, isHeavy: true, restSeconds: REST_SECONDS.IRREGULAR },
-        { movementPattern: 'LUNGE', sets: 3, repsMin: 10, repsMax: 10, restSeconds: REST_SECONDS.IRREGULAR },
+        { movementPattern: 'HINGE', muscleTarget: 'rdl', sets: 4, repsMin: 8, repsMax: 8, isHeavy: true, restSeconds: REST_SECONDS.MEDIUM },
+        { movementPattern: 'LUNGE', sets: 3, repsMin: 10, repsMax: 10, restSeconds: REST_SECONDS.MEDIUM },
         { movementPattern: null, muscleTarget: 'isolation', sets: 3, repsMin: 12, repsMax: 12, restSeconds: REST_SECONDS.ISOLATION_SHORT },
       ],
     },
@@ -295,10 +335,24 @@ const PPL_AB_SPLIT: SplitConfig = {
 
 export type TrainingLevel = 'BEGINNER' | 'IRREGULAR' | 'MEDIUM' | 'ADVANCED';
 
+/**
+ * Days per week by training level - CORRECTED VALUES
+ * - BEGINNER: 3 days (Full Body A/B/A) - optimal for novices
+ * - IRREGULAR: 2 days (Full Body A/B) - minimal effective dose
+ * - MEDIUM: 4 days (Upper/Lower or Push/Pull/Legs/Upper)
+ * - ADVANCED: 5 days (Push/Pull/Legs/Upper/Legs Hypertrophy)
+ */
+export const LEVEL_FREQUENCY: Record<TrainingLevel, number> = {
+  BEGINNER: 3,
+  IRREGULAR: 2,
+  MEDIUM: 4,
+  ADVANCED: 5,
+};
+
 export const LEVEL_SPLIT_MAP: Record<TrainingLevel, SplitConfig> = {
-  BEGINNER: FULL_BODY_SPLIT,
-  IRREGULAR: UPPER_LOWER_SPLIT,
-  MEDIUM: PPL_SPLIT,
+  BEGINNER: FULL_BODY_3DAY_SPLIT,
+  IRREGULAR: FULL_BODY_2DAY_SPLIT,
+  MEDIUM: UPPER_LOWER_SPLIT,
   ADVANCED: PPL_AB_SPLIT,
 };
 
